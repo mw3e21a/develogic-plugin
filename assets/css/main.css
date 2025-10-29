@@ -1,0 +1,457 @@
+/**
+ * Develogic Integration - Main Styles
+ * @package Develogic
+ */
+
+/* ===========================
+   General Styles
+   =========================== */
+.develogic-error {
+    padding: 20px;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    color: #721c24;
+}
+
+.develogic-loading {
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 16px;
+    color: #666;
+}
+
+.develogic-no-results {
+    text-align: center;
+    padding: 40px 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+/* ===========================
+   A1 Layout
+   =========================== */
+.develogic-a1-container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Buildings Panel */
+.develogic-buildings-panel {
+    margin-bottom: 40px;
+}
+
+.develogic-buildings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.develogic-building-card {
+    background: #fff;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.develogic-building-card:hover,
+.develogic-building-card.active {
+    border-color: #0066cc;
+    box-shadow: 0 4px 12px rgba(0,102,204,0.2);
+}
+
+.develogic-building-card .building-thumbnail {
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    background: #f5f5f5;
+}
+
+.develogic-building-card .building-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.develogic-building-card .building-info {
+    padding: 15px;
+}
+
+.develogic-building-card .building-info h3 {
+    margin: 0 0 5px 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.develogic-building-card .building-address {
+    margin: 0;
+    font-size: 14px;
+    color: #666;
+}
+
+/* Header */
+.develogic-a1-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.develogic-counters {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.develogic-counters .counter {
+    font-size: 14px;
+    color: #666;
+}
+
+.develogic-counters .counter strong {
+    font-size: 18px;
+    color: #333;
+}
+
+.develogic-counters .counter-available strong {
+    color: #28a745;
+}
+
+.develogic-counters .counter-reserved strong {
+    color: #ffc107;
+}
+
+.develogic-sorting {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.develogic-sorting label {
+    font-size: 14px;
+    color: #666;
+}
+
+.develogic-sort-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.develogic-sort-direction {
+    padding: 8px 12px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.develogic-sort-direction:hover {
+    background: #f8f9fa;
+}
+
+.develogic-sort-direction .arrow {
+    font-size: 18px;
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.develogic-sort-direction .arrow.down {
+    transform: rotate(180deg);
+}
+
+/* A1 Card */
+.develogic-a1-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.develogic-a1-card {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr 1fr 1.5fr 0.5fr;
+    gap: 20px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.develogic-a1-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.card-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Column 1: Meta */
+.card-meta .building-name {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.card-meta .building-address {
+    display: block;
+    font-size: 11px;
+    color: #999;
+}
+
+.card-meta .local-number {
+    font-size: 20px;
+    font-weight: bold;
+    color: #333;
+    margin: 5px 0;
+}
+
+.card-meta .local-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.local-status.status-available {
+    background: #d4edda;
+    color: #155724;
+}
+
+.local-status.status-reserved {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.local-status.status-sold {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Column 2: Details */
+.card-details {
+    gap: 8px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+}
+
+.detail-label {
+    color: #666;
+}
+
+.detail-value {
+    font-weight: 600;
+    color: #333;
+}
+
+.detail-tags {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 5px;
+}
+
+.detail-tags .tag {
+    padding: 3px 8px;
+    background: #e9ecef;
+    border-radius: 3px;
+    font-size: 11px;
+    color: #495057;
+}
+
+/* Columns 3-4: Images */
+.card-images {
+    flex-direction: row;
+    gap: 10px;
+}
+
+.card-images .image-thumbnail {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.card-images .image-thumbnail img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.card-images .image-thumbnail:hover img {
+    transform: scale(1.05);
+}
+
+.card-images .image-hidden {
+    display: none;
+}
+
+.card-images .image-placeholder {
+    flex: 1;
+    height: 120px;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    color: #999;
+    font-size: 12px;
+}
+
+/* Column 5: Price */
+.card-price {
+    text-align: right;
+}
+
+.price-total {
+    font-size: 22px;
+    font-weight: bold;
+    color: #0066cc;
+    margin-bottom: 5px;
+}
+
+.price-m2 {
+    font-size: 14px;
+    color: #666;
+}
+
+/* Column 6: Actions */
+.card-actions {
+    gap: 10px;
+}
+
+.action-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: #333;
+}
+
+.action-btn:hover {
+    background: #0066cc;
+    border-color: #0066cc;
+    color: #fff;
+}
+
+.action-btn .icon {
+    font-size: 20px;
+}
+
+.action-favorite.active {
+    background: #ffc107;
+    border-color: #ffc107;
+    color: #fff;
+}
+
+/* Print Button */
+.develogic-actions {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.develogic-print-btn {
+    padding: 12px 30px;
+    background: #0066cc;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.develogic-print-btn:hover {
+    background: #0052a3;
+}
+
+/* ===========================
+   Responsive
+   =========================== */
+@media (max-width: 1024px) {
+    .develogic-a1-card {
+        grid-template-columns: 1fr 2fr 2fr;
+        gap: 15px;
+    }
+    
+    .card-images {
+        grid-column: span 3;
+    }
+    
+    .card-price,
+    .card-actions {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 768px) {
+    .develogic-a1-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .develogic-buildings-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    
+    .develogic-a1-card {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-images {
+        grid-column: 1;
+    }
+}
+
+/* ===========================
+   Print Styles
+   =========================== */
+@media print {
+    .develogic-buildings-panel,
+    .develogic-sorting,
+    .card-actions,
+    .develogic-actions {
+        display: none !important;
+    }
+    
+    .develogic-a1-card {
+        page-break-inside: avoid;
+        border: 1px solid #000;
+        margin-bottom: 10px;
+    }
+    
+    .card-images .image-thumbnail {
+        display: none;
+    }
+}
+

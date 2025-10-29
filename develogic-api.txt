@@ -1,0 +1,877 @@
+ul. Bastionowa 19, 61–663 Poznań / NIP 897 17 31 779 / T +61 639 42 98 / biuro@develogic.pl / develogic.pl /
+spółka wpisana do KRS pod nr 0000400896 / Sąd Rejonowy Poznań – Nowe Miasto i Wilda / kapitał zakładowy 490 000,00 zł
+Develogic S.A.
+Feed - API
+Przygotowana przez: Mateusz Dolata
+Wersja: 1.5
+Historia dokumentu
+Wersja dok. Status Data Imię i nazwisko Zmiany w stosunku do poprzedniej wersji
+1.0 zatwierdzony 15.09.2023 Mateusz Dolata
+1.1 zatwierdzony 06.02.2024 Mateusz Dolata Wprowadzenie dodatkowych znaczników dodanych do metod
+1.2 zatwierdzony 03.06.2024 Mateusz Dolata Uwzględnienie cen omnibus lokali
+1.3 zatwierdzony 25.09.2024 Wojciech Foksowicz Uwzględnienie oznaczeń pomieszczeń
+1.4 zatwierdzony 13.03.2025 Wojciech Foksowicz
+Uwzględnienie kierunków świata i miasta (pkt 3)
+Dodanie metody do pobrania listy inwestycji (pkt 6)
+Dodanie metody do pobrania listy typów lokali (pkt 7)
+Dodanie możliwości filtrowania listy lokali po inwestycji lub typie
+lokalu (pkt 8)
+1.5 zatwierdzony 18.08.2025 Mateusz Dolata
+Uwzględnienie cen lokali wynikających z ustawy dot. jawności cen
+(pkt 3)
+Aktualizacja przykładów (pkt 4)
+Dodanie metody do pobrania historii cen lokalu (pkt 5)
+i
+Develogic S.A. Strona 2/21
+Feed - API
+Spis treści
+1 Wstęp ............................................................................................................................................... 3
+2 Konfiguracja .................................................................................................................................... 3
+3 Lista lokali ....................................................................................................................................... 3
+4 Przykłady ......................................................................................................................................... 7
+5 Historia cen.................................................................................................................................... 16
+6 Lista inwestycji.............................................................................................................................. 19
+7 Lista typów lokali .......................................................................................................................... 20
+8 Filtrowanie listy lokali................................................................................................................... 21
+8.1 Filtrowanie po inwestycji ...................................................................................................... 21
+8.2 Filtrowanie po typie lokalu.................................................................................................... 21
+8.3 Filtrowanie po inwestycji i typie lokalu ................................................................................ 21
+i
+Develogic S.A. Strona 3/21
+Feed - API
+1 Wstęp
+Niniejszy dokument zawiera podstawowe informacje na temat API modułu sprzedażowego. Moduł
+FiS umożliwia pobieranie za pomocą API danych o lokalach i umieszczanie pobranych informacji na
+stronie internetowej danej inwestycji.
+2 Konfiguracja
+API przy wywołaniu zwraca pełną listę lokali z modułu sprzedażowego.
+Udostępnienie API wymaga prac konfiguracyjnych po stronie konsultanta Develogic:
+• Ustalenia listy zaufanych IP z których będzie można wywoływać API
+• Przekazanie danych dostępowych klientowi
+o Adres API
+o ApiKey
+• Odblokowanie API a w pliku web.config (administrator Develogic) oraz ustawieniach GS
+(konsultant Develogic)
+3 Lista lokali
+Metoda:
+GET /api/fis/v1/feed/locals
+Ceny omnibus wyliczane są za pomocą schedulera w systemie, który sprawdza, na podstawie
+cenników i historii cen, najniższą cenę z ostatnich 30 dni:
+- Cena omnibus netto: minimum z cen ofertowych/promocyjnych/wg powierzchni użytkowej/za
+m2/za całość netto,
+- Cena omnibus brutto: minimum z cen ofertowych/promocyjnych/wg powierzchni użytkowej/za
+m2/za całość brutto,
+- Cena pakietowa omnibus netto: minimum z ceny pakietowej netto i pakietowej promocyjnej
+netto, a jeśli nie istnieją, to minimum z ceny ofertowej i promocyjnej lokalu netto. Analogicznie
+dla ceny omnibus pakietowej za m2 netto i wg powierzchni użytkowej,
+i
+Develogic S.A. Strona 4/21
+Feed - API
+- Cena pakietowa omnibus brutto: minimum z ceny pakietowej brutto i pakietowej promocyjnej
+brutto, a jeśli nie istnieją, to minimum z ceny ofertowej i promocyjnej lokalu brutto
+Analogicznie dla ceny omnibus pakietowej za m2 brutto i wg powierzchni użytkowej,
+Request:
+• ApiKey – klucz autoryzacyjny uzyskany od konsultanta Develogic
+Response:
+Nazwa atrybutu Opis atrybutu
+localId ID lokalu
+subdivisionId ID inwestycji
+subdivision Nazwa inwestycji
+city Miasto
+stageId ID etapu
+stage Nazwa etapu
+name Nazwa lokalu
+numer Numer lokalu
+status Status lokalu
+statusId Id statusu lokalu
+floor Piętro
+rooms Liczba pokoi
+mezzanineRooms Liczba pomieszczeń na antresoli
+area Powierzchnia umowna lokalu
+areaBalcony Powierzchnia umowna balkonu
+areaBalcony2 Powierzchnia umowna balkonu 2
+areaLoggia Powierzchnia umowna loggia
+areaTerrace Powierzchnia umowna tarasu
+areaGarden Powierzchnia umowna ogródka
+areaGround Powierzchnia umowna gruntu
+areaProduct Powierzchnia umowna
+areaOther Powierzchnia umowna inna
+areaUsable Powierzchnia umowna użytkowa
+areaGroundFinal Powierzchnia końcowa gruntu
+areaProductFinal Powierzchnia końcowa
+areaBalconyFinal Powierzchnia końcowa balkonu
+areaBalcony2Final Powierzchnia końcowa balkonu 2
+areaTerraceFinal Powierzchnia końcowa tarasu
+arreaLoggiaFinal Powierzchnia końcowa loggia
+areaOtherFinal Powierzchnia końcowa inna
+i
+Develogic S.A. Strona 5/21
+Feed - API
+areaUsableFinal Powierzchnia końcowa użytkowa
+areaGardenFinal Powierzchnia końcowa ogródka
+priceNet Cena ofertowa lokalu netto
+priceGross Cena ofertowa lokalu brutto
+priceNetm2 Cena ofertowa lokalu netto za m2
+priceGrossm2 Cena ofertowa lokalu brutto za m2
+omnibusPriceGross Cena omnibus lokalu brutto
+omnibusPriceNet Cena omnibus lokalu netto
+omnibusPackagePriceNet Cena pakietowa omnibus lokalu netto
+omnibusPackagePriceGross Cena pakietowa omnibus lokalu brutto
+omnibusPackagePriceNetm2 Cena pakietowa omnibus lokalu netto za m2
+omnibusPackagePriceGrossm2 Cena pakietowa omnibus lokalu brutto za m2
+omnibusPackagePriceUsableAreaNetm2 Cena pakietowa omnibus lokalu netto za m2 według
+powierzchni użytkowej
+omnibusPackagePriceUsableAreaGrossm2 Cena pakietowa omnibus lokalu brutto za m2 według
+powierzchni użytkowej
+omnibusPriceUsableAreaNetm2 Cena omnibus lokalu netto za m2 według powierzchni
+użytkowej
+omnibusPriceUsableAreaGrossm2 Cena omnibus lokalu brutto za m2 według
+powierzchni użytkowej
+averageOmnibusPriceGrossm2 Uśredniona cena omnibus lokalu brutto za m2
+averageOmnibusPriceUsableAreaGrossm2 Uśredniona cena omnibus lokalu brutto za m2 według
+powierzchni użytkowej
+buildingId ID budynku
+building Nazwa budynku
+maxDiscountGross Maksymalny rabat brutto
+maxDiscountPercent Maksymalny rabat %
+plannedDateOfFinishing Data planowanego zakończenia inwestycji
+localTypeId ID typu lokalu
+localType Typ lokalu
+local_URL Zewnętrzny link
+externalNumber Numer zewnętrzny
+promoPriceNet Cena promocyjna netto
+promoPriceGross Cena promocyjna brutto
+promoPriceNetm2 Cena promocyjna netto za m2
+promoPriceGrossm2 Cena promocyjna brutto za m2
+projections Rzuty lokali
+miscAreas Tablica powierzchni umownych oraz końcowych
+pomieszczeń lokalu wraz z oznaczeniem pomieszczeń
+attributes Cechy lokalu
+packagePriceGross Cena pakietowa brutto (jeśli nie istnieje to brana jest
+cena ofertowa brutto)
+i
+Develogic S.A. Strona 6/21
+Feed - API
+packagePriceNet Cena pakietowa netto (jeśli nie istnieje, to brana jest
+cena ofertowa netto)
+packagePriceGrossm2 Cena pakietowa brutto za m2 (jeśli nie istnieje, to
+brana jest cena ofertowa brutto za m2)
+PackagePriceNetm2 Cena pakietowa netto za m2 (jeśli nie istnieje, to brana
+jest cena ofertowa netto za m2)
+packagePriceUsableAreaNetm2 Cena pakietowa netto za m2 według powierzchni
+użytkowej (jeśli nie istnieje, to brana jest cena
+ofertowa lokalu netto za m2 według powierzchni
+użytkowej)
+packagePriceUsableAreaGrossm2 Cena pakietowa brutto za m2 według powierzchni
+użytkowej (jeśli nie istnieje, to brana jest cena
+ofertowa lokalu brutto za m2 według powierzchni
+użytkowej)
+packagePromoPriceNet Cena pakietowa promocyjna netto (jeśli nie istnieje, to
+brana jest cena pakietowa netto, a jeśli ona nie istnieje,
+to brana jest cena promocyjna netto, a jeśli ona nie
+istnieje, to brana jest cena ofertowa netto)
+packagePromoPriceGross Cena pakietowa promocyjna brutto (jeśli nie istnieje,
+to brana jest cena pakietowa brutto, a jeśli ona nie
+istnieje, to brana jest cena promocyjna brutto, a jeśli
+ona nie istnieje, to brana jest cena ofertowa brutto)
+packagePromoPriceNetm2 Cena pakietowa promocyjna netto za m2 (jeśli nie
+istnieje, to brana jest cena pakietowa netto za m2, a
+jeśli ona nie istnieje, to brana jest cena promocyjna
+netto za m2, a jeśli ona nie istnieje, to brana jest cena
+ofertowa netto za m2)
+packagePromoPriceGrossm2 Cena pakietowa promocyjna brutto za m2 (jeśli nie
+istnieje, to brana jest cena pakietowa brutto za m2, a
+jeśli ona nie istnieje, to brana jest cena promocyjna
+brutto za m2, a jeśli ona nie istnieje, to brana jest cena
+ofertowa brutto za m2)
+packagePromoPriceUsableAreaNetm2 Cena pakietowa promocyjna netto za m2 według
+powierzchni użytkowej (jeśli nie istnieje, to brana jest
+cena pakietowa netto za m2 według powierzchni
+użytkowej, a jeśli ona nie istnieje, to brana jest cena
+promocyjna lokalu netto za m2 według powierzchni
+użytkowej, a jeśli ona nie istnieje, to brana jest cena
+ofertowa lokalu netto za m2 według powierzchni
+użytkowej)
+packagePromoPriceUsableAreaGrossm2 Cena pakietowa promocyjna brutto za m2 według
+powierzchni użytkowej (jeśli nie istnieje, to brana jest
+cena pakietowa brutto za m2 według powierzchni
+użytkowej, a jeśli ona nie istnieje, to brana jest cena
+promocyjna lokalu brutto za m2 według powierzchni
+użytkowej, a jeśli ona nie istnieje, to brana jest cena
+ofertowa lokalu brutto za m2 według powierzchni
+użytkowej)
+i
+Develogic S.A. Strona 7/21
+Feed - API
+worldDirections Tablica kierunków świata [N, E, S, W, NE, NW, SE,
+SW]
+omnibusPriceGrossm2 Cena omnibus lokalu brutto za m2
+omnibusPriceNetm2 Cena omnibus lokalu netto za m2
+averagePriceGrossm2 Uśredniona cena lokalu brutto za m2
+averagePromoPriceGrossm2 Uśredniona cena promocyjna lokalu za m2
+offerPriceUsableAreaNetm2 Cena ofertowa lokalu netto za m2 według powierzchni
+użytkowej
+offerPriceUsableAreaGrossm2 Cena ofertowa lokalu brutto za m2 według
+powierzchni użytkowej
+promoPriceUsableAreaNetm2 Cena promocyjna lokalu netto za m2 według
+powierzchni użytkowej (jeśli nie istnieje, to brana jest
+cena ofertowa lokalu netto za m2 według powierzchni
+użytkowej)
+promoPriceUsableAreaGrossm2 Cena promocyjna lokalu brutto za m2 według
+powierzchni użytkowej (jeśli nie istnieje, to brana jest
+cena ofertowa lokalu brutto za m2 według
+powierzchni użytkowej)
+packages Obiekt zawierający lokale w pakiecie – tablica lokali
+w pakiecie – poniżej atrybuty
+Nazwa atrybutu Opis atrybutu
+localId ID lokalu przynależnego
+name Nazwa lokalu przynależnego
+number Numer lokalu przynależnego
+localType Typ lokalu przynależnego
+copyVAT Kopiowanie VAT z lokalu głównego
+inPackage Udział w cenie pakietu lokalu głównego
+affiliation Przynależność do lokalu głównego
+priceNet Cena ofertowa netto lokalu przynależnego
+priceGross Cena ofertowa brutto lokalu przynależnego
+promoPriceNet Cena promocyjna netto lokalu przynależnego
+promoPriceGross Cena promocyjna brutto lokalu przynależnego
+4 Przykłady
+JSON (Przykład 1)
+Request:
+i
+Develogic S.A. Strona 8/21
+Feed - API
+GET /api/fis/v1/feed/locals
+Response:
+{
+"localId": 42213,
+"subdivisionId": 3118,
+"subdivision": "Inwestycja Jesień",
+"city": "Poznań",
+"stageId": 1026,
+"stage": "Etap 1",
+"name": "KM/13/10/2022/M",
+"number": "KM/13/10/2022/M",
+"statusId": 3,
+"status": "Sprzedany",
+"floor": "0",
+"rooms": 3,
+"area": 55,
+"areaProduct": 55,
+"priceNet": 522500,
+"priceGross": 564300,
+"priceNetm2": 9500,
+"priceGrossm2": 10260,
+"omnibusPriceGross": 564300,
+"omnibusPriceNet": 522500,
+"omnibusPackagePriceNet": 522500,
+"omnibusPackagePriceGross": 564300,
+"omnibusPackagePriceNetm2": 9500,
+"averageOmnibusPriceGrossm2": 10260,
+"buildingId": 66,
+"building": "Budynek A",
+"maxDiscountGross": 11286,
+"maxDiscountPercent": 2,
+"plannedDateOfFinishing": "2024-10-01T00:00:00",
+"localTypeId": 18,
+"localType": "Mieszkanie",
+"projections": [
+{
+"uri": "http://ib25.wfdev.exant.local/api/fis/v1/feed/projection/5277",
+"type": "Aranżacyjny",
+"displayUrl": "http://panelklienta25.wfdev.exant.local:80/247-karta-
+lokalu?projection=_DJuuzLyXndUc93EGwK0UQ"
+},
+{
+"uri": "http://ib25.wfdev.exant.local/api/fis/v1/feed/projection/3",
+"type": "Położenie na kondygnacji",
+"displayUrl": "http://panelklienta25.wfdev.exant.local:80/247-karta-lokalu?projection=i8Hj-
+0q1Jyy3btBTi9rNbg"
+},
+i
+Develogic S.A. Strona 9/21
+Feed - API
+{
+"uri": "http://ib25.wfdev.exant.local/api/fis/v1/feed/projection/3",
+"type": "Rzuty budynku",
+"displayUrl": "http://panelklienta25.wfdev.exant.local:80/247-karta-lokalu?projection=i8Hj-
+0q1Jyy3btBTi9rNbg"
+}
+],
+"miscAreas": [
+{
+"name": "Pokój1",
+"contractualArea": 14.7
+},
+{
+"name": "Pokój2",
+"contractualArea": 11.2
+},
+{
+"name": "Pokój3",
+"contractualArea": 10.8
+},
+{
+"name": "Kuchnia",
+"contractualArea": 5.76
+},
+{
+"name": "Łazienka 1",
+"contractualArea": 4.21
+},
+{
+"name": "Komunikacja 1",
+"contractualArea": 5.67
+},
+{
+"name": "Toaleta (WC) 1",
+"contractualArea": 2.76
+}
+],
+"attributes": [
+{
+"name": "aneks"
+},
+{
+"name": "antresola"
+},
+{
+"name": "jasna kuchnia"
+},
+{
+"name": "ogród"
+},
+{
+i
+Develogic S.A. Strona 10/21
+Feed - API
+"name": "osobne wc"
+}
+],
+"packagePriceGross": 564300,
+"packagePriceNet": 522500,
+"packagePriceGrossm2": 10260,
+"PackagePriceNetm2": 9500,
+"packagePromoPriceNet": 522500,
+"packagePromoPriceGross": 564300,
+"packagePromoPriceNetm2": 9500,
+"packagePromoPriceGrossm2": 10260,
+"worldDirections": "S, E, NE, NW",
+"omnibusPriceGrossm2": 10260,
+"omnibusPriceNetm2": 9500,
+"packages": [
+{
+"localId": 42214,
+"name": "KM/13/10/2022/G",
+"number": "KM/13/10/2022/G",
+"localType": "Miejsce garażowe 23%",
+"copyVAT": true,
+"inPackage": false,
+"affiliation": true,
+"priceNet": 21500,
+"priceGross": 26445,
+"promoPriceNet": 0,
+"promoPriceGross": 0
+}
+]
+}
+JSON (Przykład 2)
+Request:
+GET /api/fis/v1/feed/locals
+Response:
+{
+"localId": 193619,
+"subdivisionId": 4157,
+"subdivision": "7Niebo2",
+"city": "Poznań",
+"name": null,
+"number": "JC_API_LM",
+"statusId": 1,
+"status": "Wolny",
+"area": 100,
+"areaProduct": 100,
+i
+Develogic S.A. Strona 11/21
+Feed - API
+"areaUsable": 100,
+"priceNet": 1203703.7,
+"priceGross": 1300000,
+"priceNetm2": 12037.04,
+"priceGrossm2": 13000,
+"omnibusPriceGross": 1200000,
+"omnibusPriceNet": 1111111.11,
+"omnibusPackagePriceNet": 1135185.18,
+"omnibusPackagePriceGross": 1226000,
+"omnibusPackagePriceNetm2": 11351.85,
+"omnibusPackagePriceGrossm2": 12260,
+"omnibusPackagePriceUsableAreaNetm2": 11351.85,
+"omnibusPackagePriceUsableAreaGrossm2": 12260,
+"omnibusPriceUsableAreaNetm2": 11111.11,
+"omnibusPriceUsableAreaGrossm2": 12000,
+"averageOmnibusPriceGrossm2": 12000,
+"averageOmnibusPriceUsableAreaGrossm2": 12000,
+"localTypeId": 20,
+"localType": "Lokal mieszkalny",
+"projections": [],
+"miscAreas": [],
+"attributes": [],
+"packagePriceGross": 1327000,
+"packagePriceNet": 1228703.7,
+"packagePriceGrossm2": 13270,
+"PackagePriceNetm2": 12287.04,
+"packagePriceUsableAreaNetm2": 12287.04,
+"packagePriceUsableAreaGrossm2": 13270,
+"packagePromoPriceNet": 1228703.7,
+"packagePromoPriceGross": 1327000,
+"packagePromoPriceNetm2": 12287.04,
+"packagePromoPriceGrossm2": 13270,
+"packagePromoPriceUsableAreaNetm2": 12287.04,
+"packagePromoPriceUsableAreaGrossm2": 13270,
+"omnibusPriceGrossm2": 12000,
+"omnibusPriceNetm2": 11111.11,
+"offerPriceUsableAreaNetm2": 12037.04,
+"offerPriceUsableAreaGrossm2": 13000,
+"promoPriceUsableAreaNetm2": 12037.04,
+"promoPriceUsableAreaGrossm2": 13000,
+"packages": [
+{
+"localId": 193617,
+"name": null,
+"number": "JC_API_Komórka",
+"localType": "Komórka lokatorska",
+"copyVAT": true,
+"inPackage": true,
+"affiliation": true,
+"priceNet": 25000,
+"priceGross": 27000,
+i
+Develogic S.A. Strona 12/21
+Feed - API
+"promoPriceNet": null,
+"promoPriceGross": null
+},
+{
+"localId": 193618,
+"name": "N_JC_API_MP",
+"number": "JC_API_MP",
+"localType": "Miejsce postojowe 8%",
+"copyVAT": true,
+"inPackage": false,
+"affiliation": false,
+"priceNet": 32407.4074,
+"priceGross": 35000,
+"promoPriceNet": 29629.63,
+"promoPriceGross": 32000
+}
+]
+}
+XML (Przykład 1)
+Request:
+GET /api/fis/v1/feed/locals
+Response:
+<LocalDto>
+<PackagePriceNetm2>9500.00</PackagePriceNetm2>
+<area>55.00</area>
+<areaProduct>55.00</areaProduct>
+<attributes>
+<attribute>
+<name>aneks</name>
+</attribute>
+<attribute>
+<name>antresola</name>
+</attribute>
+<attribute>
+<name>jasna kuchnia</name>
+</attribute>
+<attribute>
+<name>ogród</name>
+</attribute>
+<attribute>
+<name>osobne wc</name>
+</attribute>
+</attributes>
+i
+Develogic S.A. Strona 13/21
+Feed - API
+<averageOmnibusPriceGrossm2>10260.00</averageOmnibusPriceGrossm2>
+<building>Budynek A</building>
+<buildingId>66</buildingId>
+<city>Poznań</city>
+<floor>0</floor>
+<localId>42213</localId>
+<localType>Mieszkanie</localType>
+<localTypeId>18</localTypeId>
+<maxDiscountGross>11286.00</maxDiscountGross>
+<maxDiscountPercent>2.00</maxDiscountPercent>
+<miscAreas>
+<LocalAreaDto>
+<contractualArea>14.70</contractualArea>
+<name>Pokój1</name>
+</LocalAreaDto>
+<LocalAreaDto>
+<contractualArea>11.20</contractualArea>
+<name>Pokój2</name>
+</LocalAreaDto>
+<LocalAreaDto>
+<contractualArea>10.80</contractualArea>
+<name>Pokój3</name>
+</LocalAreaDto>
+<LocalAreaDto>
+<contractualArea>5.76</contractualArea>
+<name>Kuchnia</name>
+</LocalAreaDto>
+<LocalAreaDto>
+<contractualArea>4.21</contractualArea>
+<name>Łazienka 1</name>
+</LocalAreaDto>
+<LocalAreaDto>
+<contractualArea>5.67</contractualArea>
+<name>Komunikacja 1</name>
+</LocalAreaDto>
+<LocalAreaDto>
+<contractualArea>2.76</contractualArea>
+<name>Toaleta (WC) 1</name>
+</LocalAreaDto>
+</miscAreas>
+<name>KM/13/10/2022/M</name>
+<number>KM/13/10/2022/M</number>
+<omnibusPackagePriceGross>564300.00</omnibusPackagePriceGross>
+<omnibusPackagePriceNet>522500.00</omnibusPackagePriceNet>
+<omnibusPackagePriceNetm2>9500.00</omnibusPackagePriceNetm2>
+<omnibusPriceGross>564300.00</omnibusPriceGross>
+<omnibusPriceGrossm2>10260.00</omnibusPriceGrossm2>
+<omnibusPriceNet>522500.00</omnibusPriceNet>
+<omnibusPriceNetm2>9500.00</omnibusPriceNetm2>
+<packagePriceGross>564300.00</packagePriceGross>
+<packagePriceGrossm2>10260.00</packagePriceGrossm2>
+i
+Develogic S.A. Strona 14/21
+Feed - API
+<packagePriceNet>522500.00</packagePriceNet>
+<packagePromoPriceGross>564300.00</packagePromoPriceGross>
+<packagePromoPriceGrossm2>10260.00</packagePromoPriceGrossm2>
+<packagePromoPriceNet>522500.00</packagePromoPriceNet>
+<packagePromoPriceNetm2>9500.00</packagePromoPriceNetm2>
+<packages>
+<LocalPackagesDto>
+<affiliation>true</affiliation>
+<copyVAT>true</copyVAT>
+<inPackage>false</inPackage>
+<localId>42214</localId>
+<localType>Miejsce garażowe 23%</localType>
+<name>KM/13/10/2022/G</name>
+<number>KM/13/10/2022/G</number>
+<priceGross>26445.0000</priceGross>
+<priceNet>21500.0000</priceNet>
+<promoPriceGross>0.0000</promoPriceGross>
+<promoPriceNet>0.0000</promoPriceNet>
+</LocalPackagesDto>
+</packages>
+<plannedDateOfFinishing>2024-10-01T00:00:00</plannedDateOfFinishing>
+<priceGross>564300.00</priceGross>
+<priceGrossm2>10260.00</priceGrossm2>
+<priceNet>522500.00</priceNet>
+<priceNetm2>9500.00</priceNetm2>
+<projections>
+<projection>
+<displayUrl>http://panelklienta25.wfdev.exant.local:80/247-karta-
+lokalu?projection=_DJuuzLyXndUc93EGwK0UQ</displayUrl>
+<type>Aranżacyjny</type>
+<uri>http://ib25.wfdev.exant.local/api/fis/v1/feed/projection/5277</uri>
+</projection>
+<projection>
+<displayUrl>http://panelklienta25.wfdev.exant.local:80/247-karta-
+lokalu?projection=i8Hj-0q1Jyy3btBTi9rNbg</displayUrl>
+<type>Położenie na kondygnacji</type>
+<uri>http://ib25.wfdev.exant.local/api/fis/v1/feed/projection/3</uri>
+</projection>
+<projection>
+<displayUrl>http://panelklienta25.wfdev.exant.local:80/247-karta-
+lokalu?projection=i8Hj-0q1Jyy3btBTi9rNbg</displayUrl>
+<type>Rzuty budynku</type>
+<uri>http://ib25.wfdev.exant.local/api/fis/v1/feed/projection/3</uri>
+</projection>
+</projections>
+<rooms>3</rooms>
+<stage>Etap 1</stage>
+<stageId>1026</stageId>
+<status>Sprzedany</status>
+<statusId>3</statusId>
+<subdivision>Inwestycja Jesień</subdivision>
+i
+Develogic S.A. Strona 15/21
+Feed - API
+<subdivisionId>3118</subdivisionId>
+<worldDirections>S, E, NE, NW</worldDirections>
+</LocalDto>
+XML (Przykład 2)
+Request:
+GET /api/fis/v1/feed/locals
+Response:
+<LocalDto>
+<PackagePriceNetm2>12287.04</PackagePriceNetm2>
+<area>100.00</area>
+<areaProduct>100.00</areaProduct>
+<areaUsable>100.00</areaUsable>
+<attributes/>
+<averageOmnibusPriceGrossm2>12000.00</averageOmnibusPriceGrossm2>
+<averageOmnibusPriceUsableAreaGrossm2>12000.00</averageOmnibusPriceUsableAreaGrossm2>
+<city>Poznań</city>
+<localId>193619</localId>
+<localType>Lokal mieszkalny</localType>
+<localTypeId>20</localTypeId>
+<miscAreas/>
+<name i:nil="true"/>
+<number>JC_API_LM</number>
+<offerPriceUsableAreaGrossm2>13000.00</offerPriceUsableAreaGrossm2>
+<offerPriceUsableAreaNetm2>12037.04</offerPriceUsableAreaNetm2>
+<omnibusPackagePriceGross>1226000.00</omnibusPackagePriceGross>
+<omnibusPackagePriceGrossm2>12260.00</omnibusPackagePriceGrossm2>
+<omnibusPackagePriceNet>1135185.18</omnibusPackagePriceNet>
+<omnibusPackagePriceNetm2>11351.85</omnibusPackagePriceNetm2>
+<omnibusPackagePriceUsableAreaGrossm2>12260.00</omnibusPackagePriceUsableAreaGrossm2>
+<omnibusPackagePriceUsableAreaNetm2>11351.85</omnibusPackagePriceUsableAreaNetm2>
+<omnibusPriceGross>1200000.00</omnibusPriceGross>
+<omnibusPriceGrossm2>12000.00</omnibusPriceGrossm2>
+<omnibusPriceNet>1111111.11</omnibusPriceNet>
+<omnibusPriceNetm2>11111.11</omnibusPriceNetm2>
+<omnibusPriceUsableAreaGrossm2>12000.00</omnibusPriceUsableAreaGrossm2>
+<omnibusPriceUsableAreaNetm2>11111.11</omnibusPriceUsableAreaNetm2>
+<packagePriceGross>1327000.00</packagePriceGross>
+<packagePriceGrossm2>13270.00</packagePriceGrossm2>
+<packagePriceNet>1228703.70</packagePriceNet>
+<packagePriceUsableAreaGrossm2>13270.00</packagePriceUsableAreaGrossm2>
+<packagePriceUsableAreaNetm2>12287.04</packagePriceUsableAreaNetm2>
+<packagePromoPriceGross>1327000.00</packagePromoPriceGross>
+<packagePromoPriceGrossm2>13270.00</packagePromoPriceGrossm2>
+<packagePromoPriceNet>1228703.70</packagePromoPriceNet>
+i
+Develogic S.A. Strona 16/21
+Feed - API
+<packagePromoPriceNetm2>12287.04</packagePromoPriceNetm2>
+<packagePromoPriceUsableAreaGrossm2>13270.00</packagePromoPriceUsableAreaGrossm2>
+<packagePromoPriceUsableAreaNetm2>12287.04</packagePromoPriceUsableAreaNetm2>
+<packages>
+<LocalPackagesDto>
+<affiliation>true</affiliation>
+<copyVAT>true</copyVAT>
+<inPackage>true</inPackage>
+<localId>193617</localId>
+<localType>Komórka lokatorska</localType>
+<name i:nil="true"/>
+<number>JC_API_Komórka</number>
+<priceGross>27000.0000</priceGross>
+<priceNet>25000.0000</priceNet>
+<promoPriceGross i:nil="true"/>
+<promoPriceNet i:nil="true"/>
+</LocalPackagesDto>
+<LocalPackagesDto>
+<affiliation>false</affiliation>
+<copyVAT>true</copyVAT>
+<inPackage>false</inPackage>
+<localId>193618</localId>
+<localType>Miejsce postojowe 8%</localType>
+<name>N_JC_API_MP</name>
+<number>JC_API_MP</number>
+<priceGross>35000.0000</priceGross>
+<priceNet>32407.4074</priceNet>
+<promoPriceGross>32000.0000</promoPriceGross>
+<promoPriceNet>29629.6300</promoPriceNet>
+</LocalPackagesDto>
+</packages>
+<priceGross>1300000.00</priceGross>
+<priceGrossm2>13000.00</priceGrossm2>
+<priceNet>1203703.70</priceNet>
+<priceNetm2>12037.04</priceNetm2>
+<projections/>
+<promoPriceUsableAreaGrossm2>13000.00</promoPriceUsableAreaGrossm2>
+<promoPriceUsableAreaNetm2>12037.04</promoPriceUsableAreaNetm2>
+<status>Wolny</status>
+<statusId>1</statusId>
+<subdivision>7Niebo2</subdivision>
+<subdivisionId>4157</subdivisionId>
+</LocalDto>
+5 Historia cen
+Metoda służy do pobrania historii cen lokalu w systemie. ID lokalu jest konieczne do przefiltrowania
+cen lokalu.
+i
+Develogic S.A. Strona 17/21
+Feed - API
+Pierwsza zwracana grupa cen dotyczy zawsze wartości aktualnych, a kolejne zwracane grupy cen to
+wartości pobierane z historii cen lokalu.
+Metoda:
+GET /api/fis/v1/feed/localPrices/{localId}
+Request:
+• ApiKey – klucz autoryzacyjny uzyskany od konsultanta Develogic
+• localId – unikalny identyfikator lokalu z systemu (parametr wymagany)
+Response:
+Nazwa atrybutu Opis atrybutu
+localID ID lokalu
+prices Obiekt zawierający ceny – tablica cen – poniżej atrybuty
+Dla ceny aktualnej wartości pobierane są z bieżącego cennika lokalu w bazie danych, natomiast
+dla cen historycznych wartości pobierane są z cen historycznych lokalu w bazie danych.
+Nazwa atrybutu Opis atrybutu
+appliesFrom Cena obowiązująca od
+appliesTo Cena obowiązująca do (dla ceny aktualnej ta wartość wynosi
+NULL)
+packagePriceUsableAreaNetm2 MINIMUM z
+Cena pakietowa za m2 netto wg pow. użytkowej a jak nie ma
+(NULL w bazie) to z Cena ofertowa za m2 netto wg pow.
+użytkowej
+i
+Cena pakietowa promocyjna za m2 netto wg pow. użytkowej a
+jak nie ma (NULL w bazie) to z Cena promocyjna za m2 netto
+wg pow. użytkowej
+packagePriceUsableAreaGrossm2 MINIMUM z
+Cena pakietowa za m2 brutto wg pow. użytkowej a jak nie ma
+(NULL w bazie) to z Cena ofertowa za m2 brutto wg pow.
+użytkowej
+i
+Cena pakietowa promocyjna za m2 brutto wg pow. użytkowej a
+jak nie ma (NULL w bazie) to z Cena promocyjna za m2 brutto
+wg pow. użytkowej
+packagePriceNetm2 MINIMUM z
+Cena pakietowa za m2 netto a jak nie ma (NULL w bazie) to z
+Cena ofertowa za m2 netto
+i
+i
+Develogic S.A. Strona 18/21
+Feed - API
+Cena pakietowa promocyjna za m2 netto a jak nie ma (NULL
+w bazie) to z Cena promocyjna za m2 netto
+packagePriceGrossm2 MINIMUM z
+Cena pakietowa za m2 brutto a jak nie ma (NULL w bazie) to z
+Cena ofertowa za m2 brutto
+i
+Cena pakietowa promocyjna za m2 brutto a jak nie ma (NULL
+w bazie) to z Cena promocyjna za m2 brutto
+packagePriceNet MINIMUM z
+Cena pakietowa netto a jak nie ma (NULL w bazie) to z Cena
+ofertowa netto
+i
+Cena pakietowa promocyjna netto a jak nie ma (NULL w
+bazie) to z Cena promocyjna netto
+packagePriceGross MINIMUM z
+Cena pakietowa brutto a jak nie ma (NULL w bazie) to z Cena
+ofertowa brutto
+i
+Cena pakietowa promocyjna brutto a jak nie ma (NULL w
+bazie) to z Cena promocyjna brutto
+Przykład:
+{
+"localId": 193644,
+"prices": [
+{
+"appliesFrom": "2025-08-04T15:57:10.397",
+"appliesTo": null,
+"packagePriceUsableAreaNetm2": 7936.508,
+"packagePriceUsableAreaGrossm2": 8571.43,
+"packagePriceNetm2": 7936.51,
+"packagePriceGrossm2": 8571.43,
+"packagePriceNet": 555555.56,
+"packagePriceGross": 600000
+},
+{
+"appliesFrom": "2025-08-04T15:03:27.507",
+"appliesTo": "2025-08-04T15:57:10.397",
+"packagePriceUsableAreaNetm2": 9259.2592,
+"packagePriceUsableAreaGrossm2": 10000,
+"packagePriceNetm2": 9259.26,
+"packagePriceGrossm2": 10000,
+"packagePriceNet": 648148.15,
+"packagePriceGross": 700000
+}
+]
+}
+i
+Develogic S.A. Strona 19/21
+Feed - API
+6 Lista inwestycji
+Metoda służy do pobrania listy inwestycji w systemie. ID danej inwestycji może zostać wykorzystane
+do przefiltrowania listy lokali.
+Metoda:
+GET /api/fis/v1/feed/investments
+Request:
+• ApiKey – klucz autoryzacyjny uzyskany od konsultanta Develogic
+Response:
+Nazwa atrybutu Opis atrybutu
+ID ID inwestycji
+Name Nazwa inwestycji
+Przykład:
+[
+{
+"ID": 2,
+"Name": "Zielone Łąki"
+},
+{
+"ID": 6,
+"Name": "Cytrynowa"
+},
+{
+"ID": 7,
+"Name": "E59 Poznań-Szczecin"
+},
+{
+"ID": 8,
+"Name": "Czereśniowa"
+},
+{
+"ID": 9,
+"Name": "Dębowa"
+}
+]
+i
+Develogic S.A. Strona 20/21
+Feed - API
+7 Lista typów lokali
+Metoda służy do pobrania listy typów lokali w systemie. ID danego typu lokalu może zostać
+wykorzystane do przefiltrowania listy lokali.
+Metoda:
+GET /api/fis/v1/feed/localTypes
+Request:
+• ApiKey – klucz autoryzacyjny uzyskany od konsultanta Develogic
+Response:
+Nazwa atrybutu Opis atrybutu
+ID ID typu lokalu
+Name Nazwa typu lokalu
+Przykład:
+[
+{
+"ID": 14,
+"Name": "Miejsce garażowe 23%"
+},
+{
+"ID": 18,
+"Name": "Mieszkanie"
+},
+{
+"ID": 19,
+"Name": "Schowek rowerowy 23%"
+},
+{
+"ID": 20,
+"Name": "Lokal mieszkalny"
+},
+{
+"ID": 21,
+"Name": "Lokal użytkowy 23%"
+}
+]
+i
+Develogic S.A. Strona 21/21
+Feed - API
+8 Filtrowanie listy lokali
+Lista lokali może być filtrowana po inwestycji i/lub typie lokalu
+8.1 Filtrowanie po inwestycji
+Filtrowanie dostępne jest po ID inwestycji uzyskanym z metody /api/fis/v1/feed/investments opisanej
+w punkcie 6.
+Metoda:
+GET api/fis/v1/feed/locals/?investmentId=x
+8.2 Filtrowanie po typie lokalu
+Filtrowanie dostępne jest po ID typu lokalu uzyskanym z metody /api/fis/v1/feed/localTypes opisanej
+w punkcie 7.
+Metoda:
+GET api/fis/v1/feed/locals/?localTypeId=x
+8.3 Filtrowanie po inwestycji i typie lokalu
+Metoda:
+GET api/fis/v1/feed/locals/?investmentId=x&localTypeId=x
