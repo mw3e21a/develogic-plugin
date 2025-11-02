@@ -53,47 +53,6 @@ class Develogic_Assets {
             true
         );
         
-        // LightGallery
-        wp_register_script(
-            'lightgallery',
-            'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/lightgallery.min.js',
-            array(),
-            '2.7.2',
-            true
-        );
-        
-        wp_register_script(
-            'lightgallery-thumbnail',
-            'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/thumbnail/lg-thumbnail.min.js',
-            array('lightgallery'),
-            '2.7.2',
-            true
-        );
-        
-        wp_register_script(
-            'lightgallery-zoom',
-            'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/zoom/lg-zoom.min.js',
-            array('lightgallery'),
-            '2.7.2',
-            true
-        );
-        
-        wp_register_script(
-            'lightgallery-fullscreen',
-            'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/fullscreen/lg-fullscreen.min.js',
-            array('lightgallery'),
-            '2.7.2',
-            true
-        );
-        
-        wp_register_script(
-            'lightgallery-hash',
-            'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/plugins/hash/lg-hash.min.js',
-            array('lightgallery'),
-            '2.7.2',
-            true
-        );
-        
         // Chart.js for price history
         wp_register_script(
             'chartjs',
@@ -116,7 +75,7 @@ class Develogic_Assets {
         wp_register_script(
             'develogic-apartments-list',
             DEVELOGIC_PLUGIN_URL . 'assets/js/apartments-list.js',
-            array('jquery', 'shufflejs', 'tippy', 'lightgallery', 'lightgallery-thumbnail', 'lightgallery-zoom', 'lightgallery-fullscreen', 'lightgallery-hash'),
+            array('jquery', 'shufflejs', 'tippy'),
             DEVELOGIC_VERSION,
             true
         );
@@ -159,35 +118,6 @@ class Develogic_Assets {
             '6.3.7'
         );
         
-        // LightGallery
-        wp_register_style(
-            'lightgallery',
-            'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lightgallery.min.css',
-            array(),
-            '2.7.2'
-        );
-        
-        wp_register_style(
-            'lightgallery-thumbnail',
-            'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lg-thumbnail.min.css',
-            array('lightgallery'),
-            '2.7.2'
-        );
-        
-        wp_register_style(
-            'lightgallery-zoom',
-            'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lg-zoom.min.css',
-            array('lightgallery'),
-            '2.7.2'
-        );
-        
-        wp_register_style(
-            'lightgallery-fullscreen',
-            'https://cdn.jsdelivr.net/npm/lightgallery@2.7.2/css/lg-fullscreen.min.css',
-            array('lightgallery'),
-            '2.7.2'
-        );
-        
         // Main plugin styles
         wp_register_style(
             'develogic-main',
@@ -200,7 +130,7 @@ class Develogic_Assets {
         wp_register_style(
             'develogic-apartments-list',
             DEVELOGIC_PLUGIN_URL . 'assets/css/apartments-list.css',
-            array('tippy', 'lightgallery', 'lightgallery-thumbnail', 'lightgallery-zoom', 'lightgallery-fullscreen'),
+            array('tippy'),
             DEVELOGIC_VERSION
         );
         
@@ -216,7 +146,7 @@ class Develogic_Assets {
         wp_register_style(
             'develogic-new-layout',
             DEVELOGIC_PLUGIN_URL . 'assets/css/new-layout.css',
-            array('google-fonts-lato', 'tippy', 'lightgallery', 'lightgallery-thumbnail', 'lightgallery-zoom', 'lightgallery-fullscreen'),
+            array('google-fonts-lato', 'tippy'),
             DEVELOGIC_VERSION
         );
     }
@@ -225,17 +155,7 @@ class Develogic_Assets {
      * Enqueue assets for A1 layout
      */
     public static function enqueue_a1_assets() {
-        wp_enqueue_style('lightgallery');
-        wp_enqueue_style('lightgallery-thumbnail');
-        wp_enqueue_style('lightgallery-zoom');
-        wp_enqueue_style('lightgallery-fullscreen');
         wp_enqueue_style('develogic-main');
-        
-        wp_enqueue_script('lightgallery');
-        wp_enqueue_script('lightgallery-thumbnail');
-        wp_enqueue_script('lightgallery-zoom');
-        wp_enqueue_script('lightgallery-fullscreen');
-        wp_enqueue_script('lightgallery-hash');
         wp_enqueue_script('develogic-main');
     }
     

@@ -1,7 +1,7 @@
 <?php
 /**
  * Template: Apartments List Layout
- * Lista mieszkań w stylu katalogowym z obsługą Shuffle.js, lightGallery i Tippy.js
+ * Lista mieszkań w stylu katalogowym z obsługą Shuffle.js i Tippy.js
  *
  * @package Develogic
  * @var string $instance_id
@@ -161,7 +161,6 @@ if (!defined('ABSPATH')) {
                     }
                 }
                 
-                // Gallery ID for lightGallery
                 $gallery_id = 'mieszkanie-' . $local['localId'];
             ?>
             
@@ -273,8 +272,7 @@ if (!defined('ABSPATH')) {
                         ?>
                         <a href="<?php echo esc_url($image_url); ?>" 
                            class="link-img" 
-                           title="<?php _e('podgląd', 'develogic'); ?>"
-                           data-lg-id="<?php echo esc_attr($gallery_id); ?>">
+                           title="<?php _e('podgląd', 'develogic'); ?>">
                             <div class="responsive-1x1">
                                 <img src="<?php echo esc_url($image_url); ?>" 
                                      class="img-responsive" 
@@ -311,8 +309,7 @@ if (!defined('ABSPATH')) {
                         ?>
                         <a href="<?php echo esc_url($plan_url); ?>" 
                            class="link-img" 
-                           title="<?php _e('podgląd', 'develogic'); ?>"
-                           data-lg-id="<?php echo esc_attr($gallery_id); ?>">
+                           title="<?php _e('podgląd', 'develogic'); ?>">
                             <div class="responsive-1x1">
                                 <img src="<?php echo esc_url($plan_url); ?>" 
                                      class="img-responsive" 
@@ -336,8 +333,7 @@ if (!defined('ABSPATH')) {
                             $proj_url = !empty($projections[$i]['wordpress_url']) ? $projections[$i]['wordpress_url'] : $projections[$i]['uri'];
                         ?>
                         <a href="<?php echo esc_url($proj_url); ?>" 
-                           class="link-img hidden" 
-                           data-lg-id="<?php echo esc_attr($gallery_id); ?>"></a>
+                           class="link-img hidden"></a>
                         <?php endfor; ?>
                     <?php endif; ?>
                     

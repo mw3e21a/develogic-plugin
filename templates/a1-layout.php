@@ -120,27 +120,8 @@ if (!defined('ABSPATH')) {
     
 </div>
 
-<?php if ($atts['gallery'] === 'true'): ?>
 <script>
 jQuery(document).ready(function($) {
-    // Initialize LightGallery for each card
-    $('.develogic-a1-card').each(function() {
-        var $card = $(this);
-        var localId = $card.data('local-id');
-        
-        $card.find('.develogic-images').lightGallery({
-            selector: '.image-item',
-            plugins: [lgThumbnail, lgZoom, lgFullscreen, lgHash],
-            speed: 500,
-            licenseKey: 'your-license-key',
-            thumbnail: true,
-            animateThumb: true,
-            showThumbByDefault: true,
-            hash: true,
-            galleryId: localId
-        });
-    });
-    
     // Building selection
     $('.develogic-building-card').on('click', function() {
         var buildingId = $(this).data('building-id');
@@ -208,5 +189,4 @@ jQuery(document).ready(function($) {
     }
 });
 </script>
-<?php endif; ?>
 

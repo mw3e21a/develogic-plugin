@@ -139,9 +139,7 @@ if (!defined('ABSPATH')) {
                     }
                 }
                 
-                // Gallery ID for lightGallery
                 $gallery_id = 'mieszkanie-' . $local['localId'];
-                $lg_uid_counter = 0;
             ?>
             
             <div id="<?php echo esc_attr($gallery_id); ?>" 
@@ -152,8 +150,7 @@ if (!defined('ABSPATH')) {
                  data-price-m2="<?php echo esc_attr($price_m2_padded); ?>"
                  data-area="<?php echo esc_attr($area_padded); ?>"
                  data-title="<?php echo esc_attr($local['building']); ?>"
-                 data-groups='<?php echo esc_attr(json_encode(array('term-' . $local['buildingId'], 'rooms-' . $local['rooms']))); ?>'
-                 lg-uid="lg<?php echo $local['localId']; ?>">
+                 data-groups='<?php echo esc_attr(json_encode(array('term-' . $local['buildingId'], 'rooms-' . $local['rooms']))); ?>'>
                  
                 <div class="row-md apartment aprtment-html">
                     
@@ -252,8 +249,7 @@ if (!defined('ABSPATH')) {
                         <a href="<?php echo esc_url($image_url); ?>" 
                            class="link-img" 
                            title="<?php _e('podgląd', 'develogic'); ?>"
-                           data-exthumbimage="<?php echo esc_url($thumb_url); ?>"
-                           lg-event-uid="&amp;<?php echo ++$lg_uid_counter; ?>">
+                           data-exthumbimage="<?php echo esc_url($thumb_url); ?>">
                             <div class="responsive-1x1">
                                 <img src="<?php echo esc_url($thumb_url); ?>" 
                                      class="img-responsive lazy loaded" 
@@ -288,8 +284,7 @@ if (!defined('ABSPATH')) {
                         <a href="<?php echo esc_url($plan_url); ?>" 
                            class="link-img" 
                            title="<?php _e('podgląd', 'develogic'); ?>"
-                           data-exthumbimage="<?php echo esc_url($plan_thumb); ?>"
-                           lg-event-uid="&amp;<?php echo ++$lg_uid_counter; ?>">
+                           data-exthumbimage="<?php echo esc_url($plan_thumb); ?>">
                             <div class="responsive-1x1">
                                 <img src="<?php echo esc_url($plan_thumb); ?>" 
                                      class="img-responsive lazy loaded" 
@@ -311,8 +306,7 @@ if (!defined('ABSPATH')) {
                         ?>
                         <a href="<?php echo esc_url($proj_url); ?>" 
                            class="link-img hidden" 
-                           data-exthumbimage="<?php echo esc_url($proj_thumb); ?>"
-                           lg-event-uid="&amp;<?php echo ++$lg_uid_counter; ?>"></a>
+                           data-exthumbimage="<?php echo esc_url($proj_thumb); ?>"></a>
                         <?php endfor; ?>
                     <?php endif; ?>
                     

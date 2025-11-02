@@ -1,7 +1,7 @@
 /**
  * Apartments List JavaScript
  * Wzorowane na Wasilewski Developer
- * Obsługa listy mieszkań z Shuffle.js, lightGallery i Tippy.js
+ * Obsługa listy mieszkań z Shuffle.js i Tippy.js
  * @package Develogic
  */
 
@@ -43,37 +43,6 @@
                     easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
                 });
             }
-            
-            // Initialize lightGallery dla każdego mieszkania
-            $('.apartment-item').each(function() {
-                var $apartment = $(this);
-                var galleryId = $apartment.attr('id');
-                var $images = $apartment.find('.link-img');
-                
-                if ($images.length > 0 && typeof lightGallery !== 'undefined') {
-                    // Przygotuj elementy dla lightGallery
-                    var galleryItems = [];
-                    $images.each(function() {
-                        var $img = $(this);
-                        galleryItems.push({
-                            src: $img.attr('href'),
-                            thumb: $img.find('img').attr('src') || $img.attr('href'),
-                        });
-                    });
-                    
-                    // Initialize lightGallery na klikalne obrazy
-                    var lgInstance = lightGallery($apartment[0], {
-                        selector: '.link-img:not(.hidden)',
-                        plugins: [lgThumbnail, lgZoom, lgFullscreen, lgHash],
-                        speed: 500,
-                        thumbnail: true,
-                        animateThumb: true,
-                        showThumbByDefault: true,
-                        hash: true,
-                        galleryId: galleryId,
-                    });
-                }
-            });
             
             // Initialize Tippy.js tooltips
             if (typeof tippy !== 'undefined') {
