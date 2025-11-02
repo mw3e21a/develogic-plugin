@@ -99,6 +99,32 @@ class Develogic_Admin_Settings {
             array('field' => 'sync_secret_key', 'description' => __('Klucz używany do autoryzacji zewnętrznego crona. Wygenerowany automatycznie.', 'develogic'))
         );
         
+        // Synchronization Settings Section
+        add_settings_section(
+            'develogic_sync_section',
+            __('Ustawienia synchronizacji', 'develogic'),
+            array($this, 'render_sync_section_description'),
+            'develogic'
+        );
+        
+        add_settings_field(
+            'sync_investments',
+            __('Inwestycje do synchronizacji', 'develogic'),
+            array($this, 'render_investment_checkboxes'),
+            'develogic',
+            'develogic_sync_section',
+            array('field' => 'sync_investments')
+        );
+        
+        add_settings_field(
+            'sync_buildings',
+            __('Budynki do wyświetlania', 'develogic'),
+            array($this, 'render_building_checkboxes'),
+            'develogic',
+            'develogic_sync_section',
+            array('field' => 'sync_buildings')
+        );
+        
         // A1 Layout Settings Section (removed cache section)
         // A1 Layout Settings Section
         add_settings_section(
@@ -217,6 +243,14 @@ class Develogic_Admin_Settings {
         $output['pdf_source'] = isset($input['pdf_source']) ? sanitize_key($input['pdf_source']) : 'off';
         $output['pdf_pattern'] = isset($input['pdf_pattern']) ? esc_url_raw($input['pdf_pattern']) : '';
         
+        $output['sync_investments'] = isset($input['sync_investments']) && is_array($input['sync_investments']) 
+            ? array_map('absint', $input['sync_investments']) 
+            : array();
+        
+        $output['sync_buildings'] = isset($input['sync_buildings']) && is_array($input['sync_buildings']) 
+            ? array_map('absint', $input['sync_buildings']) 
+            : array();
+        
         return $output;
     }
     
@@ -277,6 +311,10 @@ class Develogic_Admin_Settings {
     
     public function render_api_section_description() {
         echo '<p>' . __('Skonfiguruj połączenie z API Develogic.', 'develogic') . '</p>';
+    }
+    
+    public function render_sync_section_description() {
+        echo '<p>' . __('Wybierz które inwestycje mają być synchronizowane z API Develogic.', 'develogic') . '</p>';
     }
     
     public function render_a1_section_description() {
@@ -446,6 +484,67 @@ class Develogic_Admin_Settings {
             );
         }
         echo '</select>';
+    }
+    
+    public function render_investment_checkboxes($args) {
+        $settings = get_option('develogic_settings');
+        $selected = isset($settings[$args['field']]) && is_array($settings[$args['field']]) 
+            ? $settings[$args['field']] 
+            : array();
+        
+        // Get investments from taxonomy (already synced)
+        $investments = Develogic_Local_Query::get_investments();
+        
+        if (empty($investments)) {
+            echo '<p class="description">' . __('Brak dostępnych inwestycji. Przejdź do zakładki <strong>Synchronizacja</strong> i kliknij "Pobierz listę inwestycji z API".', 'develogic') . '</p>';
+            return;
+        }
+        
+        // Show investments as read-only (grayed out)
+        echo '<fieldset style="opacity: 0.6;">';
+        foreach ($investments as $investment) {
+            $investment_id = !empty($investment['ID']) ? absint($investment['ID']) : 0;
+            $checked = in_array($investment_id, $selected);
+            
+            printf(
+                '<label style="display: block; margin-bottom: 5px;"><input type="checkbox" disabled %s> %s</label>',
+                checked($checked, true, false),
+                esc_html($investment['Name'])
+            );
+        }
+        echo '</fieldset>';
+        echo '<p class="description">' . __('Wybór inwestycji można zmienić w zakładce <strong>Synchronizacja</strong>.', 'develogic') . '</p>';
+    }
+    
+    public function render_building_checkboxes($args) {
+        $settings = get_option('develogic_settings');
+        $selected = isset($settings[$args['field']]) && is_array($settings[$args['field']]) 
+            ? $settings[$args['field']] 
+            : array();
+        
+        // Get buildings from taxonomy and locals
+        $buildings = Develogic_Local_Query::get_buildings_for_settings();
+        
+        if (empty($buildings)) {
+            echo '<p class="description">' . __('Brak dostępnych budynków. Uruchom synchronizację aby pobrać listę budynków z API.', 'develogic') . '</p>';
+            return;
+        }
+        
+        echo '<fieldset>';
+        foreach ($buildings as $building) {
+            $building_id = !empty($building['ID']) ? absint($building['ID']) : 0;
+            $checked = in_array($building_id, $selected);
+            
+            printf(
+                '<label style="display: block; margin-bottom: 5px;"><input type="checkbox" name="develogic_settings[%s][]" value="%d" %s> %s</label>',
+                esc_attr($args['field']),
+                $building_id,
+                checked($checked, true, false),
+                esc_html($building['Name'])
+            );
+        }
+        echo '</fieldset>';
+        echo '<p class="description">' . __('Zaznacz budynki które mają być wyświetlane w widoku mieszkań. Jeśli nic nie zostanie zaznaczone, wyświetlane będą wszystkie budynki.', 'develogic') . '</p>';
     }
 }
 

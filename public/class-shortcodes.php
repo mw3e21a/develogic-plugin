@@ -133,10 +133,18 @@ class Develogic_Shortcodes {
         
         $locals = Develogic_Local_Query::get_locals($filters);
         
+        // Apply building filter from settings if specified
+        $selected_buildings = develogic()->get_setting('sync_buildings', array());
+        if (!empty($selected_buildings) && is_array($selected_buildings)) {
+            $locals = array_filter($locals, function($local) use ($selected_buildings) {
+                return !empty($local['buildingId']) && in_array(absint($local['buildingId']), array_map('absint', $selected_buildings));
+            });
+        }
+        
         // Get buildings
         $buildings = Develogic_Filter_Sort::get_buildings($locals);
         
-        // Apply building filter if specified
+        // Apply building filter if specified in shortcode (overrides settings)
         if (!empty($atts['building_id'])) {
             $locals = Develogic_Filter_Sort::filter_locals($locals, array(
                 'building_id' => absint($atts['building_id'])

@@ -151,6 +151,7 @@ if (!defined('ABSPATH')) {
                     'number' => $local['number'],
                     'building' => $local['building'],
                     'buildingAddress' => $building_address,
+                    'subdivision' => isset($local['subdivision']) ? $local['subdivision'] : '',
                     'status' => $local['status'],
                     'statusClass' => $status_class,
                     'klatka' => $klatka,

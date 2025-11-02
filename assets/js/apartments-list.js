@@ -308,16 +308,22 @@
         if (!modal) return;
         
         // Set header title
-        let headerTitle = data.building || '';
-        if (data.buildingAddress) {
-            headerTitle += (headerTitle ? ' - ' : '') + data.buildingAddress;
+        let headerTitle = '';
+        if (data.building) {
+            headerTitle = 'Budynek ' + data.building;
+        }
+        if (data.number) {
+            headerTitle += (headerTitle ? ' - ' : '') + 'mieszkanie ' + data.number;
         }
         modal.querySelector('.modal-title').textContent = headerTitle || 'Szczegóły mieszkania';
         
         // Set location
-        let locationText = data.building || '';
-        if (data.buildingAddress) {
-            locationText += (locationText ? '<br>' : '') + data.buildingAddress;
+        let locationText = '';
+        if (data.building) {
+            locationText = 'Budynek ' + data.building;
+        }
+        if (data.subdivision) {
+            locationText += (locationText ? '<br>' : '') + data.subdivision;
         }
         modal.querySelector('.location').innerHTML = locationText;
         

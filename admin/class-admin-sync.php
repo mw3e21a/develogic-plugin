@@ -23,6 +23,8 @@ class Develogic_Admin_Sync {
         add_action('admin_post_develogic_manual_sync', array($this, 'handle_manual_sync'));
         add_action('admin_post_develogic_clear_locals', array($this, 'handle_clear_locals'));
         add_action('admin_post_develogic_unlock_sync', array($this, 'handle_unlock_sync'));
+        add_action('admin_post_develogic_fetch_investments', array($this, 'handle_fetch_investments'));
+        add_action('admin_post_develogic_save_investments', array($this, 'handle_save_investments'));
     }
     
     /**
@@ -58,24 +60,60 @@ class Develogic_Admin_Sync {
         $api_key = develogic()->get_setting('api_key');
         $api_configured = !empty($api_base_url) && !empty($api_key);
         
+        // Check if investments exist
+        $investments = Develogic_Local_Query::get_investments();
+        $has_investments = !empty($investments);
+        
+        // Check if investments are selected
+        $settings = get_option('develogic_settings', array());
+        $selected_investments = isset($settings['sync_investments']) && is_array($settings['sync_investments']) 
+            ? $settings['sync_investments'] 
+            : array();
+        $has_selected_investments = !empty($selected_investments);
+        
+        // Check if user wants to change investments
+        $change_investments = isset($_GET['change_investments']) && $_GET['change_investments'] == '1';
+        
         ?>
         <div class="wrap">
             <h1><?php _e('Synchronizacja z Develogic API', 'develogic'); ?></h1>
             
-            <!-- DEBUG INFO -->
-            <div class="notice notice-info">
-                <p><strong>🔍 DEBUG:</strong></p>
-                <ul style="margin-left: 20px;">
-                    <li>api_base_url: <code><?php echo esc_html($api_base_url); ?></code></li>
-                    <li>api_key: <code><?php echo esc_html(substr($api_key, 0, 5)); ?>...</code></li>
-                    <li>api_configured: <strong style="color: <?php echo $api_configured ? 'green' : 'red'; ?>;"><?php echo $api_configured ? 'TRUE ✅' : 'FALSE ❌'; ?></strong></li>
-                    <li>is_running: <strong style="color: <?php echo $is_running ? 'orange' : 'green'; ?>;"><?php echo $is_running ? 'TRUE (ZABLOKOWANE) 🔒' : 'FALSE (ODBLOKOWANE) 🔓'; ?></strong></li>
-                </ul>
-            </div>
             
             <?php if (!$api_configured): ?>
                 <div class="notice notice-warning">
                     <p><?php _e('API nie zostało skonfigurowane. Przejdź do Ustawień i wprowadź URL oraz klucz API.', 'develogic'); ?></p>
+                </div>
+            <?php elseif (!$has_investments): ?>
+                <div class="notice notice-warning">
+                    <p><?php _e('Brak dostępnych inwestycji. Najpierw pobierz listę inwestycji z API.', 'develogic'); ?></p>
+                </div>
+            <?php elseif (!$has_selected_investments): ?>
+                <div class="notice notice-warning">
+                    <p><?php _e('Nie wybrano żadnych inwestycji do synchronizacji. Wybierz inwestycje poniżej.', 'develogic'); ?></p>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($_GET['fetch_investments'])): ?>
+                <?php if ($_GET['fetch_investments'] === 'success'): ?>
+                    <?php $count = isset($_GET['count']) ? absint($_GET['count']) : 0; ?>
+                    <div class="notice notice-success is-dismissible">
+                        <p><?php printf(__('Pobrano %d inwestycji z API. Wybierz poniżej które mają być synchronizowane.', 'develogic'), $count); ?></p>
+                    </div>
+                <?php elseif ($_GET['fetch_investments'] === 'error'): ?>
+                    <?php $error_message = isset($_GET['error_message']) ? urldecode($_GET['error_message']) : __('Nieznany błąd', 'develogic'); ?>
+                    <div class="notice notice-error is-dismissible">
+                        <p><?php printf(__('Błąd podczas pobierania inwestycji: %s', 'develogic'), esc_html($error_message)); ?></p>
+                    </div>
+                <?php elseif ($_GET['fetch_investments'] === 'empty'): ?>
+                    <div class="notice notice-warning is-dismissible">
+                        <p><?php _e('API nie zwróciło żadnych inwestycji. Sprawdź konfigurację API.', 'develogic'); ?></p>
+                    </div>
+                <?php endif; ?>
+            <?php endif; ?>
+            
+            <?php if (isset($_GET['investments_saved']) && $_GET['investments_saved'] == '1'): ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><?php _e('Wybór inwestycji został zapisany. Możesz teraz uruchomić synchronizację.', 'develogic'); ?></p>
                 </div>
             <?php endif; ?>
             
@@ -135,37 +173,73 @@ class Develogic_Admin_Sync {
             <div class="card">
                 <h2><?php _e('Akcje', 'develogic'); ?></h2>
                 
-                <p><strong>DEBUG:</strong> api_configured = <?php echo $api_configured ? 'TRUE' : 'FALSE'; ?> | is_running = <?php echo $is_running ? 'TRUE' : 'FALSE'; ?></p>
-                
                 <?php if ($api_configured): ?>
-                    <p style="color: green;">✅ Warunek $api_configured SPEŁNIONY - przyciski powinny być widoczne</p>
-                    
-                    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="display: inline-block; margin-right: 10px;">
-                        <input type="hidden" name="action" value="develogic_manual_sync">
-                        <?php wp_nonce_field('develogic_manual_sync', 'develogic_sync_nonce'); ?>
-                        <?php 
-                        $disabled_attr = $is_running ? array('disabled' => 'disabled') : array();
-                        submit_button(__('Synchronizuj teraz (ręcznie)', 'develogic'), 'primary', 'submit', false, $disabled_attr); 
-                        ?>
-                        <p class="description">disabled = <?php echo $is_running ? 'TRUE (bo is_running=TRUE)' : 'FALSE'; ?></p>
-                    </form>
-                    
-                    <?php if ($is_running): ?>
-                    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="display: inline-block; margin-right: 10px;">
-                        <input type="hidden" name="action" value="develogic_unlock_sync">
-                        <?php wp_nonce_field('develogic_unlock_sync', 'develogic_unlock_nonce'); ?>
-                        <?php submit_button(__('🔓 Odblokuj synchronizację', 'develogic'), 'secondary', 'submit', false); ?>
-                        <p class="description"><?php _e('Użyj jeśli synchronizacja się zablokowała (timeout, błąd itp.)', 'develogic'); ?></p>
-                    </form>
+                    <?php if (!$has_investments): ?>
+                        <p><?php _e('Najpierw pobierz listę inwestycji z API:', 'develogic'); ?></p>
+                        <p>
+                            <a href="<?php echo wp_nonce_url(
+                                admin_url('admin-post.php?action=develogic_fetch_investments'),
+                                'develogic_fetch_investments',
+                                'develogic_fetch_nonce'
+                            ); ?>" class="button button-primary">
+                                <?php _e('Pobierz listę inwestycji z API', 'develogic'); ?>
+                            </a>
+                        </p>
+                    <?php elseif (!$has_selected_investments || $change_investments): ?>
+                        <h3><?php _e('Wybierz inwestycje do synchronizacji:', 'develogic'); ?></h3>
+                        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="margin-bottom: 20px;">
+                            <input type="hidden" name="action" value="develogic_save_investments">
+                            <?php wp_nonce_field('develogic_save_investments', 'develogic_save_investments_nonce'); ?>
+                            
+                            <fieldset style="margin: 15px 0;">
+                                <?php foreach ($investments as $investment): ?>
+                                    <?php 
+                                    $investment_id = !empty($investment['ID']) ? absint($investment['ID']) : 0;
+                                    $checked = in_array($investment_id, $selected_investments);
+                                    ?>
+                                    <label style="display: block; margin-bottom: 8px;">
+                                        <input type="checkbox" name="investments[]" value="<?php echo esc_attr($investment_id); ?>" <?php checked($checked, true); ?>>
+                                        <?php echo esc_html($investment['Name']); ?>
+                                    </label>
+                                <?php endforeach; ?>
+                            </fieldset>
+                            
+                            <?php submit_button(__('Zapisz wybór', 'develogic'), 'primary', 'submit', false); ?>
+                            <p class="description"><?php _e('Zaznacz inwestycje które mają być synchronizowane. Jeśli nic nie zostanie zaznaczone, synchronizowane będą wszystkie inwestycje.', 'develogic'); ?></p>
+                        </form>
+                    <?php else: ?>
+                        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="display: inline-block; margin-right: 10px;">
+                            <input type="hidden" name="action" value="develogic_manual_sync">
+                            <?php wp_nonce_field('develogic_manual_sync', 'develogic_sync_nonce'); ?>
+                            <?php 
+                            $disabled_attr = $is_running ? array('disabled' => 'disabled') : array();
+                            submit_button(__('Synchronizuj teraz', 'develogic'), 'primary', 'submit', false, $disabled_attr); 
+                            ?>
+                        </form>
+                        
+                        <?php if ($is_running): ?>
+                        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="display: inline-block; margin-right: 10px;">
+                            <input type="hidden" name="action" value="develogic_unlock_sync">
+                            <?php wp_nonce_field('develogic_unlock_sync', 'develogic_unlock_nonce'); ?>
+                            <?php submit_button(__('🔓 Odblokuj synchronizację', 'develogic'), 'secondary', 'submit', false); ?>
+                            <p class="description"><?php _e('Użyj jeśli synchronizacja się zablokowała (timeout, błąd itp.)', 'develogic'); ?></p>
+                        </form>
+                        <?php endif; ?>
+                        
+                        <p style="margin-top: 15px;">
+                            <a href="<?php echo admin_url('admin.php?page=develogic-sync&change_investments=1'); ?>" class="button button-secondary">
+                                <?php _e('Zmień wybór inwestycji', 'develogic'); ?>
+                            </a>
+                        </p>
                     <?php endif; ?>
                 <?php else: ?>
-                    <p style="color: red;">❌ Warunek $api_configured NIE SPEŁNIONY - przyciski NIE będą widoczne</p>
+                    <p><?php _e('Najpierw skonfiguruj API w Ustawieniach.', 'develogic'); ?></p>
                 <?php endif; ?>
                 
                 <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="display: inline-block;" onsubmit="return confirm('<?php esc_attr_e('Czy na pewno chcesz usunąć wszystkie lokale z bazy? Ta operacja jest nieodwracalna!', 'develogic'); ?>');">
                     <input type="hidden" name="action" value="develogic_clear_locals">
                     <?php wp_nonce_field('develogic_clear_locals', 'develogic_clear_nonce'); ?>
-                    <?php submit_button(__('Wyczyść wszystkie lokale', 'develogic'), 'secondary', 'submit', false, array('disabled' => $is_running)); ?>
+                    <?php submit_button(__('Wyczyść wszystkie lokale', 'develogic'), 'secondary', 'submit', false); ?>
                 </form>
             </div>
             
@@ -315,6 +389,91 @@ class Develogic_Admin_Sync {
             'page' => 'develogic-sync',
             'cleared' => '1',
             'deleted_count' => $deleted,
+        ), admin_url('admin.php')));
+        exit;
+    }
+    
+    /**
+     * Handle fetch investments from API
+     */
+    public function handle_fetch_investments() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Brak uprawnień', 'develogic'));
+        }
+        
+        check_admin_referer('develogic_fetch_investments', 'develogic_fetch_nonce');
+        
+        // Fetch investments from API
+        $investments = develogic()->api_client->get_investments();
+        
+        if (is_wp_error($investments)) {
+            wp_redirect(add_query_arg(array(
+                'page' => 'develogic-sync',
+                'fetch_investments' => 'error',
+                'error_message' => urlencode($investments->get_error_message()),
+            ), admin_url('admin.php')));
+            exit;
+        }
+        
+        if (empty($investments) || !is_array($investments)) {
+            wp_redirect(add_query_arg(array(
+                'page' => 'develogic-sync',
+                'fetch_investments' => 'empty',
+            ), admin_url('admin.php')));
+            exit;
+        }
+        
+        // Save investments to taxonomy (same logic as sync_investments)
+        $count = 0;
+        foreach ($investments as $investment) {
+            if (empty($investment['Name'])) {
+                continue;
+            }
+            
+            $term = term_exists($investment['Name'], 'develogic_investment');
+            
+            if (!$term) {
+                $term = wp_insert_term($investment['Name'], 'develogic_investment');
+            }
+            
+            if (!is_wp_error($term) && isset($term['term_id'])) {
+                update_term_meta($term['term_id'], 'investment_id', $investment['ID']);
+                $count++;
+            }
+        }
+        
+        wp_redirect(add_query_arg(array(
+            'page' => 'develogic-sync',
+            'fetch_investments' => 'success',
+            'count' => $count,
+        ), admin_url('admin.php')));
+        exit;
+    }
+    
+    /**
+     * Handle save investments selection
+     */
+    public function handle_save_investments() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Brak uprawnień', 'develogic'));
+        }
+        
+        check_admin_referer('develogic_save_investments', 'develogic_save_investments_nonce');
+        
+        // Get current settings
+        $settings = get_option('develogic_settings', array());
+        
+        // Save selected investments
+        $selected = isset($_POST['investments']) && is_array($_POST['investments'])
+            ? array_map('absint', $_POST['investments'])
+            : array();
+        
+        $settings['sync_investments'] = $selected;
+        update_option('develogic_settings', $settings);
+        
+        wp_redirect(add_query_arg(array(
+            'page' => 'develogic-sync',
+            'investments_saved' => '1',
         ), admin_url('admin.php')));
         exit;
     }

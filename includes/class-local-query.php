@@ -245,5 +245,50 @@ class Develogic_Local_Query {
         
         return $types;
     }
+    
+    /**
+     * Get buildings from taxonomy and locals
+     *
+     * @return array Array of buildings
+     */
+    public static function get_buildings_for_settings() {
+        // Get buildings from taxonomy (synced)
+        $terms = get_terms(array(
+            'taxonomy' => 'develogic_building',
+            'hide_empty' => false,
+        ));
+        
+        if (is_wp_error($terms)) {
+            return array();
+        }
+        
+        // Get all locals to extract buildingId mapping
+        $locals = self::get_locals();
+        
+        // Build mapping: building name -> buildingId
+        $building_id_map = array();
+        foreach ($locals as $local) {
+            if (!empty($local['building']) && !empty($local['buildingId'])) {
+                $building_id_map[$local['building']] = $local['buildingId'];
+            }
+        }
+        
+        $buildings = array();
+        foreach ($terms as $term) {
+            $building_id = isset($building_id_map[$term->name]) ? $building_id_map[$term->name] : 0;
+            $buildings[] = array(
+                'ID' => $building_id,
+                'Name' => $term->name,
+                'term_id' => $term->term_id,
+            );
+        }
+        
+        // Sort by name
+        usort($buildings, function($a, $b) {
+            return strcmp($a['Name'], $b['Name']);
+        });
+        
+        return $buildings;
+    }
 }
 

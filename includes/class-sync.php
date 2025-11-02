@@ -26,6 +26,7 @@ class Develogic_Sync {
             'success' => false,
             'added' => 0,
             'updated' => 0,
+            'deleted' => 0,
             'errors' => 0,
             'total' => 0,
             'time' => 0,
@@ -47,10 +48,31 @@ class Develogic_Sync {
             return $stats;
         }
         
+        // Filter by selected investments if any are selected
+        $selected_investments = develogic()->get_setting('sync_investments', array());
+        if (!empty($selected_investments) && is_array($selected_investments)) {
+            $filtered_locals = array();
+            foreach ($locals as $local_data) {
+                $subdivision_id = isset($local_data['subdivisionId']) ? absint($local_data['subdivisionId']) : 0;
+                if ($subdivision_id > 0 && in_array($subdivision_id, $selected_investments)) {
+                    $filtered_locals[] = $local_data;
+                }
+            }
+            $locals = $filtered_locals;
+            $this->log_sync('success', sprintf(__('Filtrowanie: synchronizacja tylko dla %d wybranych inwestycji (ID: %s)', 'develogic'), count($selected_investments), implode(', ', $selected_investments)));
+        }
+        
         $stats['total'] = count($locals);
         
-        // Sync each local
+        // Collect localIds from API for deletion check
+        $api_local_ids = array();
+        
+        // Sync each local (always overwrite existing ones)
         foreach ($locals as $local_data) {
+            if (!empty($local_data['localId'])) {
+                $api_local_ids[] = absint($local_data['localId']);
+            }
+            
             $result = $this->sync_single_local($local_data);
             
             if ($result === 'added') {
@@ -62,6 +84,10 @@ class Develogic_Sync {
             }
         }
         
+        // Delete locals that no longer exist in API
+        $deleted_count = $this->delete_missing_locals($api_local_ids, $selected_investments);
+        $stats['deleted'] = $deleted_count;
+        
         // Sync investments and local types
         $this->sync_investments();
         $this->sync_local_types();
@@ -69,9 +95,10 @@ class Develogic_Sync {
         $stats['time'] = round(microtime(true) - $start_time, 2);
         $stats['success'] = true;
         $stats['message'] = sprintf(
-            __('Synchronizacja zakończona: %d dodanych, %d zaktualizowanych, %d błędów w %s sek', 'develogic'),
+            __('Synchronizacja zakończona: %d dodanych, %d zaktualizowanych, %d usuniętych, %d błędów w %s sek', 'develogic'),
             $stats['added'],
             $stats['updated'],
+            $stats['deleted'],
             $stats['errors'],
             $stats['time']
         );
@@ -155,6 +182,107 @@ class Develogic_Sync {
         ));
         
         return $query->have_posts() ? $query->posts[0] : null;
+    }
+    
+    /**
+     * Delete locals that no longer exist in API
+     *
+     * @param array $api_local_ids Array of localIds from API
+     * @param array $selected_investments Array of selected investment IDs (if filtering)
+     * @return int Number of deleted locals
+     */
+    private function delete_missing_locals($api_local_ids, $selected_investments = array()) {
+        $deleted_count = 0;
+        
+        // Get all WordPress locals
+        $args = array(
+            'post_type' => 'develogic_local',
+            'post_status' => 'any',
+            'posts_per_page' => -1,
+            'fields' => 'ids',
+            'meta_query' => array(
+                array(
+                    'key' => 'localId',
+                    'compare' => 'EXISTS',
+                ),
+            ),
+        );
+        
+        $query = new WP_Query($args);
+        
+        if (!$query->have_posts()) {
+            return 0;
+        }
+        
+        $api_local_ids = array_map('absint', $api_local_ids);
+        $selected_investments = !empty($selected_investments) && is_array($selected_investments) 
+            ? array_map('absint', $selected_investments) 
+            : array();
+        
+        foreach ($query->posts as $post_id) {
+            $local_id = get_post_meta($post_id, 'localId', true);
+            $subdivision_id = get_post_meta($post_id, 'subdivisionId', true);
+            
+            if (empty($local_id)) {
+                continue;
+            }
+            
+            $local_id = absint($local_id);
+            $subdivision_id = absint($subdivision_id);
+            
+            $should_delete = false;
+            $reason = '';
+            
+            // If filtering by selected investments
+            if (!empty($selected_investments)) {
+                // Delete if local belongs to non-selected investment
+                if ($subdivision_id > 0 && !in_array($subdivision_id, $selected_investments)) {
+                    $should_delete = true;
+                    $reason = sprintf(__('Lokal należy do niezaznaczonej inwestycji (ID: %d)', 'develogic'), $subdivision_id);
+                }
+                // Delete if local belongs to selected investment but not in API
+                elseif ($subdivision_id > 0 && in_array($subdivision_id, $selected_investments) && !in_array($local_id, $api_local_ids)) {
+                    $should_delete = true;
+                    $reason = __('Lokal nie istnieje już w API', 'develogic');
+                }
+            } else {
+                // No filtering - delete if not in API
+                if (!in_array($local_id, $api_local_ids)) {
+                    $should_delete = true;
+                    $reason = __('Lokal nie istnieje już w API', 'develogic');
+                }
+            }
+            
+            if ($should_delete) {
+                // Delete all attachments (projections) for this local
+                $attachments = get_posts(array(
+                    'post_type' => 'attachment',
+                    'post_parent' => $post_id,
+                    'posts_per_page' => -1,
+                    'fields' => 'ids',
+                ));
+                
+                foreach ($attachments as $attachment_id) {
+                    wp_delete_attachment($attachment_id, true);
+                }
+                
+                // Delete the local post
+                $deleted = wp_delete_post($post_id, true);
+                
+                if ($deleted) {
+                    $deleted_count++;
+                    $this->log_sync('info', sprintf(
+                        __('Usunięto lokal (ID: %d, localId: %d, subdivisionId: %d) - %s', 'develogic'),
+                        $post_id,
+                        $local_id,
+                        $subdivision_id,
+                        $reason
+                    ));
+                }
+            }
+        }
+        
+        return $deleted_count;
     }
     
     /**
