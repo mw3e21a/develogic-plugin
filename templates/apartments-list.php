@@ -327,17 +327,6 @@ if (!defined('ABSPATH')) {
                                 <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
                             </svg>
                         </button>
-                        <button class="gallery-control gallery-view-3d" title="3D">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2L2 7v10l10 5 10-5V7L12 2z"/>
-                            </svg>
-                        </button>
-                        <button class="gallery-control gallery-view-plan" title="Plan">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                                <path d="M3 9h18M9 3v18M15 3v18"/>
-                            </svg>
-                        </button>
                     </div>
                 </div>
                 <div class="gallery-thumbnails"></div>

@@ -363,6 +363,7 @@
     function setupGallery(projections) {
         const mainImage = document.querySelector('.gallery-main-image');
         const galleryContainer = document.querySelector('.gallery-thumbnails');
+        const galleryMain = document.querySelector('.gallery-main');
         
         if (!mainImage || !galleryContainer) return;
         
@@ -372,6 +373,13 @@
             mainImage.src = '';
             mainImage.alt = 'Brak zdjęć';
             return;
+        }
+        
+        // Ensure gallery container has proper constraints
+        if (galleryMain) {
+            galleryMain.style.width = '100%';
+            galleryMain.style.maxWidth = '100%';
+            galleryMain.style.overflow = 'hidden';
         }
         
         // Set main image
@@ -429,9 +437,19 @@
     function updateMainImage(url) {
         const mainImage = document.querySelector('.gallery-main-image');
         if (mainImage) {
-            mainImage.src = url;
             // Reset zoom when changing image
             resetZoom();
+            
+            // Ensure image loads with proper constraints
+            mainImage.onload = function() {
+                // Force recalculation of container bounds
+                const galleryMain = mainImage.closest('.gallery-main');
+                if (galleryMain) {
+                    galleryMain.style.width = '100%';
+                }
+            };
+            
+            mainImage.src = url;
         }
     }
     
