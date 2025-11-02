@@ -20,6 +20,10 @@
         setupEmailButtons();
         setupApartmentClicks();
         setupModal();
+        setupFavoritesViewToggle();
+        setupShareButtons();
+        updateFavoritesCount();
+        checkSharedFavorites();
     }
     
     // ===========================
@@ -101,12 +105,11 @@
         const localId = btn.getAttribute('data-local-id');
         if (!localId) return;
         
-        btn.classList.toggle('favorited');
-        
         const favorites = getFavorites();
         const index = favorites.indexOf(localId);
+        const isAdding = index === -1;
         
-        if (index === -1) {
+        if (isAdding) {
             favorites.push(localId);
         } else {
             favorites.splice(index, 1);
@@ -116,12 +119,31 @@
         
         // Update all favorite buttons for this local
         document.querySelectorAll('.icon-btn[data-local-id="' + localId + '"]').forEach(b => {
-            if (index === -1) {
-                b.classList.add('favorited');
-            } else {
-                b.classList.remove('favorited');
+            b.classList.toggle('favorited', isAdding);
+        });
+        
+        // Update apartment item favorite class
+        document.querySelectorAll('.apartment-item').forEach(item => {
+            const modalData = item.getAttribute('data-modal');
+            if (modalData) {
+                try {
+                    const data = JSON.parse(modalData);
+                    if (data.localId === localId) {
+                        item.classList.toggle('is-favorite', isAdding);
+                    }
+                } catch (e) {
+                    console.error('Error parsing modal data:', e);
+                }
             }
         });
+        
+        // Update favorites count
+        updateFavoritesCount();
+        
+        // Show toast notification when adding to favorites
+        if (isAdding) {
+            showToast();
+        }
     }
     
     function getFavorites() {
@@ -139,6 +161,21 @@
         favorites.forEach(localId => {
             document.querySelectorAll('.icon-btn[data-local-id="' + localId + '"]').forEach(btn => {
                 btn.classList.add('favorited');
+            });
+            
+            // Mark apartment items as favorites
+            document.querySelectorAll('.apartment-item').forEach(item => {
+                const modalData = item.getAttribute('data-modal');
+                if (modalData) {
+                    try {
+                        const data = JSON.parse(modalData);
+                        if (data.localId === localId) {
+                            item.classList.add('is-favorite');
+                        }
+                    } catch (e) {
+                        console.error('Error parsing modal data:', e);
+                    }
+                }
             });
         });
     }
@@ -752,6 +789,254 @@
         const months = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 
                        'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
         return months[date.getMonth()] + ' ' + date.getFullYear();
+    }
+    
+    // ===========================
+    // Toast notification
+    // ===========================
+    function showToast() {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `
+            <div class="toast-icon"></div>
+            <div class="toast-content">
+                <div class="toast-title">Dodano do obserwowanych</div>
+                <span class="toast-link" id="toastFavoritesLink">Zobacz listę</span>
+            </div>
+        `;
+        
+        container.appendChild(toast);
+        
+        // Show toast with animation
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+        
+        // Setup click handler for the "Zobacz listę" link
+        const toastLink = toast.querySelector('#toastFavoritesLink');
+        if (toastLink) {
+            toastLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Switch to favorites view
+                const favoritesBtn = document.querySelector('.favorites-toggle-btn[data-toggle-view="favorites"]');
+                if (favoritesBtn) {
+                    favoritesBtn.click();
+                }
+            });
+        }
+        
+        // Hide and remove toast after 4 seconds
+        setTimeout(() => {
+            toast.classList.add('hide');
+            setTimeout(() => {
+                if (container.contains(toast)) {
+                    container.removeChild(toast);
+                }
+            }, 300);
+        }, 4000);
+    }
+    
+    // ===========================
+    // Favorites view toggle
+    // ===========================
+    function setupFavoritesViewToggle() {
+        const toggleButtons = document.querySelectorAll('.favorites-toggle-btn');
+        const apartmentList = document.querySelector('.apartment-list');
+        const shareContainer = document.getElementById('favoritesShareContainer');
+        
+        if (!toggleButtons.length || !apartmentList) return;
+        
+        toggleButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const view = this.getAttribute('data-toggle-view');
+                
+                // Update button active states
+                toggleButtons.forEach(b => b.classList.toggle('active', b === this));
+                
+                // Toggle apartment list classes
+                if (view === 'favorites') {
+                    apartmentList.classList.add('hide-favorites');
+                    // Show share buttons when in favorites view
+                    if (shareContainer) {
+                        shareContainer.style.display = 'flex';
+                    }
+                    // Update URL with favorites
+                    updateUrlWithFavorites();
+                } else {
+                    apartmentList.classList.remove('hide-favorites');
+                    // Hide share buttons when in all view
+                    if (shareContainer) {
+                        shareContainer.style.display = 'none';
+                    }
+                    // Remove favorites from URL
+                    removeFavoritesFromUrl();
+                }
+            });
+        });
+    }
+    
+    function updateUrlWithFavorites() {
+        const favorites = getFavorites();
+        if (favorites.length === 0) {
+            removeFavoritesFromUrl();
+            return;
+        }
+        
+        const favoritesParam = favorites.join(',');
+        const url = new URL(window.location.href);
+        
+        // Set or update favorites parameter while preserving all other params
+        url.searchParams.set('favorites', favoritesParam);
+        
+        // Update URL without reload
+        window.history.pushState({ favorites: favorites }, '', url.toString());
+    }
+    
+    function removeFavoritesFromUrl() {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('favorites');
+        
+        // Update URL without reload
+        window.history.pushState({}, '', url.toString());
+    }
+    
+    function updateFavoritesCount() {
+        const favoritesCount = document.getElementById('favoritesCount');
+        if (!favoritesCount) return;
+        
+        const favorites = getFavorites();
+        const count = favorites.length;
+        
+        favoritesCount.textContent = count + ' ' + (count === 1 ? 'obserwowane' : 'obserwowanych');
+    }
+    
+    // ===========================
+    // Share buttons functionality
+    // ===========================
+    function setupShareButtons() {
+        const shareButtons = document.querySelectorAll('.share-btn');
+        
+        shareButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const shareType = this.getAttribute('data-share');
+                shareFavorites(shareType);
+            });
+        });
+    }
+    
+    function generateShareLink() {
+        const favorites = getFavorites();
+        
+        // If no favorites, return null
+        if (favorites.length === 0) {
+            return null;
+        }
+        
+        // Return current URL (which should already have favorites if in favorites view)
+        return window.location.href;
+    }
+    
+    function shareFavorites(platform) {
+        const shareLink = generateShareLink();
+        
+        if (!shareLink) {
+            // Show message that there are no favorites
+            alert('Nie masz żadnych obserwowanych mieszkań do udostępnienia.');
+            return;
+        }
+        
+        const title = 'Sprawdź moją listę obserwowanych mieszkań';
+        
+        switch (platform) {
+            case 'twitter':
+                window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(shareLink), '_blank', 'width=550,height=420');
+                break;
+                
+            case 'facebook':
+                window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareLink), '_blank', 'width=550,height=420');
+                break;
+                
+            case 'email':
+                const subject = encodeURIComponent(title);
+                const body = encodeURIComponent('Sprawdź moją listę obserwowanych mieszkań:\n\n' + shareLink);
+                window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
+                break;
+        }
+    }
+    
+    // ===========================
+    // Check for shared favorites
+    // ===========================
+    function checkSharedFavorites() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedFavorites = urlParams.get('favorites');
+        
+        if (sharedFavorites) {
+            // Decode and parse the favorites list
+            const favoritesList = sharedFavorites.split(',');
+            
+            // Add all shared favorites to localStorage
+            const currentFavorites = getFavorites();
+            favoritesList.forEach(fav => {
+                if (currentFavorites.indexOf(fav) === -1) {
+                    currentFavorites.push(fav);
+                }
+            });
+            saveFavorites(currentFavorites);
+            
+            // Refresh the favorite state
+            loadFavoritesState();
+            updateFavoritesCount();
+            
+            // Switch to favorites view without triggering URL update
+            const apartmentList = document.querySelector('.apartment-list');
+            const shareContainer = document.getElementById('favoritesShareContainer');
+            const toggleButtons = document.querySelectorAll('.favorites-toggle-btn');
+            
+            if (apartmentList) {
+                apartmentList.classList.add('hide-favorites');
+            }
+            if (shareContainer) {
+                shareContainer.style.display = 'flex';
+            }
+            toggleButtons.forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-toggle-view') === 'favorites');
+            });
+            
+            // Show a message
+            setTimeout(() => {
+                const container = document.getElementById('toastContainer');
+                if (container) {
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    toast.innerHTML = `
+                        <div class="toast-icon"></div>
+                        <div class="toast-content">
+                            <div class="toast-title">Dodano ${favoritesList.length} ${favoritesList.length === 1 ? 'mieszkanie' : ' mieszkań'} z udostępnionej listy</div>
+                        </div>
+                    `;
+                    
+                    container.appendChild(toast);
+                    
+                    setTimeout(() => {
+                        toast.classList.add('show');
+                    }, 10);
+                    
+                    setTimeout(() => {
+                        toast.classList.add('hide');
+                        setTimeout(() => {
+                            if (container.contains(toast)) {
+                                container.removeChild(toast);
+                            }
+                        }, 300);
+                    }, 4000);
+                }
+            }, 500);
+        }
     }
     
 })();

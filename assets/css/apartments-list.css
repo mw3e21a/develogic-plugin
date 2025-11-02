@@ -707,3 +707,237 @@
     padding: 60px 20px;
     color: #666;
 }
+
+/* ===========================
+   Toast Notification
+   =========================== */
+.toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 100000;
+}
+
+.toast {
+    background: white;
+    color: #1f2937;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 320px;
+    animation: slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    opacity: 0;
+    transform: translateX(400px);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.toast.hide {
+    animation: slideOut 0.3s ease-in forwards;
+}
+
+@keyframes slideIn {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOut {
+    to {
+        opacity: 0;
+        transform: translateX(400px);
+    }
+}
+
+.toast-icon {
+    width: 24px;
+    height: 24px;
+    background: #10b981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.toast-icon::after {
+    content: '✓';
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.toast-content {
+    flex: 1;
+}
+
+.toast-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 2px;
+    color: #111827;
+}
+
+.toast-link {
+    font-size: 14px;
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+    cursor: pointer;
+}
+
+.toast-link:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+    .toast-container {
+        top: 16px;
+        right: 16px;
+        left: 16px;
+    }
+
+    .toast {
+        min-width: auto;
+        width: 100%;
+    }
+}
+
+/* ===========================
+   Favorites View Toggle
+   =========================== */
+.favorites-toggle-container {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.favorites-toggle-btn {
+    padding: 10px 20px;
+    background: white;
+    border: 2px solid #e5e5e5;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.favorites-toggle-btn:hover {
+    border-color: #0066cc;
+    color: #0066cc;
+}
+
+.favorites-toggle-btn.active {
+    background: #0066cc;
+    color: white;
+    border-color: #0066cc;
+}
+
+.favorites-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.favorites-count {
+    font-size: 14px;
+    color: #666;
+}
+
+.apartment-list.hide-favorites .apartment-item:not(.is-favorite) {
+    display: none;
+}
+
+/* ===========================
+   Share Buttons
+   =========================== */
+.favorites-share-container {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-left: 20px;
+    border-left: 1px solid #e5e5e5;
+}
+
+.share-label {
+    font-size: 14px;
+    color: #666;
+    white-space: nowrap;
+}
+
+.share-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.share-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.share-twitter {
+    color: #1DA1F2;
+}
+
+.share-twitter:hover {
+    background: #1DA1F2;
+    color: white;
+}
+
+.share-facebook {
+    color: #1877F2;
+}
+
+.share-facebook:hover {
+    background: #1877F2;
+    color: white;
+}
+
+.share-email {
+    color: #666;
+}
+
+.share-email:hover {
+    background: #666;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .favorites-toggle-container {
+        flex-wrap: wrap;
+    }
+    
+    .favorites-share-container {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        border-top: 1px solid #e5e5e5;
+        padding-top: 15px;
+        margin-top: 15px;
+        width: 100%;
+    }
+}

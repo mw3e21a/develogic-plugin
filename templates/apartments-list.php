@@ -45,6 +45,45 @@ if (!defined('ABSPATH')) {
         </div>
     </div>
 
+    <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
+    <div class="favorites-toggle-container">
+        <button class="favorites-toggle-btn active" data-toggle-view="all">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <line x1="9" y1="3" x2="9" y2="21"/>
+            </svg>
+            Wszystkie
+        </button>
+        <button class="favorites-toggle-btn" data-toggle-view="favorites">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+            Obserwowane
+        </button>
+        <span class="favorites-count" id="favoritesCount">0 obserwowanych</span>
+        
+        <div class="favorites-share-container" id="favoritesShareContainer" style="display: none;">
+            <span class="share-label">Udostępnij listę na:</span>
+            <button class="share-btn share-twitter" data-share="twitter" title="Twitter">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/>
+                </svg>
+            </button>
+            <button class="share-btn share-facebook" data-share="facebook" title="Facebook">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                </svg>
+            </button>
+            <button class="share-btn share-email" data-share="email" title="E-mail">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="5" width="18" height="14" rx="2"/>
+                    <path d="M3 7l9 6 9-6"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="apartment-list">
         <?php if (empty($locals)): ?>
             <div class="no-results">
@@ -270,6 +309,9 @@ if (!defined('ABSPATH')) {
         <?php endif; ?>
     </div>
 </div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
 
 <!-- Apartment Detail Modal -->
 <div id="apartment-detail-modal" class="apartment-detail-modal">
