@@ -71,7 +71,17 @@ class Develogic_Data_Formatter {
             return $floor_map[$floor];
         }
         
-        return absint($floor);
+        $floor_int = absint($floor);
+        if ($floor_int > 0) {
+            // Format as "Piętro I", "Piętro II", etc. for first 10 floors
+            $roman_numerals = array('', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X');
+            if ($floor_int <= 10 && isset($roman_numerals[$floor_int])) {
+                return __('Piętro', 'develogic') . ' ' . $roman_numerals[$floor_int];
+            }
+            return __('Piętro', 'develogic') . ' ' . $floor_int;
+        }
+        
+        return $floor_int;
     }
     
     /**

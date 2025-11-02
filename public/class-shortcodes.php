@@ -102,7 +102,7 @@ class Develogic_Shortcodes {
     }
     
     /**
-     * Render apartments list shortcode (katalog mieszkań w stylu listy)
+     * Render apartments list shortcode (nowy layout zgodny z apartment-list.html)
      */
     public function render_apartments_list($atts) {
         $atts = shortcode_atts(array(
@@ -171,72 +171,11 @@ class Develogic_Shortcodes {
     }
     
     /**
-     * Render apartments list shortcode - NEW layout
+     * Render apartments list shortcode - NEW layout (alias to main apartments list)
      */
     public function render_apartments_list_new($atts) {
-        $atts = shortcode_atts(array(
-            'investment_id' => '',
-            'local_type_id' => '',
-            'building_id' => '',
-            'title' => '',
-            'show_counters' => 'true',
-            'show_print' => develogic()->get_setting('show_print', true),
-            'show_favorite' => develogic()->get_setting('show_favorite', true),
-            'sort_by' => develogic()->get_setting('default_sort_by', 'priceGrossm2'),
-            'sort_dir' => develogic()->get_setting('default_sort_dir', 'asc'),
-            'gallery' => 'true',
-        ), $atts, 'develogic_apartments_list_new');
-        
-        // Enqueue assets - nowy layout css
-        wp_enqueue_style('develogic-new-layout');
-        wp_enqueue_script('develogic-apartments-list');
-        
-        // Get data from CPT
-        $filters = array();
-        if (!empty($atts['investment_id'])) {
-            $filters['investmentId'] = absint($atts['investment_id']);
-        }
-        if (!empty($atts['local_type_id'])) {
-            $filters['localTypeId'] = absint($atts['local_type_id']);
-        }
-        
-        $locals = Develogic_Local_Query::get_locals($filters);
-        
-        // Get buildings
-        $buildings = Develogic_Filter_Sort::get_buildings($locals);
-        
-        // Apply building filter if specified
-        if (!empty($atts['building_id'])) {
-            $locals = Develogic_Filter_Sort::filter_locals($locals, array(
-                'building_id' => absint($atts['building_id'])
-            ));
-        }
-        
-        // Apply visible statuses filter
-        $visible_statuses = develogic()->get_setting('visible_statuses', array('Wolny', 'Rezerwacja'));
-        $locals = Develogic_Filter_Sort::filter_locals($locals, array(
-            'status' => $visible_statuses
-        ));
-        
-        // Sort
-        $locals = Develogic_Filter_Sort::sort_locals($locals, $atts['sort_by'], $atts['sort_dir']);
-        
-        // Count by status
-        $status_counts = Develogic_Filter_Sort::count_by_status($locals);
-        
-        // Generate unique ID for this instance
-        $instance_id = 'develogic-apartments-list-new-' . uniqid();
-        
-        // Load template
-        ob_start();
-        $this->load_template('apartments-list-new', array(
-            'instance_id' => $instance_id,
-            'atts' => $atts,
-            'locals' => $locals,
-            'buildings' => $buildings,
-            'status_counts' => $status_counts,
-        ));
-        return ob_get_clean();
+        // Use the same renderer as main apartments list
+        return $this->render_apartments_list($atts);
     }
     
     /**

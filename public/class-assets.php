@@ -75,7 +75,7 @@ class Develogic_Assets {
         wp_register_script(
             'develogic-apartments-list',
             DEVELOGIC_PLUGIN_URL . 'assets/js/apartments-list.js',
-            array('jquery', 'shufflejs', 'tippy'),
+            array(),
             DEVELOGIC_VERSION,
             true
         );
@@ -103,6 +103,8 @@ class Develogic_Assets {
                 'obserwuj' => __('obserwuj', 'develogic'),
                 'obserwujesz' => __('obserwujesz', 'develogic'),
             ),
+            'developer_name' => develogic()->get_setting('developer_name', get_bloginfo('name')),
+            'contact_email' => develogic()->get_setting('contact_email', get_option('admin_email')),
         ));
     }
     
@@ -130,25 +132,10 @@ class Develogic_Assets {
         wp_register_style(
             'develogic-apartments-list',
             DEVELOGIC_PLUGIN_URL . 'assets/css/apartments-list.css',
-            array('tippy'),
-            DEVELOGIC_VERSION
-        );
-        
-        // Google Fonts - Lato
-        wp_register_style(
-            'google-fonts-lato',
-            'https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;0,900;1,400;1,700&display=swap',
             array(),
-            null
-        );
-        
-        // New layout styles
-        wp_register_style(
-            'develogic-new-layout',
-            DEVELOGIC_PLUGIN_URL . 'assets/css/new-layout.css',
-            array('google-fonts-lato', 'tippy'),
             DEVELOGIC_VERSION
         );
+        
     }
     
     /**
