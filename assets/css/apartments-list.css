@@ -317,6 +317,18 @@
     max-width: 100%;
     max-height: 100%;
     object-fit: contain;
+    transition: transform 0.3s ease-out;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.gallery-main.zoomed {
+    overflow: auto;
+    cursor: grab;
+}
+
+.gallery-main.zoomed:active {
+    cursor: grabbing;
 }
 
 .gallery-nav {
@@ -413,6 +425,42 @@
 
 .gallery-thumbnail.active {
     border-color: #0066cc;
+}
+
+/* Fullscreen styles */
+.gallery-main:-webkit-full-screen,
+.gallery-main:-moz-full-screen,
+.gallery-main:-ms-fullscreen,
+.gallery-main:fullscreen {
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+}
+
+.gallery-main:-webkit-full-screen .gallery-main-image,
+.gallery-main:-moz-full-screen .gallery-main-image,
+.gallery-main:-ms-fullscreen .gallery-main-image,
+.gallery-main:fullscreen .gallery-main-image {
+    max-width: 100vw;
+    max-height: 100vh;
+}
+
+.gallery-main:-webkit-full-screen .gallery-nav,
+.gallery-main:-moz-full-screen .gallery-nav,
+.gallery-main:-ms-fullscreen .gallery-nav,
+.gallery-main:fullscreen .gallery-nav {
+    z-index: 1000000;
+}
+
+.gallery-main:-webkit-full-screen .gallery-controls,
+.gallery-main:-moz-full-screen .gallery-controls,
+.gallery-main:-ms-fullscreen .gallery-controls,
+.gallery-main:fullscreen .gallery-controls {
+    z-index: 1000000;
 }
 
 /* Modal Details Section */

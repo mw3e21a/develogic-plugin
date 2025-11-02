@@ -301,6 +301,32 @@ if (!defined('ABSPATH')) {
                         </svg>
                     </button>
                     <div class="gallery-controls">
+                        <button class="gallery-control gallery-zoom-in" title="Powiększ">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M11 8v6M8 11h6"/>
+                            </svg>
+                        </button>
+                        <button class="gallery-control gallery-zoom-out" title="Pomniejsz">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M8 11h6"/>
+                            </svg>
+                        </button>
+                        <button class="gallery-control gallery-zoom-reset" title="Resetuj zoom">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 3l3 3m15 0l-3-3M3 21l3-3m15 0l-3 3M21 3v6M3 3v6m18 12v-6M3 21v-6"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                        <button class="gallery-control gallery-fullscreen" title="Pełny ekran">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fullscreen-open">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                            </svg>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="fullscreen-close" style="display: none;">
+                                <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                            </svg>
+                        </button>
                         <button class="gallery-control gallery-view-3d" title="3D">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M12 2L2 7v10l10 5 10-5V7L12 2z"/>

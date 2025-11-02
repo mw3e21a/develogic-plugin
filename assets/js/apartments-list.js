@@ -206,6 +206,9 @@
     // ===========================
     let currentModalData = null;
     let currentGalleryIndex = 0;
+    let zoomLevel = 1;
+    let imageOffsetX = 0;
+    let imageOffsetY = 0;
     
     function setupModal() {
         // Close button
@@ -225,7 +228,11 @@
             const modal = document.getElementById('apartment-detail-modal');
             if (modal && modal.style.display !== 'none') {
                 if (e.key === 'Escape') {
-                    closeApartmentModal();
+                    if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+                        exitFullscreen();
+                    } else {
+                        closeApartmentModal();
+                    }
                 }
                 if (e.key === 'ArrowLeft') {
                     prevImage();
@@ -245,11 +252,20 @@
         if (nextBtn) {
             nextBtn.addEventListener('click', nextImage);
         }
+        
+        // Zoom controls
+        setupZoomControls();
+        
+        // Fullscreen controls
+        setupFullscreenControls();
     }
     
     function openApartmentModal(data) {
         currentModalData = data;
         currentGalleryIndex = 0;
+        
+        // Reset zoom when opening modal
+        resetZoom();
         
         const modal = document.getElementById('apartment-detail-modal');
         if (!modal) return;
@@ -388,6 +404,8 @@
         if (mainImage) {
             mainImage.src = currentModalData.galleryImages[index].url;
             mainImage.alt = currentModalData.galleryImages[index].type || 'Gallery ' + (index + 1);
+            // Reset zoom when changing image
+            resetZoom();
         }
         
         // Update thumbnails
@@ -412,12 +430,254 @@
         const mainImage = document.querySelector('.gallery-main-image');
         if (mainImage) {
             mainImage.src = url;
+            // Reset zoom when changing image
+            resetZoom();
+        }
+    }
+    
+    // ===========================
+    // Zoom functionality
+    // ===========================
+    function setupZoomControls() {
+        const zoomInBtn = document.querySelector('.gallery-zoom-in');
+        const zoomOutBtn = document.querySelector('.gallery-zoom-out');
+        const zoomResetBtn = document.querySelector('.gallery-zoom-reset');
+        const mainImage = document.querySelector('.gallery-main-image');
+        const galleryMain = document.querySelector('.gallery-main');
+        
+        if (!mainImage || !galleryMain) return;
+        
+        if (zoomInBtn) {
+            zoomInBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                zoomIn();
+            });
+        }
+        
+        if (zoomOutBtn) {
+            zoomOutBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                zoomOut();
+            });
+        }
+        
+        if (zoomResetBtn) {
+            zoomResetBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                resetZoom();
+            });
+        }
+        
+        // Mouse wheel zoom
+        galleryMain.addEventListener('wheel', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                zoomTo(Math.max(1, Math.min(5, zoomLevel + delta)));
+            }
+        }, { passive: false });
+        
+        // Drag to pan when zoomed
+        let isPanning = false;
+        let panStartX = 0;
+        let panStartY = 0;
+        
+        mainImage.addEventListener('mousedown', function(e) {
+            if (zoomLevel > 1) {
+                isPanning = true;
+                panStartX = e.clientX - imageOffsetX;
+                panStartY = e.clientY - imageOffsetY;
+                mainImage.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+            if (isPanning && zoomLevel > 1) {
+                imageOffsetX = e.clientX - panStartX;
+                imageOffsetY = e.clientY - panStartY;
+                applyZoomTransform();
+                e.preventDefault();
+            }
+        });
+        
+        document.addEventListener('mouseup', function() {
+            if (isPanning) {
+                isPanning = false;
+                mainImage.style.cursor = zoomLevel > 1 ? 'grab' : 'default';
+            }
+        });
+        
+        // Touch support for mobile
+        let touchStartDistance = 0;
+        let touchStartZoom = 1;
+        
+        galleryMain.addEventListener('touchstart', function(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                touchStartDistance = getTouchDistance(e.touches[0], e.touches[1]);
+                touchStartZoom = zoomLevel;
+            } else if (e.touches.length === 1 && zoomLevel > 1) {
+                isPanning = true;
+                panStartX = e.touches[0].clientX - imageOffsetX;
+                panStartY = e.touches[0].clientY - imageOffsetY;
+            }
+        }, { passive: false });
+        
+        galleryMain.addEventListener('touchmove', function(e) {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const touchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+                const scale = touchDistance / touchStartDistance;
+                zoomTo(Math.max(1, Math.min(5, touchStartZoom * scale)));
+            } else if (e.touches.length === 1 && isPanning && zoomLevel > 1) {
+                e.preventDefault();
+                imageOffsetX = e.touches[0].clientX - panStartX;
+                imageOffsetY = e.touches[0].clientY - panStartY;
+                applyZoomTransform();
+            }
+        }, { passive: false });
+        
+        galleryMain.addEventListener('touchend', function() {
+            isPanning = false;
+        });
+    }
+    
+    function getTouchDistance(touch1, touch2) {
+        const dx = touch1.clientX - touch2.clientX;
+        const dy = touch1.clientY - touch2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    
+    function zoomIn() {
+        zoomTo(Math.min(5, zoomLevel + 0.5));
+    }
+    
+    function zoomOut() {
+        zoomTo(Math.max(1, zoomLevel - 0.5));
+    }
+    
+    function resetZoom() {
+        zoomTo(1);
+    }
+    
+    function zoomTo(level) {
+        zoomLevel = level;
+        const mainImage = document.querySelector('.gallery-main-image');
+        
+        if (zoomLevel === 1) {
+            imageOffsetX = 0;
+            imageOffsetY = 0;
+        }
+        
+        applyZoomTransform();
+        
+        if (mainImage) {
+            mainImage.style.cursor = zoomLevel > 1 ? 'grab' : 'default';
+            mainImage.closest('.gallery-main').classList.toggle('zoomed', zoomLevel > 1);
+        }
+    }
+    
+    function applyZoomTransform() {
+        const mainImage = document.querySelector('.gallery-main-image');
+        if (mainImage) {
+            mainImage.style.transform = `scale(${zoomLevel}) translate(${imageOffsetX / zoomLevel}px, ${imageOffsetY / zoomLevel}px)`;
+            mainImage.style.transformOrigin = 'center center';
+            mainImage.style.transition = zoomLevel === 1 ? 'transform 0.3s ease-out' : 'transform 0.1s ease-out';
+        }
+    }
+    
+    // ===========================
+    // Fullscreen functionality
+    // ===========================
+    function setupFullscreenControls() {
+        const fullscreenBtn = document.querySelector('.gallery-fullscreen');
+        const galleryMain = document.querySelector('.gallery-main');
+        
+        if (!fullscreenBtn || !galleryMain) return;
+        
+        fullscreenBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleFullscreen();
+        });
+        
+        // Listen for fullscreen changes
+        document.addEventListener('fullscreenchange', updateFullscreenButton);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+        document.addEventListener('mozfullscreenchange', updateFullscreenButton);
+        document.addEventListener('MSFullscreenChange', updateFullscreenButton);
+    }
+    
+    function toggleFullscreen() {
+        const galleryMain = document.querySelector('.gallery-main');
+        if (!galleryMain) return;
+        
+        if (isFullscreen()) {
+            exitFullscreen();
+        } else {
+            enterFullscreen(galleryMain);
+        }
+    }
+    
+    function isFullscreen() {
+        return !!(document.fullscreenElement || 
+                 document.webkitFullscreenElement || 
+                 document.mozFullScreenElement || 
+                 document.msFullscreenElement);
+    }
+    
+    function enterFullscreen(element) {
+        if (element.requestFullscreen) {
+            element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+            element.webkitRequestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+            element.mozRequestFullScreen();
+        } else if (element.msRequestFullscreen) {
+            element.msRequestFullscreen();
+        }
+    }
+    
+    function exitFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+            document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
+    
+    function updateFullscreenButton() {
+        const fullscreenBtn = document.querySelector('.gallery-fullscreen');
+        if (!fullscreenBtn) return;
+        
+        const fullscreen = isFullscreen();
+        const openIcon = fullscreenBtn.querySelector('.fullscreen-open');
+        const closeIcon = fullscreenBtn.querySelector('.fullscreen-close');
+        
+        if (openIcon && closeIcon) {
+            if (fullscreen) {
+                openIcon.style.display = 'none';
+                closeIcon.style.display = 'block';
+            } else {
+                openIcon.style.display = 'block';
+                closeIcon.style.display = 'none';
+            }
         }
     }
     
     function closeApartmentModal() {
         const modal = document.getElementById('apartment-detail-modal');
         if (modal) {
+            // Exit fullscreen if active
+            if (isFullscreen()) {
+                exitFullscreen();
+            }
+            // Reset zoom
+            resetZoom();
             modal.style.display = 'none';
             document.body.style.overflow = '';
         }
