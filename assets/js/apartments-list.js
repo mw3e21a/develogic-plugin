@@ -209,25 +209,42 @@
     
     function setupModal() {
         // Close button
-        const closeBtn = document.querySelector('.apartment-detail-modal .close-btn');
+        const closeBtn = document.querySelector('.apartment-detail-modal .modal-close');
         if (closeBtn) {
             closeBtn.addEventListener('click', closeApartmentModal);
         }
         
+        // Close on overlay click
+        const overlay = document.querySelector('.modal-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', closeApartmentModal);
+        }
+        
         // Close on escape key
         document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                closeApartmentModal();
-            }
-        });
-        
-        // Close on backdrop click
-        document.addEventListener('click', function(e) {
             const modal = document.getElementById('apartment-detail-modal');
-            if (modal && modal.style.display !== 'none' && e.target === modal) {
-                closeApartmentModal();
+            if (modal && modal.style.display !== 'none') {
+                if (e.key === 'Escape') {
+                    closeApartmentModal();
+                }
+                if (e.key === 'ArrowLeft') {
+                    prevImage();
+                }
+                if (e.key === 'ArrowRight') {
+                    nextImage();
+                }
             }
         });
+
+        // Gallery navigation
+        const prevBtn = document.querySelector('.gallery-nav.prev');
+        const nextBtn = document.querySelector('.gallery-nav.next');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', prevImage);
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener('click', nextImage);
+        }
     }
     
     function openApartmentModal(data) {
@@ -242,7 +259,7 @@
         if (data.buildingAddress) {
             headerTitle += (headerTitle ? ' - ' : '') + data.buildingAddress;
         }
-        modal.querySelector('.header-title').textContent = headerTitle || 'Szczegóły mieszkania';
+        modal.querySelector('.modal-title').textContent = headerTitle || 'Szczegóły mieszkania';
         
         // Set location
         let locationText = data.building || '';
@@ -256,30 +273,28 @@
         
         // Set status
         const statusEl = modal.querySelector('.status');
-        let statusText = data.status || '';
         if (data.statusClass === 'available') {
-            statusText = 'Dostępne od ręki';
-        }
-        statusEl.textContent = statusText;
-        statusEl.className = 'status';
-        if (data.statusClass === 'reserved') {
-            statusEl.classList.add('reserved');
+            statusEl.innerHTML = '<span style="color: #00b341;">Dostępne</span> od ręki';
+        } else if (data.statusClass === 'reserved') {
+            statusEl.innerHTML = '<span style="color: #ff9500;">Rezerwacja</span>';
+        } else {
+            statusEl.textContent = data.status || '';
         }
         
-        // Set details grid
-        const detailGrid = modal.querySelector('.detail-grid');
-        detailGrid.innerHTML = '';
+        // Set specs
+        const detailSpecs = modal.querySelector('.detail-specs');
+        detailSpecs.innerHTML = '';
         
         if (data.klatka) {
-            addDetailRow(detailGrid, 'Klatka', data.klatka);
+            addSpecRow(detailSpecs, 'Klatka', data.klatka);
         }
         
-        addDetailRow(detailGrid, 'Kondygnacja', data.floorDisplay || formatFloor(data.floor));
-        addDetailRow(detailGrid, 'Powierzchnia', formatArea(data.area));
-        addDetailRow(detailGrid, 'Ilość pokoi', data.rooms);
+        addSpecRow(detailSpecs, 'Kondygnacja', data.floorDisplay || formatFloor(data.floor));
+        addSpecRow(detailSpecs, 'Powierzchnia', formatArea(data.area));
+        addSpecRow(detailSpecs, 'Ilość pokoi', data.rooms);
         
         // Set features
-        const featuresEl = modal.querySelector('.features');
+        const featuresEl = modal.querySelector('.detail-features');
         if (data.tags && data.tags.length > 0) {
             featuresEl.textContent = data.tags.join(', ');
         } else {
@@ -287,13 +302,13 @@
         }
         
         // Set price
-        modal.querySelector('.price-main').textContent = formatPrice(data.priceGross);
-        modal.querySelector('.price-sqm').textContent = '(' + formatPriceM2(data.priceM2) + ' zł/m²)';
+        modal.querySelector('.detail-price .price-main').textContent = formatPrice(data.priceGross);
+        modal.querySelector('.detail-price .price-per-m2').textContent = '(' + formatPriceM2(data.priceM2) + ' zł/m²)';
         
         // Set info box
         const infoBox = modal.querySelector('.info-box');
         if (data.plannedDate) {
-            const infoText = 'Planowane oddanie budynku - ' + formatDate(data.plannedDate) + '.';
+            const infoText = 'Planowane oddanie budynku - ' + formatDate(data.plannedDate);
             modal.querySelector('.info-text').textContent = infoText;
             infoBox.style.display = 'block';
         } else {
@@ -330,8 +345,8 @@
     }
     
     function setupGallery(projections) {
-        const mainImage = document.querySelector('.main-image img');
-        const galleryContainer = document.querySelector('.gallery');
+        const mainImage = document.querySelector('.gallery-main-image');
+        const galleryContainer = document.querySelector('.gallery-thumbnails');
         
         if (!mainImage || !galleryContainer) return;
         
@@ -349,28 +364,52 @@
         
         // Create gallery items
         projections.forEach((proj, index) => {
-            const galleryItem = document.createElement('div');
-            galleryItem.className = 'gallery-item' + (index === 0 ? ' active' : '');
-            galleryItem.innerHTML = '<img src="' + proj.thumb + '" alt="Gallery ' + (index + 1) + '">';
+            const thumb = document.createElement('img');
+            thumb.src = proj.thumb;
+            thumb.alt = proj.type || 'Gallery ' + (index + 1);
+            thumb.className = 'gallery-thumbnail' + (index === 0 ? ' active' : '');
             
-            galleryItem.addEventListener('click', function() {
-                // Remove active from all
-                galleryContainer.querySelectorAll('.gallery-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                // Add active to clicked
-                this.classList.add('active');
-                
-                currentGalleryIndex = index;
-                updateMainImage(proj.url);
+            thumb.addEventListener('click', function() {
+                setImage(index);
             });
             
-            galleryContainer.appendChild(galleryItem);
+            galleryContainer.appendChild(thumb);
+        });
+        
+        currentModalData.galleryImages = projections;
+    }
+    
+    function setImage(index) {
+        if (!currentModalData.galleryImages || index < 0 || index >= currentModalData.galleryImages.length) return;
+        
+        currentGalleryIndex = index;
+        const mainImage = document.querySelector('.gallery-main-image');
+        
+        if (mainImage) {
+            mainImage.src = currentModalData.galleryImages[index].url;
+            mainImage.alt = currentModalData.galleryImages[index].type || 'Gallery ' + (index + 1);
+        }
+        
+        // Update thumbnails
+        document.querySelectorAll('.gallery-thumbnail').forEach((thumb, i) => {
+            thumb.classList.toggle('active', i === index);
         });
     }
     
+    function prevImage() {
+        if (!currentModalData.galleryImages) return;
+        const newIndex = currentGalleryIndex > 0 ? currentGalleryIndex - 1 : currentModalData.galleryImages.length - 1;
+        setImage(newIndex);
+    }
+    
+    function nextImage() {
+        if (!currentModalData.galleryImages) return;
+        const newIndex = currentGalleryIndex < currentModalData.galleryImages.length - 1 ? currentGalleryIndex + 1 : 0;
+        setImage(newIndex);
+    }
+    
     function updateMainImage(url) {
-        const mainImage = document.querySelector('.main-image img');
+        const mainImage = document.querySelector('.gallery-main-image');
         if (mainImage) {
             mainImage.src = url;
         }
@@ -388,6 +427,13 @@
         const row = document.createElement('div');
         row.className = 'detail-row';
         row.innerHTML = '<span class="detail-label">' + label + '</span><span class="detail-value">' + value + '</span>';
+        container.appendChild(row);
+    }
+    
+    function addSpecRow(container, label, value) {
+        const row = document.createElement('div');
+        row.className = 'spec-item';
+        row.innerHTML = '<span class="spec-label">' + label + '</span><span class="spec-value">' + value + '</span>';
         container.appendChild(row);
     }
     

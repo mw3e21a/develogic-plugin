@@ -272,50 +272,84 @@ if (!defined('ABSPATH')) {
 </div>
 
 <!-- Apartment Detail Modal -->
-<div id="apartment-detail-modal" class="apartment-detail-modal" style="display: none;">
-    <div class="header">
-        <div class="header-title"></div>
-        <button class="close-btn">✕</button>
-    </div>
+<div id="apartment-detail-modal" class="apartment-detail-modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <button class="modal-close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
 
-    <div class="container">
-        <div class="left-panel">
-            <div class="main-image">
-                <img src="" alt="">
-            </div>
-            <div class="gallery"></div>
+        <div class="modal-header">
+            <h2 class="modal-title"></h2>
         </div>
 
-        <div class="right-panel">
-            <div class="location"></div>
-            <h1 class="unit-name"></h1>
-            <div class="status"></div>
-
-            <div class="section">
-                <div class="detail-grid"></div>
+        <div class="modal-body">
+            <div class="modal-gallery">
+                <div class="gallery-main">
+                    <img src="" alt="" class="gallery-main-image">
+                    <button class="gallery-nav prev">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <button class="gallery-nav next">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </button>
+                    <div class="gallery-controls">
+                        <button class="gallery-control gallery-view-3d" title="3D">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7v10l10 5 10-5V7L12 2z"/>
+                            </svg>
+                        </button>
+                        <button class="gallery-control gallery-view-plan" title="Plan">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <path d="M3 9h18M9 3v18M15 3v18"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="gallery-thumbnails"></div>
             </div>
 
-            <div class="section">
-                <div class="features"></div>
-            </div>
+            <div class="modal-details">
+                <div class="detail-header">
+                    <div class="location"></div>
+                    <h1 class="unit-name"></h1>
+                    <div class="status"></div>
+                </div>
 
-            <div class="section">
-                <div class="section-label">Cena</div>
-                <div class="price-main"></div>
-                <div class="price-sqm"></div>
-            </div>
+                <div class="detail-specs">
+                    <div class="spec-item">
+                        <span class="spec-label"></span>
+                        <span class="spec-value"></span>
+                    </div>
+                </div>
 
-            <div class="info-box" style="display: none;">
-                <div class="info-text"></div>
-                <a href="#" class="download-link" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    Pobierz kartę mieszkania
-                </a>
-            </div>
+                <div class="detail-features"></div>
+
+                <div class="detail-price">
+                    <div class="price-label">Cena</div>
+                    <div class="price-main"></div>
+                    <div class="price-per-m2"></div>
+                </div>
+
+                <div class="info-box" style="display: none;">
+                    <div class="info-text"></div>
+                    <a href="#" class="download-link" style="display: none;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Pobierz kartę mieszkania
+                    </a>
+                </div>
 
             <div class="action-buttons">
                 <button class="icon-btn" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>">
