@@ -162,6 +162,8 @@ if (!defined('ABSPATH')) {
                     'tags' => $tags,
                     'priceGross' => $local['priceGross'],
                     'priceM2' => $price_m2,
+                    'omnibusPriceGross' => isset($local['omnibusPriceGross']) ? $local['omnibusPriceGross'] : 0,
+                    'omnibusPriceGrossm2' => isset($local['omnibusPriceGrossm2']) ? $local['omnibusPriceGrossm2'] : 0,
                     'pdfLink' => $pdf_link,
                     'plannedDate' => isset($local['plannedDateOfFinishing']) ? $local['plannedDateOfFinishing'] : '',
                     'projections' => array()
@@ -413,6 +415,16 @@ if (!defined('ABSPATH')) {
                     <div class="price-label">Cena</div>
                     <div class="price-main"></div>
                     <div class="price-per-m2"></div>
+                </div>
+
+                <!-- CHANGE: Price history section -->
+                <div class="detail-price-history">
+                    <div class="price-history-label">Historia ceny</div>
+                    <div class="price-history-content">
+                        <canvas id="priceHistoryChart" style="display:none; width:100%; height:220px;"></canvas>
+                        <div class="price-history-list"></div>
+                        <div class="price-history-empty" style="display:none;"></div>
+                    </div>
                 </div>
 
                 <div class="info-box" style="display: none;">

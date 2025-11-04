@@ -119,8 +119,10 @@ class Develogic_Shortcodes {
         ), $atts, 'develogic_apartments_list');
         
         // Enqueue assets
+        // CHANGE: Enqueue price history deps (Chart.js + main) for modal history rendering
         wp_enqueue_style('develogic-apartments-list');
         wp_enqueue_script('develogic-apartments-list');
+        Develogic_Assets::enqueue_price_history_assets();
         
         // Get data from CPT
         $filters = array();

@@ -220,8 +220,8 @@
     function setupApartmentClicks() {
         document.querySelectorAll('.apartment-item').forEach(item => {
             item.addEventListener('click', function(e) {
-                // Don't open modal if clicking on buttons or images
-                if (e.target.closest('.icon-btn, .apartment-image')) {
+                // Don't open modal if clicking on buttons
+                if (e.target.closest('.icon-btn')) {
                     return;
                 }
                 
@@ -236,6 +236,25 @@
                 }
             });
         });
+        
+        // Also handle clicks directly on apartment images
+        document.querySelectorAll('.apartment-image').forEach(imgContainer => {
+            imgContainer.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const apartmentItem = this.closest('.apartment-item');
+                if (apartmentItem) {
+                    const modalData = apartmentItem.getAttribute('data-modal');
+                    if (modalData) {
+                        try {
+                            const data = JSON.parse(modalData);
+                            openApartmentModal(data);
+                        } catch (err) {
+                            console.error('Error parsing modal data:', err);
+                        }
+                    }
+                }
+            });
+        });
     }
     
     // ===========================
@@ -246,6 +265,7 @@
     let zoomLevel = 1;
     let imageOffsetX = 0;
     let imageOffsetY = 0;
+    let priceHistoryChart = null;
     
     function setupModal() {
         // Close button
@@ -313,7 +333,7 @@
             headerTitle = 'Budynek ' + data.building;
         }
         if (data.number) {
-            headerTitle += (headerTitle ? ' - ' : '') + 'mieszkanie ' + data.number;
+            headerTitle += (headerTitle ? ' - ' : '') + 'Mieszkanie ' + data.number;
         }
         modal.querySelector('.modal-title').textContent = headerTitle || 'Szczegóły mieszkania';
         
@@ -351,6 +371,17 @@
         addSpecRow(detailSpecs, 'Kondygnacja', data.floorDisplay || formatFloor(data.floor));
         addSpecRow(detailSpecs, 'Powierzchnia', formatArea(data.area));
         addSpecRow(detailSpecs, 'Ilość pokoi', data.rooms);
+        
+        // Add omnibus price if available
+        if (data.omnibusPriceGross && data.omnibusPriceGross > 0) {
+            const omnibusPriceText = formatPrice(data.omnibusPriceGross);
+            if (data.omnibusPriceGrossm2 && data.omnibusPriceGrossm2 > 0) {
+                const omnibusPriceM2Text = formatPriceM2(data.omnibusPriceGrossm2);
+                addSpecRow(detailSpecs, 'Cena omnibus', omnibusPriceText + ' (' + omnibusPriceM2Text + ' zł/m²)');
+            } else {
+                addSpecRow(detailSpecs, 'Cena omnibus', omnibusPriceText);
+            }
+        }
         
         // Set features
         const featuresEl = modal.querySelector('.detail-features');
@@ -397,6 +428,9 @@
         
         // Setup gallery
         setupGallery(data.projections || []);
+        
+        // Load price history
+        loadPriceHistory(data.localId);
         
         // Show modal
         modal.style.display = 'block';
@@ -795,6 +829,136 @@
         const months = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 
                        'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
         return months[date.getMonth()] + ' ' + date.getFullYear();
+    }
+
+    // ===========================
+    // Price history
+    // ===========================
+    function loadPriceHistory(localId) {
+        const historyContainer = document.querySelector('.detail-price-history');
+        if (!historyContainer) return;
+        const listEl = historyContainer.querySelector('.price-history-list');
+        const emptyEl = historyContainer.querySelector('.price-history-empty');
+        const chartCanvas = historyContainer.querySelector('#priceHistoryChart');
+        
+        if (listEl) listEl.innerHTML = '';
+        if (emptyEl) {
+            emptyEl.style.display = 'block';
+            emptyEl.textContent = 'Ładowanie...';
+        }
+        if (chartCanvas) {
+            chartCanvas.style.display = 'none';
+        }
+        if (priceHistoryChart) {
+            priceHistoryChart.destroy();
+            priceHistoryChart = null;
+        }
+        
+        const baseUrl = (window.develogicData && window.develogicData.restUrl) ? window.develogicData.restUrl : '/wp-json/develogic/v1';
+        const url = baseUrl.replace(/\/$/, '') + '/price-history/' + encodeURIComponent(localId);
+        
+        fetch(url, { credentials: 'same-origin' })
+            .then(res => res.json())
+            .then(history => {
+                const prices = Array.isArray(history?.prices) ? history.prices : [];
+                if (!prices.length) {
+                    if (emptyEl) {
+                        emptyEl.textContent = 'Brak danych o historii cen.';
+                    }
+                    return;
+                }
+                
+                // Sort by appliesFrom ascending
+                prices.sort((a, b) => new Date(a.appliesFrom) - new Date(b.appliesFrom));
+                
+                // Build display list (latest 6 entries)
+                const last = prices.slice(-6);
+                const labels = [];
+                const values = [];
+                
+                last.forEach(p => {
+                    const label = formatDateShort(p.appliesFrom);
+                    const gross = pickNumber(p.priceGross, p.packagePriceGross, p.promoPriceGross);
+                    const grossm2 = pickNumber(p.priceGrossm2, p.packagePriceGrossm2, p.promoPriceGrossm2);
+                    let valueText = '';
+                    let numeric = null;
+                    if (isFiniteNumber(gross)) {
+                        valueText = formatPrice(gross);
+                        numeric = gross;
+                    } else if (isFiniteNumber(grossm2)) {
+                        valueText = formatPriceM2(grossm2) + ' zł/m²';
+                        numeric = grossm2;
+                    }
+                    if (listEl && valueText) {
+                        const item = document.createElement('div');
+                        item.className = 'price-history-item';
+                        item.innerHTML = '<span class="date">' + label + '</span><span class="value">' + valueText + '</span>';
+                        listEl.appendChild(item);
+                    }
+                    if (label && numeric !== null) {
+                        labels.push(label);
+                        values.push(numeric);
+                    }
+                });
+                
+                if (emptyEl) emptyEl.style.display = 'none';
+                
+                // Render chart if available and at least 2 points
+                if (typeof window.Chart !== 'undefined' && chartCanvas && labels.length >= 2) {
+                    chartCanvas.style.display = 'block';
+                    const ctx = chartCanvas.getContext('2d');
+                    priceHistoryChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Cena',
+                                data: values,
+                                borderColor: '#1a1a1a',
+                                backgroundColor: 'rgba(26,26,26,0.05)',
+                                tension: 0.25,
+                                pointRadius: 3,
+                            }]
+                        },
+                        options: {
+                            plugins: { legend: { display: false } },
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { grid: { display: false } },
+                                y: { grid: { color: '#eee' } }
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(() => {
+                if (emptyEl) {
+                    emptyEl.style.display = 'block';
+                    emptyEl.textContent = 'Nie udało się pobrać historii cen.';
+                }
+            });
+    }
+    
+    function isFiniteNumber(n) {
+        return typeof n === 'number' && isFinite(n);
+    }
+    
+    function pickNumber() {
+        for (let i = 0; i < arguments.length; i++) {
+            const v = arguments[i];
+            if (isFiniteNumber(v)) return v;
+        }
+        return null;
+    }
+    
+    function formatDateShort(dateString) {
+        if (!dateString) return '';
+        const d = new Date(dateString);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return day + '.' + month + '.' + year;
     }
     
     // ===========================
