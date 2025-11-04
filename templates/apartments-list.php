@@ -180,6 +180,24 @@ if (!defined('ABSPATH')) {
                     );
                 }
                 
+                // Add placeholder images to modal if no projections exist
+                if (empty($modal_data['projections'])) {
+                    $placeholder_house_url = DEVELOGIC_PLUGIN_URL . 'assets/images/placeholder-house.webp';
+                    $placeholder_floorplan_url = DEVELOGIC_PLUGIN_URL . 'assets/images/placeholder-floorplan.webp';
+                    
+                    $modal_data['projections'][] = array(
+                        'url' => $placeholder_house_url,
+                        'thumb' => $placeholder_house_url,
+                        'type' => 'Widok lokalu'
+                    );
+                    
+                    $modal_data['projections'][] = array(
+                        'url' => $placeholder_floorplan_url,
+                        'thumb' => $placeholder_floorplan_url,
+                        'type' => 'Plan mieszkania'
+                    );
+                }
+                
                 // Get first two images for list display
                 $image1 = null;
                 $image2 = null;
@@ -223,6 +241,10 @@ if (!defined('ABSPATH')) {
                     $image2_thumb = !empty($image2['thumbnail_url']) ? $image2['thumbnail_url'] : 
                                   (!empty($image2['thumbnailUrl']) ? $image2['thumbnailUrl'] : $image2_url);
                 }
+                
+                // Placeholder images URLs
+                $placeholder_house = DEVELOGIC_PLUGIN_URL . 'assets/images/placeholder-house.webp';
+                $placeholder_floorplan = DEVELOGIC_PLUGIN_URL . 'assets/images/placeholder-floorplan.webp';
             ?>
             
             <div class="apartment-item" 
@@ -271,16 +293,12 @@ if (!defined('ABSPATH')) {
                 </div>
 
                 <div class="apartment-images">
-                    <?php if ($image1_thumb): ?>
                     <div class="apartment-image">
-                        <img src="<?php echo esc_url($image1_thumb); ?>" alt="<?php echo esc_attr($local['number']); ?>">
+                        <img src="<?php echo esc_url($image1_thumb ? $image1_thumb : $placeholder_house); ?>" alt="<?php echo esc_attr($local['number']); ?>">
                     </div>
-                    <?php endif; ?>
-                    <?php if ($image2_thumb): ?>
                     <div class="apartment-image">
-                        <img src="<?php echo esc_url($image2_thumb); ?>" alt="<?php echo esc_attr($local['number']); ?> - Plan">
+                        <img src="<?php echo esc_url($image2_thumb ? $image2_thumb : $placeholder_floorplan); ?>" alt="<?php echo esc_attr($local['number']); ?> - Plan">
                     </div>
-                    <?php endif; ?>
                 </div>
 
                 <div class="apartment-price">
