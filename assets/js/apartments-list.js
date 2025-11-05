@@ -140,6 +140,12 @@
         // Update favorites count
         updateFavoritesCount();
         
+        // Check placeholder visibility if in favorites view
+        const apartmentList = document.querySelector('.apartment-list');
+        if (apartmentList && apartmentList.classList.contains('hide-favorites')) {
+            checkAndToggleNoFavoritesPlaceholder();
+        }
+        
         // Show toast notification when adding to favorites
         if (isAdding) {
             showToast();
@@ -990,6 +996,8 @@
                 // Toggle apartment list classes
                 if (view === 'favorites') {
                     apartmentList.classList.add('hide-favorites');
+                    // Check if there are any favorites
+                    checkAndToggleNoFavoritesPlaceholder();
                     // Show share buttons when in favorites view
                     if (shareContainer) {
                         shareContainer.style.display = 'flex';
@@ -998,6 +1006,7 @@
                     updateUrlWithFavorites();
                 } else {
                     apartmentList.classList.remove('hide-favorites');
+                    apartmentList.classList.remove('has-no-favorites');
                     // Hide share buttons when in all view
                     if (shareContainer) {
                         shareContainer.style.display = 'none';
@@ -1007,6 +1016,20 @@
                 }
             });
         });
+    }
+    
+    function checkAndToggleNoFavoritesPlaceholder() {
+        const apartmentList = document.querySelector('.apartment-list');
+        if (!apartmentList) return;
+        
+        const favorites = getFavorites();
+        const hasFavorites = favorites.length > 0;
+        
+        if (hasFavorites) {
+            apartmentList.classList.remove('has-no-favorites');
+        } else {
+            apartmentList.classList.add('has-no-favorites');
+        }
     }
     
     function updateUrlWithFavorites() {
