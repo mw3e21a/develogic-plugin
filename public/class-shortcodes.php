@@ -119,7 +119,6 @@ class Develogic_Shortcodes {
         ), $atts, 'develogic_apartments_list');
         
         // Enqueue assets
-        // CHANGE: Enqueue price history deps (Chart.js + main) for modal history rendering
         wp_enqueue_style('develogic-apartments-list');
         wp_enqueue_script('develogic-apartments-list');
         Develogic_Assets::enqueue_price_history_assets();
@@ -342,8 +341,7 @@ class Develogic_Shortcodes {
     public function render_price_history($atts) {
         $atts = shortcode_atts(array(
             'local_id' => '',
-            'chart' => 'line',
-            'template' => 'chart',
+            'template' => 'list',
         ), $atts, 'develogic_price_history');
         
         if (empty($atts['local_id'])) {

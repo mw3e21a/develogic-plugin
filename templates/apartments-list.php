@@ -417,12 +417,20 @@ if (!defined('ABSPATH')) {
                     <div class="price-per-m2"></div>
                 </div>
 
-                <!-- CHANGE: Price history section -->
+                <!-- Price history section -->
                 <div class="detail-price-history">
                     <div class="price-history-label">Historia ceny</div>
                     <div class="price-history-content">
-                        <canvas id="priceHistoryChart" style="display:none; width:100%; height:220px;"></canvas>
-                        <div class="price-history-list"></div>
+                        <div class="price-history-loader" style="display:none;"></div>
+                        <table class="price-history-table" style="display:none;">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th style="text-align:right;">Cena</th>
+                                </tr>
+                            </thead>
+                            <tbody class="price-history-list"></tbody>
+                        </table>
                         <div class="price-history-empty" style="display:none;"></div>
                     </div>
                 </div>

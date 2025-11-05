@@ -563,6 +563,104 @@
     margin-top: 4px;
 }
 
+/* ===========================
+   Price History
+   =========================== */
+.detail-price-history {
+    padding: 20px 0;
+    border-top: 1px solid #e5e5e5;
+}
+
+.price-history-label {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.price-history-content {
+    position: relative;
+    min-height: 60px;
+}
+
+.price-history-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.price-history-table thead {
+    background: #f9f9f9;
+}
+
+.price-history-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.price-history-table td {
+    padding: 12px 16px;
+    font-size: 14px;
+    color: #1a1a1a;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.price-history-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.price-history-table tbody tr:hover {
+    background: #fafafa;
+}
+
+.price-history-table .date-cell {
+    color: #666;
+    font-size: 13px;
+}
+
+.price-history-table .value-cell {
+    font-weight: 600;
+    text-align: right;
+}
+
+.price-history-empty {
+    text-align: center;
+    padding: 30px;
+    color: #999;
+    font-size: 14px;
+}
+
+/* Loader dla historii cen */
+.price-history-loader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+
+.price-history-loader::after {
+    content: '';
+    width: 24px;
+    height: 24px;
+    border: 3px solid #e5e5e5;
+    border-top-color: #1a1a1a;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .info-box {
     background: #fafafa;
     padding: 20px;

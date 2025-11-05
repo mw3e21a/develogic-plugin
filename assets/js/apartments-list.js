@@ -265,7 +265,6 @@
     let zoomLevel = 1;
     let imageOffsetX = 0;
     let imageOffsetY = 0;
-    let priceHistoryChart = null;
     
     function setupModal() {
         // Close button
@@ -839,20 +838,14 @@
         if (!historyContainer) return;
         const listEl = historyContainer.querySelector('.price-history-list');
         const emptyEl = historyContainer.querySelector('.price-history-empty');
-        const chartCanvas = historyContainer.querySelector('#priceHistoryChart');
+        const loaderEl = historyContainer.querySelector('.price-history-loader');
+        const tableEl = historyContainer.querySelector('.price-history-table');
         
+        // Reset state
         if (listEl) listEl.innerHTML = '';
-        if (emptyEl) {
-            emptyEl.style.display = 'block';
-            emptyEl.textContent = 'Ładowanie...';
-        }
-        if (chartCanvas) {
-            chartCanvas.style.display = 'none';
-        }
-        if (priceHistoryChart) {
-            priceHistoryChart.destroy();
-            priceHistoryChart = null;
-        }
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (tableEl) tableEl.style.display = 'none';
+        if (loaderEl) loaderEl.style.display = 'flex';
         
         const baseUrl = (window.develogicData && window.develogicData.restUrl) ? window.develogicData.restUrl : '/wp-json/develogic/v1';
         const url = baseUrl.replace(/\/$/, '') + '/price-history/' + encodeURIComponent(localId);
@@ -860,9 +853,12 @@
         fetch(url, { credentials: 'same-origin' })
             .then(res => res.json())
             .then(history => {
+                if (loaderEl) loaderEl.style.display = 'none';
+                
                 const prices = Array.isArray(history?.prices) ? history.prices : [];
                 if (!prices.length) {
                     if (emptyEl) {
+                        emptyEl.style.display = 'block';
                         emptyEl.textContent = 'Brak danych o historii cen.';
                     }
                     return;
@@ -871,68 +867,32 @@
                 // Sort by appliesFrom ascending
                 prices.sort((a, b) => new Date(a.appliesFrom) - new Date(b.appliesFrom));
                 
-                // Build display list (latest 6 entries)
+                // Build table rows (latest 6 entries)
                 const last = prices.slice(-6);
-                const labels = [];
-                const values = [];
                 
                 last.forEach(p => {
                     const label = formatDateShort(p.appliesFrom);
                     const gross = pickNumber(p.priceGross, p.packagePriceGross, p.promoPriceGross);
                     const grossm2 = pickNumber(p.priceGrossm2, p.packagePriceGrossm2, p.promoPriceGrossm2);
                     let valueText = '';
-                    let numeric = null;
                     if (isFiniteNumber(gross)) {
                         valueText = formatPrice(gross);
-                        numeric = gross;
                     } else if (isFiniteNumber(grossm2)) {
                         valueText = formatPriceM2(grossm2) + ' zł/m²';
-                        numeric = grossm2;
                     }
                     if (listEl && valueText) {
-                        const item = document.createElement('div');
-                        item.className = 'price-history-item';
-                        item.innerHTML = '<span class="date">' + label + '</span><span class="value">' + valueText + '</span>';
-                        listEl.appendChild(item);
-                    }
-                    if (label && numeric !== null) {
-                        labels.push(label);
-                        values.push(numeric);
+                        const row = document.createElement('tr');
+                        row.innerHTML = '<td class="date-cell">' + label + '</td><td class="value-cell">' + valueText + '</td>';
+                        listEl.appendChild(row);
                     }
                 });
                 
-                if (emptyEl) emptyEl.style.display = 'none';
-                
-                // Render chart if available and at least 2 points
-                if (typeof window.Chart !== 'undefined' && chartCanvas && labels.length >= 2) {
-                    chartCanvas.style.display = 'block';
-                    const ctx = chartCanvas.getContext('2d');
-                    priceHistoryChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Cena',
-                                data: values,
-                                borderColor: '#1a1a1a',
-                                backgroundColor: 'rgba(26,26,26,0.05)',
-                                tension: 0.25,
-                                pointRadius: 3,
-                            }]
-                        },
-                        options: {
-                            plugins: { legend: { display: false } },
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: { grid: { display: false } },
-                                y: { grid: { color: '#eee' } }
-                            }
-                        }
-                    });
+                if (tableEl && listEl.children.length > 0) {
+                    tableEl.style.display = 'table';
                 }
             })
             .catch(() => {
+                if (loaderEl) loaderEl.style.display = 'none';
                 if (emptyEl) {
                     emptyEl.style.display = 'block';
                     emptyEl.textContent = 'Nie udało się pobrać historii cen.';

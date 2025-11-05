@@ -53,15 +53,6 @@ class Develogic_Assets {
             true
         );
         
-        // Chart.js for price history
-        wp_register_script(
-            'chartjs',
-            'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
-            array(),
-            '4.4.0',
-            true
-        );
-        
         // Main plugin script
         wp_register_script(
             'develogic-main',
@@ -147,10 +138,9 @@ class Develogic_Assets {
     }
     
     /**
-     * Enqueue assets for price history
+     * Enqueue assets for price history (without chart)
      */
     public static function enqueue_price_history_assets() {
-        wp_enqueue_script('chartjs');
         wp_enqueue_script('develogic-main');
         wp_enqueue_style('develogic-main');
     }
