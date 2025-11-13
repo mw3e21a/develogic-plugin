@@ -191,47 +191,21 @@ if (!defined('ABSPATH')) {
                     );
                 }
                 
-                // Add placeholder images to modal if no projections exist
-                if (empty($modal_data['projections'])) {
-                    $placeholder_house_url = DEVELOGIC_PLUGIN_URL . 'assets/images/placeholder-house.webp';
-                    $placeholder_floorplan_url = DEVELOGIC_PLUGIN_URL . 'assets/images/placeholder-floorplan.webp';
-                    
-                    $modal_data['projections'][] = array(
-                        'url' => $placeholder_house_url,
-                        'thumb' => $placeholder_house_url,
-                        'type' => 'Widok lokalu'
-                    );
-                    
-                    $modal_data['projections'][] = array(
-                        'url' => $placeholder_floorplan_url,
-                        'thumb' => $placeholder_floorplan_url,
-                        'type' => 'Plan mieszkania'
-                    );
-                }
+                // No placeholder images - if no projections exist, modal will show empty state
                 
                 // Get first two images for list display
-                $image1 = null;
-                $image2 = null;
+                // Order: 1. Karta lokalu, 2. Aranżacyjny (already sorted in sync)
+                $image1 = null; // Karta lokalu
+                $image2 = null; // Aranżacyjny
                 
-                // Find main display image
-                foreach ($projections as $proj) {
-                    if (isset($proj['displayUrl']) && !empty($proj['displayUrl'])) {
-                        $image1 = $proj;
-                        break;
-                    }
-                }
-                if (empty($image1) && !empty($projections[0])) {
+                // Projections are already sorted: Karta lokalu, Aranżacyjny, Położenie na kondygnacji
+                // Image 1: Karta lokalu (first)
+                if (!empty($projections[0])) {
                     $image1 = $projections[0];
                 }
                 
-                // Find plan image
-                foreach ($projections as $proj) {
-                    if (isset($proj['type']) && stripos($proj['type'], 'plan') !== false) {
-                        $image2 = $proj;
-                        break;
-                    }
-                }
-                if (empty($image2) && !empty($projections[1])) {
+                // Image 2: Aranżacyjny (second)
+                if (!empty($projections[1])) {
                     $image2 = $projections[1];
                 }
                 
@@ -253,9 +227,6 @@ if (!defined('ABSPATH')) {
                                   (!empty($image2['thumbnailUrl']) ? $image2['thumbnailUrl'] : $image2_url);
                 }
                 
-                // Placeholder images URLs
-                $placeholder_house = DEVELOGIC_PLUGIN_URL . 'assets/images/placeholder-house.webp';
-                $placeholder_floorplan = DEVELOGIC_PLUGIN_URL . 'assets/images/placeholder-floorplan.webp';
             ?>
             
             <div class="apartment-item" 
@@ -305,10 +276,18 @@ if (!defined('ABSPATH')) {
 
                 <div class="apartment-images">
                     <div class="apartment-image">
-                        <img src="<?php echo esc_url($image1_thumb ? $image1_thumb : $placeholder_house); ?>" alt="<?php echo esc_attr($local['number']); ?>">
+                        <?php if ($image1_thumb): ?>
+                            <img src="<?php echo esc_url($image1_thumb); ?>" alt="<?php echo esc_attr($local['number']); ?>">
+                        <?php else: ?>
+                            <div class="no-image-placeholder">Brak zdjęcia</div>
+                        <?php endif; ?>
                     </div>
                     <div class="apartment-image">
-                        <img src="<?php echo esc_url($image2_thumb ? $image2_thumb : $placeholder_floorplan); ?>" alt="<?php echo esc_attr($local['number']); ?> - Plan">
+                        <?php if ($image2_thumb): ?>
+                            <img src="<?php echo esc_url($image2_thumb); ?>" alt="<?php echo esc_attr($local['number']); ?> - Plan">
+                        <?php else: ?>
+                            <div class="no-image-placeholder">Brak planu</div>
+                        <?php endif; ?>
                     </div>
                 </div>
 

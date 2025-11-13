@@ -364,6 +364,23 @@ class Develogic_Sync {
         require_once(ABSPATH . 'wp-admin/includes/file.php');
         require_once(ABSPATH . 'wp-admin/includes/image.php');
         
+        // Sort projections by type: Karta lokalu, Aranżacyjny, Położenie na kondygnacji, rest
+        usort($projections, function($a, $b) {
+            $type_a = isset($a['type']) ? $a['type'] : '';
+            $type_b = isset($b['type']) ? $b['type'] : '';
+            
+            $order = array(
+                'Karta lokalu' => 1,
+                'Aranżacyjny' => 2,
+                'Położenie na kondygnacji' => 3,
+            );
+            
+            $priority_a = isset($order[$type_a]) ? $order[$type_a] : 999;
+            $priority_b = isset($order[$type_b]) ? $order[$type_b] : 999;
+            
+            return $priority_a - $priority_b;
+        });
+        
         $processed = array();
         
         foreach ($projections as $index => $projection) {
@@ -402,23 +419,73 @@ class Develogic_Sync {
                 continue;
             }
             
-            // Download image from API
-            $image_data = develogic()->api_client->download_projection_image($projection_id);
+            // Download image from API using URI from projection data
+            $projection_url = !empty($projection['uri']) ? $projection['uri'] : null;
             
-            if (is_wp_error($image_data)) {
+            if (empty($projection_url)) {
                 $this->log_sync('warning', sprintf(
-                    'Nie udało się pobrać projekcji %d dla lokalu %s: %s',
+                    'Brak URI dla projekcji %d lokalu %s',
                     $projection_id,
-                    $local_number,
-                    $image_data->get_error_message()
+                    $local_number
                 ));
                 $processed[] = $projection;
                 continue;
             }
             
-            // Determine file extension from content type or use default
+            // Download from URI
+            $args = array(
+                'timeout' => 30,
+                'headers' => array(
+                    'ApiKey' => develogic()->get_setting('api_key'),
+                ),
+                'sslverify' => false, // Some Develogic instances use self-signed certs
+            );
+            
+            $response = wp_remote_get($projection_url, $args);
+            
+            if (is_wp_error($response)) {
+                $this->log_sync('warning', sprintf(
+                    'Nie udało się pobrać projekcji %d dla lokalu %s: %s',
+                    $projection_id,
+                    $local_number,
+                    $response->get_error_message()
+                ));
+                $processed[] = $projection;
+                continue;
+            }
+            
+            $status_code = wp_remote_retrieve_response_code($response);
+            if ($status_code !== 200) {
+                $this->log_sync('warning', sprintf(
+                    'Błąd HTTP %d przy pobieraniu projekcji %d dla lokalu %s',
+                    $status_code,
+                    $projection_id,
+                    $local_number
+                ));
+                $processed[] = $projection;
+                continue;
+            }
+            
+            $image_data = wp_remote_retrieve_body($response);
+            
+            if (empty($image_data)) {
+                $this->log_sync('warning', sprintf(
+                    'Pusta odpowiedź dla projekcji %d lokalu %s',
+                    $projection_id,
+                    $local_number
+                ));
+                $processed[] = $projection;
+                continue;
+            }
+            
+            // Check if the file is PDF (magic bytes: %PDF)
+            $is_pdf = (substr($image_data, 0, 4) === '%PDF');
+            
+            // Determine file extension
             $file_extension = 'jpg';
-            if (!empty($projection['type'])) {
+            if ($is_pdf) {
+                $file_extension = 'pdf';
+            } elseif (!empty($projection['type'])) {
                 $type_lower = strtolower($projection['type']);
                 if (strpos($type_lower, 'png') !== false) {
                     $file_extension = 'png';
@@ -445,6 +512,28 @@ class Develogic_Sync {
                 ));
                 $processed[] = $projection;
                 continue;
+            }
+            
+            // Convert PDF to JPEG if needed
+            if ($is_pdf) {
+                $jpeg_file = $this->convert_pdf_to_jpeg($temp_file, $upload_dir['path'], $local_number, $projection_id, $projection['type']);
+                
+                if ($jpeg_file && file_exists($jpeg_file)) {
+                    // Replace temp file with JPEG
+                    @unlink($temp_file);
+                    $temp_file = $jpeg_file;
+                    $filename = basename($jpeg_file);
+                } else {
+                    // Conversion failed, log and skip
+                    $this->log_sync('warning', sprintf(
+                        'Nie udało się skonwertować PDF na JPEG dla projekcji %d lokalu %s',
+                        $projection_id,
+                        $local_number
+                    ));
+                    @unlink($temp_file);
+                    $processed[] = $projection;
+                    continue;
+                }
             }
             
             // Prepare attachment data
@@ -600,6 +689,89 @@ class Develogic_Sync {
                 update_term_meta($term['term_id'], 'local_type_id', $type['ID']);
             }
         }
+    }
+    
+    /**
+     * Convert PDF to JPEG
+     *
+     * @param string $pdf_file Path to PDF file
+     * @param string $output_dir Output directory
+     * @param string $local_number Local number for naming
+     * @param int $projection_id Projection ID
+     * @param string $projection_type Projection type
+     * @return string|false Path to JPEG file or false on failure
+     */
+    private function convert_pdf_to_jpeg($pdf_file, $output_dir, $local_number, $projection_id, $projection_type) {
+        // Output JPEG filename
+        $jpeg_file = sprintf(
+            '%s/lokal-%s-projekcja-%d-%s.jpg',
+            $output_dir,
+            sanitize_title($local_number),
+            $projection_id,
+            sanitize_title($projection_type)
+        );
+        
+        // Try Imagick first (best quality)
+        if (extension_loaded('imagick')) {
+            try {
+                $imagick = new Imagick();
+                $imagick->setResolution(150, 150); // Set DPI before reading
+                $imagick->readImage($pdf_file . '[0]'); // Read only first page
+                $imagick->setImageFormat('jpeg');
+                $imagick->setImageCompressionQuality(85);
+                $imagick->writeImage($jpeg_file);
+                $imagick->clear();
+                $imagick->destroy();
+                
+                $this->log_sync('success', sprintf(
+                    'Skonwertowano PDF na JPEG (Imagick): projekcja %d',
+                    $projection_id
+                ));
+                
+                return $jpeg_file;
+            } catch (Exception $e) {
+                $this->log_sync('warning', sprintf(
+                    'Imagick conversion failed dla projekcji %d: %s',
+                    $projection_id,
+                    $e->getMessage()
+                ));
+            }
+        }
+        
+        // Try Ghostscript as fallback
+        if (function_exists('exec')) {
+            $gs_command = sprintf(
+                'gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=jpeg -dJPEGQ=85 -r150 -dFirstPage=1 -dLastPage=1 -sOutputFile=%s %s 2>&1',
+                escapeshellarg($jpeg_file),
+                escapeshellarg($pdf_file)
+            );
+            
+            $output = array();
+            $return_var = 0;
+            exec($gs_command, $output, $return_var);
+            
+            if ($return_var === 0 && file_exists($jpeg_file)) {
+                $this->log_sync('success', sprintf(
+                    'Skonwertowano PDF na JPEG (Ghostscript): projekcja %d',
+                    $projection_id
+                ));
+                return $jpeg_file;
+            } else {
+                $this->log_sync('warning', sprintf(
+                    'Ghostscript conversion failed dla projekcji %d: %s',
+                    $projection_id,
+                    implode(' ', $output)
+                ));
+            }
+        }
+        
+        // No conversion method available
+        $this->log_sync('error', sprintf(
+            'Brak dostępnej metody konwersji PDF→JPEG (brak Imagick ani Ghostscript) dla projekcji %d',
+            $projection_id
+        ));
+        
+        return false;
     }
     
     /**
