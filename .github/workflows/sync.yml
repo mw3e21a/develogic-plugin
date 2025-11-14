@@ -9,6 +9,6 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - name: Send POST request
+      - name: Send POST request cron
         run: |
           curl -X POST "https://develogic.dfirma.pl/wp-json/develogic/v1/sync?secret_key=1234"

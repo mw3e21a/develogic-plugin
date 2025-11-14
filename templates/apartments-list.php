@@ -399,7 +399,13 @@ if (!defined('ABSPATH')) {
                 <div class="apartment-info">
                     <div class="building-name"><?php echo esc_html($local['building']); ?></div>
                     <div class="apartment-number"><?php echo esc_html($local['number']); ?></div>
-                    <div class="status-badge <?php echo $status_class === 'reserved' ? 'reserved' : ''; ?>">
+                    <div class="status-badge <?php 
+                        if ($status_class === 'reserved') {
+                            echo 'reserved';
+                        } elseif ($status_class === 'sold') {
+                            echo 'sold';
+                        }
+                    ?>">
                         <?php 
                         if ($status_class === 'available') {
                             echo esc_html($local['status']) . '<br>od ręki';

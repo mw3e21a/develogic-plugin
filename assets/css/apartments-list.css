@@ -334,6 +334,10 @@
     color: #ff9500;
 }
 
+.status-badge.sold {
+    color: #8b0000;
+}
+
 .apartment-details {
     display: flex;
     flex-direction: column;

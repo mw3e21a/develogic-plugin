@@ -605,6 +605,8 @@
             statusEl.innerHTML = '<span style="color: #00b341;">Dostępne</span> od ręki';
         } else if (data.statusClass === 'reserved') {
             statusEl.innerHTML = '<span style="color: #ff9500;">Rezerwacja</span>';
+        } else if (data.statusClass === 'sold') {
+            statusEl.innerHTML = '<span style="color: #8b0000;">Sprzedany</span>';
         } else {
             statusEl.textContent = data.status || '';
         }
