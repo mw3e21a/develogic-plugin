@@ -5,6 +5,27 @@ Wszystkie istotne zmiany w projekcie będą dokumentowane w tym pliku.
 Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/),
 a wersjonowanie zgodne z [Semantic Versioning](https://semver.org/lang/pl/).
 
+## [2.1.1] - 2025-11-14
+
+### Zmieniono
+- **uninstall.php**: Rozszerzono proces deinstalacji o kompletne czyszczenie wszystkich danych wtyczki
+
+### Ulepszone czyszczenie przy usuwaniu wtyczki
+- Usuwanie zaplanowanych zadań cron (`develogic_sync_cron`)
+- Usuwanie wszystkich transients (`develogic_sync_lock`, `develogic_last_api_error`)
+- Usuwanie wszystkich meta pól lokali (ponad 40 różnych pól z API)
+- Usuwanie wszystkich opcji wtyczki (`develogic_settings`, `develogic_last_sync`, `develogic_sync_log`)
+- Kompletne czyszczenie taxonomii i term meta
+- Usuwanie wszystkich postów typu `develogic_local` i powiązanych załączników
+
+### Korzyści
+- ✅ Całkowite czyszczenie bazy danych przy usuwaniu wtyczki
+- ✅ GDPR compliance - brak pozostałych danych użytkownika
+- ✅ Świeży start przy ponownej instalacji
+- ✅ Brak śmieci w bazie danych
+
+**Zobacz szczegóły**: `CHANGELOG_COMPLETE_UNINSTALL.md`
+
 ## [2.1.0] - 2025-10-29
 
 ### Dodano

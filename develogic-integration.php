@@ -3,7 +3,7 @@
  * Plugin Name: Develogic Integration
  * Plugin URI: https://github.com/yourusername/develogic-wp-plugin
  * Description: Integracja z API Develogic - wyświetlanie ofert mieszkań, filtrowanie, sortowanie, galerie i więcej
- * Version: 2.0.0
+ * Version: 2.1.1
  * Author: Your Name
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('DEVELOGIC_VERSION', '2.0.0');
+define('DEVELOGIC_VERSION', '2.1.1');
 define('DEVELOGIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DEVELOGIC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DEVELOGIC_PLUGIN_BASENAME', plugin_basename(__FILE__));

@@ -18,6 +18,27 @@ Wtyczka WordPress do integracji z API Develogic. Umożliwia wyświetlanie ofert 
    - Klucz API
    - Inne ustawienia według potrzeb
 
+## Deinstalacja
+
+### Dezaktywacja wtyczki
+Dezaktywacja wtyczki **zachowuje wszystkie dane** w bazie WordPress. Możesz ponownie aktywować wtyczkę i kontynuować pracę bez utraty danych.
+
+### Całkowite usunięcie wtyczki
+Jeśli usuniesz wtyczkę (Delete) przez panel WordPress, nastąpi **automatyczne czyszczenie wszystkich danych**:
+
+✅ **Co zostanie usunięte:**
+- Wszystkie posty typu `develogic_local`
+- Wszystkie załączniki (rzuty i plany mieszkań)
+- Wszystkie taxonomie: inwestycje, typy lokali, budynki, statusy
+- Wszystkie opcje wtyczki (ustawienia, logi synchronizacji)
+- Wszystkie transients (cache, blokady)
+- Wszystkie meta pola lokali (ponad 40 różnych pól)
+- Zaplanowane zadania cron
+
+⚠️ **UWAGA**: To jest **nieodwracalna operacja**. Po usunięciu wtyczki wszystkie dane zostaną usunięte z bazy danych.
+
+**Zobacz szczegóły**: `CHANGELOG_COMPLETE_UNINSTALL.md`
+
 ## Konfiguracja
 
 curl -X GET "https://domelcki.ondevelogic.com/api/fis/v1/feed/locals" \-H "ApiKey: tRx6d7vh5othPXdtfxu9" \-H "Content-Type: application/json" \-o locals.json

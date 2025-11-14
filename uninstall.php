@@ -24,6 +24,15 @@ if (!defined('WP_UNINSTALL_PLUGIN')) {
 function develogic_uninstall_cleanup() {
     global $wpdb;
     
+    // Remove scheduled cron jobs
+    $timestamp = wp_next_scheduled('develogic_sync_cron');
+    if ($timestamp) {
+        wp_unschedule_event($timestamp, 'develogic_sync_cron');
+    }
+    
+    // Clear all scheduled instances of the cron (in case there are multiple)
+    wp_clear_scheduled_hook('develogic_sync_cron');
+    
     // Delete all develogic_local posts
     $posts = get_posts(array(
         'post_type' => 'develogic_local',
@@ -129,6 +138,7 @@ function develogic_uninstall_cleanup() {
     // Delete all transients
     $transients = array(
         'develogic_sync_lock',
+        'develogic_last_api_error',
     );
     
     foreach ($transients as $transient) {
@@ -146,6 +156,34 @@ function develogic_uninstall_cleanup() {
     $wpdb->query(
         "DELETE FROM {$wpdb->postmeta} 
          WHERE meta_key LIKE 'develogic_%'"
+    );
+    
+    // Delete all post meta for local data (including localId and all other fields)
+    $wpdb->query(
+        "DELETE FROM {$wpdb->postmeta} 
+         WHERE meta_key IN (
+             'localId', 'subdivisionId', 'subdivision', 'city', 'stageId', 'stage',
+             'name', 'number', 'status', 'statusId', 'floor', 'rooms', 'mezzanineRooms',
+             'area', 'areaBalcony', 'areaBalcony2', 'areaLoggia', 'areaTerrace',
+             'areaGarden', 'areaGround', 'areaProduct', 'areaOther', 'areaUsable',
+             'areaGroundFinal', 'areaProductFinal', 'areaBalconyFinal', 'areaBalcony2Final',
+             'areaTerraceFinal', 'arreaLoggiaFinal', 'areaOtherFinal', 'areaUsableFinal', 'areaGardenFinal',
+             'priceNet', 'priceGross', 'priceNetm2', 'priceGrossm2',
+             'omnibusPriceGross', 'omnibusPriceNet', 'omnibusPackagePriceNet', 'omnibusPackagePriceGross',
+             'omnibusPackagePriceNetm2', 'omnibusPackagePriceGrossm2',
+             'omnibusPackagePriceUsableAreaNetm2', 'omnibusPackagePriceUsableAreaGrossm2',
+             'omnibusPriceUsableAreaNetm2', 'omnibusPriceUsableAreaGrossm2',
+             'averageOmnibusPriceGrossm2', 'averageOmnibusPriceUsableAreaGrossm2',
+             'buildingId', 'building', 'maxDiscountGross', 'maxDiscountPercent',
+             'plannedDateOfFinishing', 'localTypeId', 'localType', 'local_URL', 'externalNumber',
+             'promoPriceNet', 'promoPriceGross', 'promoPriceNetm2', 'promoPriceGrossm2',
+             'packagePriceGross', 'packagePriceNet', 'packagePriceGrossm2', 'PackagePriceNetm2',
+             'packagePriceUsableAreaNetm2', 'packagePriceUsableAreaGrossm2',
+             'packagePromoPriceNet', 'packagePromoPriceGross', 'packagePromoPriceNetm2', 'packagePromoPriceGrossm2',
+             'packagePromoPriceUsableAreaNetm2', 'packagePromoPriceUsableAreaGrossm2',
+             'worldDirections', 'omnibusPriceGrossm2', 'omnibusPriceNetm2',
+             'averagePriceGrossm2', 'averagePromoPriceGrossm2'
+         )"
     );
     
     // Delete all term meta with develogic-related keys
