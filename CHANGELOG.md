@@ -7,8 +7,14 @@ a wersjonowanie zgodne z [Semantic Versioning](https://semver.org/lang/pl/).
 
 ## [2.1.1] - 2025-11-14
 
+### Dodano
+- **Indykatory kierunku sortowania**: Wizualne strzałki ↑↓ przy opcjach sortowania pokazujące kierunek (rosnąco/malejąco)
+
 ### Zmieniono
 - **uninstall.php**: Rozszerzono proces deinstalacji o kompletne czyszczenie wszystkich danych wtyczki
+- **apartments-list.php**: Dodano strukturę SVG ze strzałkami do każdej opcji sortowania
+- **apartments-list.js**: Zaktualizowano logikę sortowania aby przełączać atrybut `data-direction`
+- **apartments-list.css**: Dodano style dla strzałek sortowania z animacjami opacity
 
 ### Ulepszone czyszczenie przy usuwaniu wtyczki
 - Usuwanie zaplanowanych zadań cron (`develogic_sync_cron`)
@@ -18,13 +24,24 @@ a wersjonowanie zgodne z [Semantic Versioning](https://semver.org/lang/pl/).
 - Kompletne czyszczenie taxonomii i term meta
 - Usuwanie wszystkich postów typu `develogic_local` i powiązanych załączników
 
+### Indykatory sortowania - funkcje
+- Strzałka ↑ (w górę) = sortowanie rosnące (asc)
+- Strzałka ↓ (w dół) = sortowanie malejące (desc)
+- Kliknięcie tej samej opcji przełącza kierunek
+- Kliknięcie innej opcji resetuje do sortowania rosnącego
+- Płynne animacje opacity dla lepszego UX
+
 ### Korzyści
 - ✅ Całkowite czyszczenie bazy danych przy usuwaniu wtyczki
 - ✅ GDPR compliance - brak pozostałych danych użytkownika
 - ✅ Świeży start przy ponownej instalacji
 - ✅ Brak śmieci w bazie danych
+- ✅ Lepszy UX - natychmiastowa wizualna informacja o kierunku sortowania
+- ✅ Intuicyjne strzałki jako uniwersalny symbol sortowania
 
-**Zobacz szczegóły**: `CHANGELOG_COMPLETE_UNINSTALL.md`
+**Zobacz szczegóły**:
+- `CHANGELOG_COMPLETE_UNINSTALL.md` - czyszczenie przy deinstalacji
+- `CHANGELOG_SORT_INDICATORS.md` - indykatory sortowania
 
 ## [2.1.0] - 2025-10-29
 

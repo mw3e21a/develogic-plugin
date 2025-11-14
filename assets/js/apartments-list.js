@@ -40,11 +40,6 @@
         
         sortOptions.forEach(option => {
             option.addEventListener('click', function() {
-                // Remove active class from all options
-                sortOptions.forEach(opt => opt.classList.remove('active'));
-                // Add active class to clicked option
-                this.classList.add('active');
-                
                 const sortAttr = this.getAttribute('data-sort');
                 
                 // Toggle direction if same sort
@@ -54,6 +49,16 @@
                     currentDirection = 'asc';
                     currentSort = sortAttr;
                 }
+                
+                // Remove active class from all options
+                sortOptions.forEach(opt => {
+                    opt.classList.remove('active');
+                    opt.removeAttribute('data-direction');
+                });
+                
+                // Add active class and direction to clicked option
+                this.classList.add('active');
+                this.setAttribute('data-direction', currentDirection);
                 
                 performSort(sortAttr, currentDirection);
             });

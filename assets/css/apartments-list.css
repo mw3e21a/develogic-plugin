@@ -52,6 +52,10 @@
     padding: 5px 0;
     border-bottom: 2px solid transparent;
     transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    position: relative;
 }
 
 .sort-option:hover {
@@ -61,6 +65,49 @@
 .sort-option.active {
     border-bottom-color: #333;
     color: #333;
+}
+
+.sort-arrow {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 12px;
+    height: 14px;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+.sort-option:hover .sort-arrow {
+    opacity: 0.5;
+}
+
+.sort-option.active .sort-arrow {
+    opacity: 1;
+}
+
+.sort-arrow svg {
+    width: 12px;
+    height: 7px;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+/* Show only up arrow when sorting ascending */
+.sort-option[data-direction="asc"] .sort-arrow .arrow-up {
+    opacity: 1;
+}
+
+.sort-option[data-direction="asc"] .sort-arrow .arrow-down {
+    opacity: 0.2;
+}
+
+/* Show only down arrow when sorting descending */
+.sort-option[data-direction="desc"] .sort-arrow .arrow-up {
+    opacity: 0.2;
+}
+
+.sort-option[data-direction="desc"] .sort-arrow .arrow-down {
+    opacity: 1;
 }
 
 /* ===========================

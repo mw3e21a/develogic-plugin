@@ -182,11 +182,61 @@ if (!defined('ABSPATH')) {
         
         <div class="sort-bar-right">
             <span class="sort-label">Sortuj po:</span>
-            <span class="sort-option active" data-sort="data-floor">Piętro</span>
-            <span class="sort-option" data-sort="data-area">Metraż</span>
-            <span class="sort-option" data-sort="data-rooms">Pokoje</span>
-            <span class="sort-option" data-sort="data-price">Cena</span>
-            <span class="sort-option" data-sort="data-price-m2">Cena m²</span>
+            <span class="sort-option active" data-sort="data-floor" data-direction="asc">
+                Piętro
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
+                        <path d="M6 0L0 8h12L6 0z"/>
+                    </svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor">
+                        <path d="M6 8L0 0h12L6 8z"/>
+                    </svg>
+                </span>
+            </span>
+            <span class="sort-option" data-sort="data-area" data-direction="asc">
+                Metraż
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
+                        <path d="M6 0L0 8h12L6 0z"/>
+                    </svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor">
+                        <path d="M6 8L0 0h12L6 8z"/>
+                    </svg>
+                </span>
+            </span>
+            <span class="sort-option" data-sort="data-rooms" data-direction="asc">
+                Pokoje
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
+                        <path d="M6 0L0 8h12L6 0z"/>
+                    </svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor">
+                        <path d="M6 8L0 0h12L6 8z"/>
+                    </svg>
+                </span>
+            </span>
+            <span class="sort-option" data-sort="data-price" data-direction="asc">
+                Cena
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
+                        <path d="M6 0L0 8h12L6 0z"/>
+                    </svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor">
+                        <path d="M6 8L0 0h12L6 8z"/>
+                    </svg>
+                </span>
+            </span>
+            <span class="sort-option" data-sort="data-price-m2" data-direction="asc">
+                Cena m²
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
+                        <path d="M6 0L0 8h12L6 0z"/>
+                    </svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor">
+                        <path d="M6 8L0 0h12L6 8z"/>
+                    </svg>
+                </span>
+            </span>
         </div>
         
         <div class="favorites-share-container" id="favoritesShareContainer" style="display: none;">
