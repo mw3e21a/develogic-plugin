@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Send POST request cron
         run: |
-          curl -X POST "https://develogic.dfirma.pl/wp-json/develogic/v1/sync?secret_key=1234"
+          curl -X POST --max-time 10 --connect-timeout 5 "https://develogic.dfirma.pl/wp-json/develogic/v1/sync?secret_key=1234" || true
