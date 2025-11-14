@@ -81,6 +81,12 @@ final class Develogic_Integration {
         
         add_action('plugins_loaded', array($this, 'load_textdomain'));
         add_action('init', array($this, 'init'), 0);
+        
+        // Add custom cron schedule
+        add_filter('cron_schedules', array($this, 'add_cron_schedules'));
+        
+        // Register cron job hook
+        add_action('develogic_sync_cron', array($this, 'run_cron_sync'));
     }
     
     /**
@@ -178,9 +184,15 @@ final class Develogic_Integration {
             'favorite_persist' => 'localstorage',
             'pdf_source' => 'off',
             'pdf_pattern' => '',
+            'enable_cron_sync' => false, // Disabled by default
         );
         
         add_option('develogic_settings', $default_options);
+        
+        // Schedule cron job if enabled
+        if (!wp_next_scheduled('develogic_sync_cron')) {
+            wp_schedule_event(time(), 'every_5_minutes', 'develogic_sync_cron');
+        }
         
         // Flush rewrite rules
         flush_rewrite_rules();
@@ -190,6 +202,12 @@ final class Develogic_Integration {
      * Plugin deactivation
      */
     public function deactivate() {
+        // Remove scheduled cron job
+        $timestamp = wp_next_scheduled('develogic_sync_cron');
+        if ($timestamp) {
+            wp_unschedule_event($timestamp, 'develogic_sync_cron');
+        }
+        
         // Flush rewrite rules
         flush_rewrite_rules();
     }
@@ -226,6 +244,71 @@ final class Develogic_Integration {
         }
         
         return null;
+    }
+    
+    /**
+     * Add custom cron schedules
+     *
+     * @param array $schedules Existing schedules
+     * @return array Modified schedules
+     */
+    public function add_cron_schedules($schedules) {
+        if (!isset($schedules['every_5_minutes'])) {
+            $schedules['every_5_minutes'] = array(
+                'interval' => 5 * 60, // 5 minutes in seconds
+                'display'  => __('Co 5 minut', 'develogic'),
+            );
+        }
+        
+        return $schedules;
+    }
+    
+    /**
+     * Run cron sync job
+     * This is triggered by WordPress cron
+     */
+    public function run_cron_sync() {
+        // Check if cron sync is enabled
+        $settings = get_option('develogic_settings', array());
+        $cron_enabled = isset($settings['enable_cron_sync']) ? $settings['enable_cron_sync'] : false;
+        
+        if (!$cron_enabled) {
+            error_log('[Develogic Cron] Synchronizacja przez cron jest wyłączona w ustawieniach');
+            return;
+        }
+        
+        // Check if sync is not already running
+        $lock = get_transient('develogic_sync_lock');
+        
+        if ($lock) {
+            error_log('[Develogic Cron] Synchronizacja jest już w trakcie - pomijam');
+            return;
+        }
+        
+        error_log('[Develogic Cron] Rozpoczynam automatyczną synchronizację');
+        
+        // Set lock (5 minutes)
+        set_transient('develogic_sync_lock', true, 300);
+        
+        // Run sync
+        $sync = new Develogic_Sync();
+        $result = $sync->sync_locals();
+        
+        // Release lock
+        delete_transient('develogic_sync_lock');
+        
+        // Log result
+        if ($result['success']) {
+            error_log(sprintf(
+                '[Develogic Cron] Synchronizacja zakończona sukcesem: %s',
+                $result['message']
+            ));
+        } else {
+            error_log(sprintf(
+                '[Develogic Cron] Synchronizacja zakończona błędem: %s',
+                $result['message']
+            ));
+        }
     }
 }
 

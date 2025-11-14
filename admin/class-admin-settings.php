@@ -108,6 +108,18 @@ class Develogic_Admin_Settings {
         );
         
         add_settings_field(
+            'enable_cron_sync',
+            __('Automatyczna synchronizacja (WP-Cron)', 'develogic'),
+            array($this, 'render_checkbox_field'),
+            'develogic',
+            'develogic_sync_section',
+            array(
+                'field' => 'enable_cron_sync',
+                'description' => __('Włącz automatyczną synchronizację co 5 minut za pomocą WordPress Cron. Wymaga prawidłowo skonfigurowanego WP-Cron.', 'develogic')
+            )
+        );
+        
+        add_settings_field(
             'sync_investments',
             __('Inwestycje do synchronizacji', 'develogic'),
             array($this, 'render_investment_checkboxes'),
@@ -226,6 +238,28 @@ class Develogic_Admin_Settings {
         $output['api_key'] = isset($input['api_key']) ? trim($input['api_key']) : '';
         $output['api_timeout'] = isset($input['api_timeout']) ? absint($input['api_timeout']) : 30;
         $output['sync_secret_key'] = isset($input['sync_secret_key']) ? sanitize_text_field($input['sync_secret_key']) : wp_generate_password(32, false);
+        
+        // Cron sync setting
+        $old_settings = get_option('develogic_settings', array());
+        $old_cron_enabled = isset($old_settings['enable_cron_sync']) ? $old_settings['enable_cron_sync'] : false;
+        $new_cron_enabled = isset($input['enable_cron_sync']) ? (bool)$input['enable_cron_sync'] : false;
+        $output['enable_cron_sync'] = $new_cron_enabled;
+        
+        // Handle cron scheduling changes
+        if ($old_cron_enabled !== $new_cron_enabled) {
+            if ($new_cron_enabled) {
+                // Enable cron - schedule if not already scheduled
+                if (!wp_next_scheduled('develogic_sync_cron')) {
+                    wp_schedule_event(time(), 'every_5_minutes', 'develogic_sync_cron');
+                }
+            } else {
+                // Disable cron - unschedule if scheduled
+                $timestamp = wp_next_scheduled('develogic_sync_cron');
+                if ($timestamp) {
+                    wp_unschedule_event($timestamp, 'develogic_sync_cron');
+                }
+            }
+        }
         
         $output['developer_name'] = isset($input['developer_name']) ? sanitize_text_field($input['developer_name']) : get_bloginfo('name');
         $output['default_sort_by'] = isset($input['default_sort_by']) ? sanitize_key($input['default_sort_by']) : 'priceGrossm2';
@@ -379,6 +413,10 @@ class Develogic_Admin_Settings {
             esc_attr($args['field']),
             checked($value, true, false)
         );
+        
+        if (isset($args['description'])) {
+            printf('<p class="description">%s</p>', esc_html($args['description']));
+        }
     }
     
     public function render_sort_by_field($args) {
