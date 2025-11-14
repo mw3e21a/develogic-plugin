@@ -534,6 +534,68 @@
     stroke: none;
 }
 
+/* 3D Tour icon button */
+.icon-btn-3d {
+    text-decoration: none;
+}
+
+.icon-btn-3d svg {
+    stroke: #666;
+}
+
+.icon-btn-3d:hover svg {
+    stroke: #0066cc;
+}
+
+/* Tooltips for icon buttons */
+.icon-btn[title],
+.icon-btn-3d[title] {
+    position: relative;
+}
+
+.icon-btn[title]::after,
+.icon-btn-3d[title]::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    background: #333;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.icon-btn[title]::before,
+.icon-btn-3d[title]::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #333;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+}
+
+.icon-btn[title]:hover::after,
+.icon-btn-3d[title]:hover::after,
+.icon-btn[title]:hover::before,
+.icon-btn-3d[title]:hover::before {
+    opacity: 1;
+}
+
 /* ===========================
    Apartment Detail Modal
    =========================== */
@@ -1063,7 +1125,8 @@
     align-items: center;
     justify-content: center;
     gap: 12px;
-    margin-top: 20px;
+    margin-top: 16px;
+    margin-bottom: 16px;
     padding: 16px 24px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #ffffff;

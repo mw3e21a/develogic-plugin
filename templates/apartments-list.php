@@ -394,12 +394,18 @@ if (!defined('ABSPATH')) {
                     'tour3dUrl' => '' // Will be set below
                 );
                 
-                // Find 3D tour link (displayUrl from projections)
+                // Find 3D tour link - prioritize 'stage' field if it's a URL
                 $tour_3d_url = '';
-                foreach ($projections as $proj) {
-                    if (!empty($proj['displayUrl'])) {
-                        $tour_3d_url = $proj['displayUrl'];
-                        break; // Use the first displayUrl found
+                if (!empty($local['stage']) && (strpos($local['stage'], 'http://') === 0 || strpos($local['stage'], 'https://') === 0)) {
+                    // If stage is a URL, use it
+                    $tour_3d_url = $local['stage'];
+                } else {
+                    // Otherwise, use displayUrl from projections
+                    foreach ($projections as $proj) {
+                        if (!empty($proj['displayUrl'])) {
+                            $tour_3d_url = $proj['displayUrl'];
+                            break; // Use the first displayUrl found
+                        }
                     }
                 }
                 $modal_data['tour3dUrl'] = $tour_3d_url;
@@ -541,14 +547,23 @@ if (!defined('ABSPATH')) {
                 </div>
 
                 <div class="apartment-actions">
-                    <button class="icon-btn" data-action="email" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>">
+                    <?php if (!empty($tour_3d_url)): ?>
+                    <a href="<?php echo esc_url($tour_3d_url); ?>" class="icon-btn icon-btn-3d" target="_blank" rel="noopener noreferrer" aria-label="<?php esc_attr_e('Zobacz spacer 3D', 'develogic'); ?>" title="Zobacz spacer 3D (otwiera w nowej karcie)" onclick="event.stopPropagation();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M2 12h20"/>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                    </a>
+                    <?php endif; ?>
+                    <button class="icon-btn" data-action="email" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o mieszkanie (otwiera klienta email)">
                         <svg viewBox="0 0 24 24">
                             <rect x="3" y="5" width="18" height="14" rx="2"/>
                             <path d="M3 7l9 6 9-6"/>
                         </svg>
                     </button>
                     <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
-                    <button class="icon-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>">
+                    <button class="icon-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>" title="Dodaj do obserwowanych">
                         <svg viewBox="0 0 24 24">
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                         </svg>
@@ -641,6 +656,19 @@ if (!defined('ABSPATH')) {
                     </div>
                 </div>
 
+                <!-- 3D Tour Link -->
+                <a href="#" class="tour-3d-link" target="_blank" rel="noopener noreferrer" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <span class="tour-3d-text">Zobacz spacer 3D</span>
+                    <svg class="tour-3d-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+
                 <div class="detail-features"></div>
 
                 <div class="detail-price">
@@ -679,19 +707,6 @@ if (!defined('ABSPATH')) {
                         Pobierz kartę mieszkania
                     </a>
                 </div>
-
-                <!-- 3D Tour Link -->
-                <a href="#" class="tour-3d-link" target="_blank" rel="noopener noreferrer" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                    <span class="tour-3d-text">Zobacz spacer 3D</span>
-                    <svg class="tour-3d-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                        <polyline points="12 5 19 12 12 19"/>
-                    </svg>
-                </a>
 
             <div class="action-buttons">
                 <button class="icon-btn" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>">
