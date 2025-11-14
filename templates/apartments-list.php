@@ -341,7 +341,7 @@ if (!defined('ABSPATH')) {
                         'winda',
                         'plac zabaw',
                         'osobne WC',
-                        '2 łazienki',
+                        '2 lazienki',
                         'pom. gospodarcze',
                         'komórka lokatorska',
                         'klimatyzacja',
@@ -352,6 +352,18 @@ if (!defined('ABSPATH')) {
                     foreach ($local['attributes'] as $attr) {
                         if (isset($attr['name']) && in_array(strtolower($attr['name']), array_map('strtolower', $tag_whitelist))) {
                             $tags[] = $attr['name'];
+                        }
+                    }
+                }
+                
+                // Check if apartment has promotion (do this once and reuse)
+                $has_promo = (!empty($local['maxDiscountPercent']) && $local['maxDiscountPercent'] > 0);
+                if (!$has_promo && !empty($all_attributes)) {
+                    foreach ($all_attributes as $attr_name) {
+                        $attr_lower = strtolower(trim($attr_name));
+                        if ($attr_lower === 'promocja' || strpos($attr_lower, 'promocja') !== false) {
+                            $has_promo = true;
+                            break;
                         }
                     }
                 }
@@ -377,8 +389,20 @@ if (!defined('ABSPATH')) {
                     'omnibusPriceGrossm2' => isset($local['omnibusPriceGrossm2']) ? $local['omnibusPriceGrossm2'] : 0,
                     'pdfLink' => $pdf_link,
                     'plannedDate' => isset($local['plannedDateOfFinishing']) ? $local['plannedDateOfFinishing'] : '',
-                    'projections' => array()
+                    'hasPromo' => $has_promo,
+                    'projections' => array(),
+                    'tour3dUrl' => '' // Will be set below
                 );
+                
+                // Find 3D tour link (displayUrl from projections)
+                $tour_3d_url = '';
+                foreach ($projections as $proj) {
+                    if (!empty($proj['displayUrl'])) {
+                        $tour_3d_url = $proj['displayUrl'];
+                        break; // Use the first displayUrl found
+                    }
+                }
+                $modal_data['tour3dUrl'] = $tour_3d_url;
                 
                 // Prepare projections data
                 foreach ($projections as $proj) {
@@ -511,6 +535,9 @@ if (!defined('ABSPATH')) {
                     <div class="price-label">Cena</div>
                     <div class="price-main"><?php echo number_format($local['priceGross'], 0, ',', ' '); ?> zł</div>
                     <div class="price-sqm">(<?php echo number_format($price_m2, 2, ',', ' '); ?> zł/m²)</div>
+                    <?php if ($has_promo): ?>
+                        <div class="promo-badge">Promocja</div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="apartment-actions">
@@ -556,6 +583,7 @@ if (!defined('ABSPATH')) {
         <div class="modal-body">
             <div class="modal-gallery">
                 <div class="gallery-main">
+                    <div class="gallery-promo-badge" style="display: none;">Promocja</div>
                     <img src="" alt="" class="gallery-main-image">
                     <button class="gallery-nav prev">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -619,6 +647,7 @@ if (!defined('ABSPATH')) {
                     <div class="price-label">Cena</div>
                     <div class="price-main"></div>
                     <div class="price-per-m2"></div>
+                    <div class="promo-badge" style="display: none;">Promocja</div>
                 </div>
 
                 <!-- Price history section -->
@@ -650,6 +679,19 @@ if (!defined('ABSPATH')) {
                         Pobierz kartę mieszkania
                     </a>
                 </div>
+
+                <!-- 3D Tour Link -->
+                <a href="#" class="tour-3d-link" target="_blank" rel="noopener noreferrer" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    <span class="tour-3d-text">Zobacz spacer 3D</span>
+                    <svg class="tour-3d-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
 
             <div class="action-buttons">
                 <button class="icon-btn" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>">

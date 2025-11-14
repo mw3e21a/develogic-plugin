@@ -208,21 +208,30 @@
             const itemPrice = parseFloat(item.getAttribute('data-price-value')) || 0;
             shouldShow = shouldShow && itemPrice >= priceMin && itemPrice <= priceMax;
             
-            // Promo filter
+            // Promo filter - check both maxDiscountPercent and attributes
             if (promoOnly) {
-                const hasPromo = item.getAttribute('data-has-promo') === 'true';
-                shouldShow = shouldShow && hasPromo;
+                const hasPromoDiscount = item.getAttribute('data-has-promo') === 'true';
+                const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
+                const hasPromoAttribute = attributes.some(attr => {
+                    // Handle both string and object formats
+                    const attrName = typeof attr === 'string' ? attr : (attr.name || '');
+                    const attrLower = attrName.toLowerCase().trim();
+                    return attrLower === 'promocja' || attrLower.includes('promocja');
+                });
+                shouldShow = shouldShow && (hasPromoDiscount || hasPromoAttribute);
             }
             
-            // Bathroom filter (2 łazienki) - based on attributes
+            // Bathroom filter (2 lazienki) - based on attributes
             if (bathOnly) {
                 const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
                 const hasTwoBaths = attributes.some(attr => {
-                    const attrLower = attr.toLowerCase();
-                    return attrLower.includes('2 łazienki') || 
-                           attrLower.includes('dwie łazienki') ||
-                           attrLower.includes('2 łazienk') ||
-                           attrLower === '2 łazienki';
+                    // Handle both string and object formats
+                    const attrName = typeof attr === 'string' ? attr : (attr.name || '');
+                    const attrLower = attrName.toLowerCase().trim();
+                    const matches = attrLower === '2 lazienki' || 
+                           attrLower === 'dwie lazienki' ||
+                           attrLower.includes('2 lazienk');
+                    return matches;
                 });
                 shouldShow = shouldShow && hasTwoBaths;
             }
@@ -231,8 +240,10 @@
             if (wardrobeOnly) {
                 const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
                 const hasWardrobe = attributes.some(attr => {
-                    const attrLower = attr.toLowerCase();
-                    return attrLower.includes('garderoba') || attrLower === 'garderoba';
+                    // Handle both string and object formats
+                    const attrName = typeof attr === 'string' ? attr : (attr.name || '');
+                    const attrLower = attrName.toLowerCase().trim();
+                    return attrLower === 'garderoba' || attrLower.includes('garderoba');
                 });
                 shouldShow = shouldShow && hasWardrobe;
             }
@@ -651,6 +662,18 @@
         modal.querySelector('.detail-price .price-main').textContent = formatPrice(data.priceGross);
         modal.querySelector('.detail-price .price-per-m2').textContent = '(' + formatPriceM2(data.priceM2) + ' zł/m²)';
         
+        // Show/hide promo badge in price section
+        const promoBadgePrice = modal.querySelector('.detail-price .promo-badge');
+        if (promoBadgePrice) {
+            promoBadgePrice.style.display = data.hasPromo ? 'inline-flex' : 'none';
+        }
+        
+        // Show/hide promo badge in gallery
+        const promoBadgeGallery = modal.querySelector('.gallery-promo-badge');
+        if (promoBadgeGallery) {
+            promoBadgeGallery.style.display = data.hasPromo ? 'inline-flex' : 'none';
+        }
+        
         // Set info box
         const infoBox = modal.querySelector('.info-box');
         if (data.plannedDate) {
@@ -668,6 +691,15 @@
             downloadLink.style.display = 'flex';
         } else {
             downloadLink.style.display = 'none';
+        }
+        
+        // Set 3D tour link
+        const tour3dLink = modal.querySelector('.tour-3d-link');
+        if (tour3dLink && data.tour3dUrl) {
+            tour3dLink.href = data.tour3dUrl;
+            tour3dLink.style.display = 'flex';
+        } else if (tour3dLink) {
+            tour3dLink.style.display = 'none';
         }
         
         // Set favorite button

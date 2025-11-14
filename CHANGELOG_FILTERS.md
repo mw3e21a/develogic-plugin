@@ -19,7 +19,7 @@ Dodano kompleksowy system filtrowania nad przyciskami "Wszystkie" i "Obserwowane
 - **Cena (zł)**: Zakres od-do z polami numerycznymi
 - **Opcje dodatkowe**: Checkboxy dla:
   - W promocji (filtruje mieszkania z rabatem)
-  - 2 łazienki
+  - 2 lazienki
   - Z garderobą
 - **Przycisk resetowania**: Resetuje wszystkie filtry do wartości domyślnych
 
