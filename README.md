@@ -20,6 +20,8 @@ Wtyczka WordPress do integracji z API Develogic. Umożliwia wyświetlanie ofert 
 
 ## Konfiguracja
 
+curl -X GET "https://domelcki.ondevelogic.com/api/fis/v1/feed/locals" \-H "ApiKey: tRx6d7vh5othPXdtfxu9" \-H "Content-Type: application/json" \-o locals.json
+
 ### Ustawienia API
 - **URL bazowy API**: np. `https://api.develogic.pl`
 - **Klucz API**: otrzymany od konsultanta Develogic
