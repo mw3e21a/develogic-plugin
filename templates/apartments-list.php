@@ -35,7 +35,152 @@ if (!defined('ABSPATH')) {
             echo esc_html($title);
             ?>
         </h1>
-        <div class="sort-bar">
+    </div>
+
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label class="filter-label">Ilość pokoi:</label>
+                <div class="filter-chips" id="roomsFilter">
+                    <button class="filter-chip active" data-value="all">Wszystkie</button>
+                    <button class="filter-chip" data-value="1">1</button>
+                    <button class="filter-chip" data-value="2">2</button>
+                    <button class="filter-chip" data-value="3">3</button>
+                    <button class="filter-chip" data-value="4">4</button>
+                    <button class="filter-chip" data-value="5">5+</button>
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Typ lokalu:</label>
+                <select class="filter-select" id="localTypeFilter">
+                    <?php
+                    // Get unique local types
+                    $local_types_list = array();
+                    foreach ($locals as $local) {
+                        if (!empty($local['localType']) && !in_array($local['localType'], $local_types_list)) {
+                            $local_types_list[] = $local['localType'];
+                        }
+                    }
+                    sort($local_types_list);
+                    // Set default to "Lokal mieszkalny" if it exists
+                    $default_type = in_array('Lokal mieszkalny', $local_types_list) ? 'Lokal mieszkalny' : 'all';
+                    echo '<option value="all"' . ($default_type === 'all' ? ' selected' : '') . '>Wszystkie typy</option>';
+                    foreach ($local_types_list as $local_type) {
+                        $is_selected = ($local_type === $default_type) ? ' selected' : '';
+                        echo '<option value="' . esc_attr($local_type) . '"' . $is_selected . '>' . esc_html($local_type) . '</option>';
+                    }
+                    ?>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Budynek:</label>
+                <select class="filter-select" id="buildingFilter">
+                    <option value="all">Wszystkie budynki</option>
+                    <?php
+                    // Get unique buildings
+                    $buildings_list = array();
+                    foreach ($locals as $local) {
+                        if (!empty($local['building']) && !in_array($local['building'], $buildings_list)) {
+                            $buildings_list[] = $local['building'];
+                        }
+                    }
+                    sort($buildings_list);
+                    foreach ($buildings_list as $building) {
+                        echo '<option value="' . esc_attr($building) . '">' . esc_html($building) . '</option>';
+                    }
+                    ?>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Piętro:</label>
+                <select class="filter-select" id="floorFilter">
+                    <option value="all">Wszystkie piętra</option>
+                    <option value="-1">Piwnica</option>
+                    <option value="0">Parter</option>
+                    <option value="1">Piętro I</option>
+                    <option value="2">Piętro II</option>
+                    <option value="3">Piętro III</option>
+                    <option value="4">Piętro IV</option>
+                    <option value="5">Piętro V+</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="filter-row">
+            <div class="filter-group">
+                <label class="filter-label">Metraż (m²):</label>
+                <div class="filter-range">
+                    <input type="number" class="filter-input" id="areaMin" placeholder="od" step="1" min="0">
+                    <span class="filter-separator">-</span>
+                    <input type="number" class="filter-input" id="areaMax" placeholder="do" step="1" min="0">
+                </div>
+            </div>
+            
+            <div class="filter-group">
+                <label class="filter-label">Cena (zł):</label>
+                <div class="filter-range">
+                    <input type="number" class="filter-input" id="priceMin" placeholder="od" step="10000" min="0">
+                    <span class="filter-separator">-</span>
+                    <input type="number" class="filter-input" id="priceMax" placeholder="do" step="10000" min="0">
+                </div>
+            </div>
+            
+            <div class="filter-group filter-extras">
+                <label class="filter-label">Opcje dodatkowe:</label>
+                <div class="filter-checkboxes">
+                    <label class="filter-checkbox">
+                        <input type="checkbox" id="promoFilter" value="promo">
+                        <span>W promocji</span>
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" id="bathFilter" value="2bath">
+                        <span>2 łazienki</span>
+                    </label>
+                    <label class="filter-checkbox">
+                        <input type="checkbox" id="wardrobeFilter" value="wardrobe">
+                        <span>Z garderobą</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="filter-group filter-actions">
+                <button class="filter-reset-btn" id="resetFilters">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M3 21v-5h5"/>
+                    </svg>
+                    Resetuj filtry
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
+    <div class="favorites-toggle-container">
+        <div class="toggle-buttons-wrapper">
+            <button class="favorites-toggle-btn active" data-toggle-view="all">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="9" y1="3" x2="9" y2="21"/>
+                </svg>
+                Wszystkie
+            </button>
+            <button class="favorites-toggle-btn" data-toggle-view="favorites">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                Obserwowane
+            </button>
+            <span class="favorites-count" id="favoritesCount">0 obserwowanych</span>
+        </div>
+        
+        <div class="sort-bar-right">
             <span class="sort-label">Sortuj po:</span>
             <span class="sort-option active" data-sort="data-floor">Piętro</span>
             <span class="sort-option" data-sort="data-area">Metraż</span>
@@ -43,24 +188,6 @@ if (!defined('ABSPATH')) {
             <span class="sort-option" data-sort="data-price">Cena</span>
             <span class="sort-option" data-sort="data-price-m2">Cena m²</span>
         </div>
-    </div>
-
-    <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
-    <div class="favorites-toggle-container">
-        <button class="favorites-toggle-btn active" data-toggle-view="all">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <line x1="9" y1="3" x2="9" y2="21"/>
-            </svg>
-            Wszystkie
-        </button>
-        <button class="favorites-toggle-btn" data-toggle-view="favorites">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-            Obserwowane
-        </button>
-        <span class="favorites-count" id="favoritesCount">0 obserwowanych</span>
         
         <div class="favorites-share-container" id="favoritesShareContainer" style="display: none;">
             <span class="share-label">Udostępnij listę na:</span>
@@ -142,9 +269,34 @@ if (!defined('ABSPATH')) {
                 
                 // Tags from attributes
                 $tags = array();
+                $all_attributes = array(); // All attributes for filtering
+                
                 if (!empty($local['attributes'])) {
+                    // Extract all attribute names for filtering
+                    foreach ($local['attributes'] as $attr) {
+                        if (isset($attr['name'])) {
+                            $all_attributes[] = $attr['name'];
+                        }
+                    }
+                    
+                    // Filter for display using whitelist
                     $tag_whitelist = apply_filters('develogic_attribute_whitelist', array(
-                        'aneks', 'balkon', '2 balkony', 'garderoba', 'taras', 'ogród', 'pom. gospodarcze'
+                        'aneks kuchenny',
+                        'balkon',
+                        '2 balkony',
+                        'taras',
+                        'ogród',
+                        'garderoba',
+                        'jasna kuchnia',
+                        'winda',
+                        'plac zabaw',
+                        'osobne WC',
+                        '2 łazienki',
+                        'pom. gospodarcze',
+                        'komórka lokatorska',
+                        'klimatyzacja',
+                        'parking',
+                        'miejsce postojowe'
                     ));
                     
                     foreach ($local['attributes'] as $attr) {
@@ -235,6 +387,14 @@ if (!defined('ABSPATH')) {
                  data-price="<?php echo esc_attr($price_padded); ?>"
                  data-price-m2="<?php echo esc_attr($price_m2_padded); ?>"
                  data-area="<?php echo esc_attr($area_padded); ?>"
+                 data-building="<?php echo esc_attr($local['building']); ?>"
+                 data-local-type="<?php echo esc_attr(isset($local['localType']) ? $local['localType'] : ''); ?>"
+                 data-floor-number="<?php echo esc_attr($floor_value); ?>"
+                 data-area-value="<?php echo esc_attr($local['area']); ?>"
+                 data-price-value="<?php echo esc_attr($local['priceGross']); ?>"
+                 data-rooms-value="<?php echo esc_attr($local['rooms']); ?>"
+                 data-has-promo="<?php echo (!empty($local['maxDiscountPercent']) && $local['maxDiscountPercent'] > 0) ? 'true' : 'false'; ?>"
+                 data-attributes="<?php echo esc_attr(json_encode($all_attributes)); ?>"
                  data-modal='<?php echo esc_attr(json_encode($modal_data)); ?>'>
                 <div class="apartment-info">
                     <div class="building-name"><?php echo esc_html($local['building']); ?></div>

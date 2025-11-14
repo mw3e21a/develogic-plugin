@@ -16,6 +16,7 @@
     
     function init() {
         setupSorting();
+        setupFiltering();
         setupFavorites();
         setupEmailButtons();
         setupApartmentClicks();
@@ -24,6 +25,9 @@
         setupShareButtons();
         updateFavoritesCount();
         checkSharedFavorites();
+        
+        // Apply filters on page load to respect default localType selection
+        applyFilters();
     }
     
     // ===========================
@@ -75,6 +79,246 @@
         
         // Re-append sorted items
         items.forEach(item => apartmentList.appendChild(item));
+    }
+    
+    // ===========================
+    // Filtering functionality
+    // ===========================
+    function setupFiltering() {
+        // Room filter chips
+        const roomChips = document.querySelectorAll('#roomsFilter .filter-chip');
+        roomChips.forEach(chip => {
+            chip.addEventListener('click', function() {
+                roomChips.forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+                applyFilters();
+            });
+        });
+        
+        // Local type filter
+        const localTypeFilter = document.getElementById('localTypeFilter');
+        if (localTypeFilter) {
+            localTypeFilter.addEventListener('change', applyFilters);
+        }
+        
+        // Building filter
+        const buildingFilter = document.getElementById('buildingFilter');
+        if (buildingFilter) {
+            buildingFilter.addEventListener('change', applyFilters);
+        }
+        
+        // Floor filter
+        const floorFilter = document.getElementById('floorFilter');
+        if (floorFilter) {
+            floorFilter.addEventListener('change', applyFilters);
+        }
+        
+        // Area range filters
+        const areaMin = document.getElementById('areaMin');
+        const areaMax = document.getElementById('areaMax');
+        if (areaMin) areaMin.addEventListener('input', debounce(applyFilters, 500));
+        if (areaMax) areaMax.addEventListener('input', debounce(applyFilters, 500));
+        
+        // Price range filters
+        const priceMin = document.getElementById('priceMin');
+        const priceMax = document.getElementById('priceMax');
+        if (priceMin) priceMin.addEventListener('input', debounce(applyFilters, 500));
+        if (priceMax) priceMax.addEventListener('input', debounce(applyFilters, 500));
+        
+        // Additional options checkboxes
+        const promoFilter = document.getElementById('promoFilter');
+        const bathFilter = document.getElementById('bathFilter');
+        const wardrobeFilter = document.getElementById('wardrobeFilter');
+        if (promoFilter) promoFilter.addEventListener('change', applyFilters);
+        if (bathFilter) bathFilter.addEventListener('change', applyFilters);
+        if (wardrobeFilter) wardrobeFilter.addEventListener('change', applyFilters);
+        
+        // Reset button
+        const resetBtn = document.getElementById('resetFilters');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', resetFilters);
+        }
+    }
+    
+    function applyFilters() {
+        const apartmentItems = document.querySelectorAll('.apartment-item');
+        
+        // Get filter values
+        const selectedRooms = document.querySelector('#roomsFilter .filter-chip.active')?.getAttribute('data-value') || 'all';
+        const selectedLocalType = document.getElementById('localTypeFilter')?.value || 'all';
+        const selectedBuilding = document.getElementById('buildingFilter')?.value || 'all';
+        const selectedFloor = document.getElementById('floorFilter')?.value || 'all';
+        const areaMin = parseFloat(document.getElementById('areaMin')?.value) || 0;
+        const areaMax = parseFloat(document.getElementById('areaMax')?.value) || Infinity;
+        const priceMin = parseFloat(document.getElementById('priceMin')?.value) || 0;
+        const priceMax = parseFloat(document.getElementById('priceMax')?.value) || Infinity;
+        const promoOnly = document.getElementById('promoFilter')?.checked || false;
+        const bathOnly = document.getElementById('bathFilter')?.checked || false;
+        const wardrobeOnly = document.getElementById('wardrobeFilter')?.checked || false;
+        
+        let visibleCount = 0;
+        
+        apartmentItems.forEach(item => {
+            let shouldShow = true;
+            
+            // Room filter
+            if (selectedRooms !== 'all') {
+                const itemRooms = parseInt(item.getAttribute('data-rooms-value')) || 0;
+                if (selectedRooms === '5') {
+                    // 5+ rooms
+                    shouldShow = shouldShow && itemRooms >= 5;
+                } else {
+                    shouldShow = shouldShow && itemRooms === parseInt(selectedRooms);
+                }
+            }
+            
+            // Local type filter
+            if (selectedLocalType !== 'all') {
+                const itemLocalType = item.getAttribute('data-local-type') || '';
+                shouldShow = shouldShow && itemLocalType === selectedLocalType;
+            }
+            
+            // Building filter
+            if (selectedBuilding !== 'all') {
+                const itemBuilding = item.getAttribute('data-building') || '';
+                shouldShow = shouldShow && itemBuilding === selectedBuilding;
+            }
+            
+            // Floor filter
+            if (selectedFloor !== 'all') {
+                const itemFloor = parseInt(item.getAttribute('data-floor-number')) || 0;
+                if (selectedFloor === '5') {
+                    // Floor V+
+                    shouldShow = shouldShow && itemFloor >= 5;
+                } else {
+                    shouldShow = shouldShow && itemFloor === parseInt(selectedFloor);
+                }
+            }
+            
+            // Area filter
+            const itemArea = parseFloat(item.getAttribute('data-area-value')) || 0;
+            shouldShow = shouldShow && itemArea >= areaMin && itemArea <= areaMax;
+            
+            // Price filter
+            const itemPrice = parseFloat(item.getAttribute('data-price-value')) || 0;
+            shouldShow = shouldShow && itemPrice >= priceMin && itemPrice <= priceMax;
+            
+            // Promo filter
+            if (promoOnly) {
+                const hasPromo = item.getAttribute('data-has-promo') === 'true';
+                shouldShow = shouldShow && hasPromo;
+            }
+            
+            // Bathroom filter (2 łazienki) - based on attributes
+            if (bathOnly) {
+                const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
+                const hasTwoBaths = attributes.some(attr => {
+                    const attrLower = attr.toLowerCase();
+                    return attrLower.includes('2 łazienki') || 
+                           attrLower.includes('dwie łazienki') ||
+                           attrLower.includes('2 łazienk') ||
+                           attrLower === '2 łazienki';
+                });
+                shouldShow = shouldShow && hasTwoBaths;
+            }
+            
+            // Wardrobe filter (garderoba) - based on attributes
+            if (wardrobeOnly) {
+                const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
+                const hasWardrobe = attributes.some(attr => {
+                    const attrLower = attr.toLowerCase();
+                    return attrLower.includes('garderoba') || attrLower === 'garderoba';
+                });
+                shouldShow = shouldShow && hasWardrobe;
+            }
+            
+            // Apply visibility
+            if (shouldShow) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        
+        // Show/hide no results message
+        updateNoResultsMessage(visibleCount);
+    }
+    
+    function resetFilters() {
+        // Reset room chips
+        const roomChips = document.querySelectorAll('#roomsFilter .filter-chip');
+        roomChips.forEach(chip => {
+            chip.classList.toggle('active', chip.getAttribute('data-value') === 'all');
+        });
+        
+        // Reset dropdowns
+        const localTypeFilter = document.getElementById('localTypeFilter');
+        if (localTypeFilter) {
+            // Reset to "Lokal mieszkalny" if available, otherwise "all"
+            const lokalMieszkalnyOption = Array.from(localTypeFilter.options).find(opt => opt.value === 'Lokal mieszkalny');
+            localTypeFilter.value = lokalMieszkalnyOption ? 'Lokal mieszkalny' : 'all';
+        }
+        
+        const buildingFilter = document.getElementById('buildingFilter');
+        if (buildingFilter) buildingFilter.value = 'all';
+        
+        const floorFilter = document.getElementById('floorFilter');
+        if (floorFilter) floorFilter.value = 'all';
+        
+        // Reset range inputs
+        const areaMin = document.getElementById('areaMin');
+        const areaMax = document.getElementById('areaMax');
+        const priceMin = document.getElementById('priceMin');
+        const priceMax = document.getElementById('priceMax');
+        if (areaMin) areaMin.value = '';
+        if (areaMax) areaMax.value = '';
+        if (priceMin) priceMin.value = '';
+        if (priceMax) priceMax.value = '';
+        
+        // Reset checkboxes
+        const promoFilter = document.getElementById('promoFilter');
+        const bathFilter = document.getElementById('bathFilter');
+        const wardrobeFilter = document.getElementById('wardrobeFilter');
+        if (promoFilter) promoFilter.checked = false;
+        if (bathFilter) bathFilter.checked = false;
+        if (wardrobeFilter) wardrobeFilter.checked = false;
+        
+        // Apply filters (showing all)
+        applyFilters();
+    }
+    
+    function updateNoResultsMessage(visibleCount) {
+        const apartmentList = document.querySelector('.apartment-list');
+        if (!apartmentList) return;
+        
+        let noResultsMsg = apartmentList.querySelector('.no-results-filter');
+        
+        if (visibleCount === 0) {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('div');
+                noResultsMsg.className = 'no-results no-results-filter';
+                noResultsMsg.innerHTML = '<p>Brak mieszkań spełniających wybrane kryteria. Spróbuj zmienić filtry.</p>';
+                apartmentList.appendChild(noResultsMsg);
+            }
+            noResultsMsg.style.display = 'block';
+        } else {
+            if (noResultsMsg) {
+                noResultsMsg.style.display = 'none';
+            }
+        }
+    }
+    
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
     }
     
     // ===========================
