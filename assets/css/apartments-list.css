@@ -405,6 +405,7 @@
 .detail-value {
     color: #1a1a1a;
     font-weight: 600;
+    text-transform: capitalize;
 }
 
 .features {
@@ -545,6 +546,24 @@
 
 .icon-btn-3d:hover svg {
     stroke: #0066cc;
+}
+
+/* 360 degree text button */
+.icon-btn-360 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.icon-btn-360 .text-360 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #666;
+    line-height: 1;
+}
+
+.icon-btn-360:hover .text-360 {
+    color: #0066cc;
 }
 
 /* Tooltips for icon buttons */

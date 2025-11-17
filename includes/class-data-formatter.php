@@ -62,13 +62,15 @@ class Develogic_Data_Formatter {
             return '';
         }
         
-        $floor_map = array(
-            '-1' => __('Piwnica', 'develogic'),
-            '0' => __('Parter', 'develogic'),
-        );
+        // Convert to string for consistent comparison
+        $floor_str = (string) $floor;
         
-        if (isset($floor_map[$floor])) {
-            return $floor_map[$floor];
+        // Special cases: basement and ground floor
+        if ($floor_str === '-1') {
+            return 'Piwnica';
+        }
+        if ($floor_str === '0') {
+            return 'Parter';
         }
         
         $floor_int = absint($floor);
@@ -76,12 +78,13 @@ class Develogic_Data_Formatter {
             // Format as "Piętro I", "Piętro II", etc. for first 10 floors
             $roman_numerals = array('', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X');
             if ($floor_int <= 10 && isset($roman_numerals[$floor_int])) {
-                return __('Piętro', 'develogic') . ' ' . $roman_numerals[$floor_int];
+                return 'Piętro ' . $roman_numerals[$floor_int];
             }
-            return __('Piętro', 'develogic') . ' ' . $floor_int;
+            return 'Piętro ' . $floor_int;
         }
         
-        return $floor_int;
+        // Fallback - should not happen normally
+        return $floor_str;
     }
     
     /**
