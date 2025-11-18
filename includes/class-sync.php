@@ -111,6 +111,9 @@ class Develogic_Sync {
         
         $this->log_sync('success', $stats['message']);
         
+        // Trigger action for integrations
+        do_action('develogic_sync_completed', $stats);
+        
         return $stats;
     }
     

@@ -1,6 +1,17 @@
 # Develogic Integration - WordPress Plugin
 
-Wtyczka WordPress do integracji z API Develogic. Umożliwia wyświetlanie ofert mieszkań, filtrowanie, sortowanie, galerie zdjęć i więcej.
+Wtyczka WordPress do integracji z API Develogic. Umożliwia wyświetlanie ofert mieszkań, filtrowanie, sortowanie, galerie zdjęć, automatyczną synchronizację kolorów w Image Map Pro i więcej.
+
+## ✨ Nowe w v2.2.0
+
+**🎨 Integracja z Image Map Pro** - Automatyczna aktualizacja kolorów kształtów na mapach w zależności od statusu lokalu!
+
+- Mapuj budynki na projekty Image Map Pro
+- Konfiguruj kolory dla każdego statusu (Wolny, Sprzedany, Rezerwacja)
+- Automatyczna synchronizacja po każdej aktualizacji lokali
+- Panel administracyjny z edytorem kolorów
+
+👉 **Zobacz:** `IMAGE_MAP_PRO_SETUP.md` dla szczegółowej instrukcji
 
 ## Wymagania
 

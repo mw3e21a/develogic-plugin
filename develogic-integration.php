@@ -3,7 +3,7 @@
  * Plugin Name: Develogic Integration
  * Plugin URI: https://github.com/yourusername/develogic-wp-plugin
  * Description: Integracja z API Develogic - wyświetlanie ofert mieszkań, filtrowanie, sortowanie, galerie i więcej
- * Version: 2.1.1
+ * Version: 2.2.0
  * Author: Your Name
  * Author URI: https://yourwebsite.com
  * License: GPL v2 or later
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('DEVELOGIC_VERSION', '2.1.1');
+define('DEVELOGIC_VERSION', '2.2.0');
 define('DEVELOGIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DEVELOGIC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DEVELOGIC_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -102,10 +102,15 @@ final class Develogic_Integration {
         require_once DEVELOGIC_PLUGIN_DIR . 'includes/class-sync-endpoint.php';
         require_once DEVELOGIC_PLUGIN_DIR . 'includes/class-local-query.php';
         
+        // Integrations
+        require_once DEVELOGIC_PLUGIN_DIR . 'includes/class-imagemappro-integration.php';
+        
         // Admin
         if (is_admin()) {
             require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-settings.php';
             require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-sync.php';
+            require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-imagemappro.php';
+            require_once DEVELOGIC_PLUGIN_DIR . 'includes/class-debug-helper.php';
         }
         
         // Public
@@ -135,12 +140,17 @@ final class Develogic_Integration {
         if (is_admin()) {
             new Develogic_Admin_Settings();
             new Develogic_Admin_Sync();
+            new Develogic_Admin_ImageMapPro();
+            new Develogic_Debug_Helper();
         }
         
         // Initialize public components  
         new Develogic_Shortcodes();
         new Develogic_REST_API();
         new Develogic_Assets();
+        
+        // Initialize integrations
+        new Develogic_ImageMapPro_Integration();
     }
     
     /**

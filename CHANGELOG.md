@@ -5,6 +5,51 @@ Wszystkie istotne zmiany w projekcie będą dokumentowane w tym pliku.
 Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/),
 a wersjonowanie zgodne z [Semantic Versioning](https://semver.org/lang/pl/).
 
+## [2.2.0] - 2025-11-18
+
+### Dodano
+- **🎨 Integracja z Image Map Pro**: Automatyczna aktualizacja kolorów kształtów na mapach w zależności od statusu lokalu
+- **Panel administracyjny Image Map Pro**: Nowa zakładka "Image Map Pro" w menu Develogic do konfiguracji integracji
+- **Mapowanie budynków na projekty**: Możliwość przypisania każdego budynku do konkretnego shortcode'u Image Map Pro
+- **Konfiguracja kolorów statusów**: Edytor kolorów dla każdego statusu (Wolny, Sprzedany, Rezerwacja, Niedostępny)
+- **Automatyczna synchronizacja kolorów**: Po każdej synchronizacji lokali kolory na mapach są automatycznie aktualizowane
+- **Manualna aktualizacja**: Możliwość ręcznego uruchomienia aktualizacji kolorów bez pełnej synchronizacji
+- **Hook `develogic_sync_completed`**: Nowy action hook wywoływany po zakończeniu synchronizacji
+
+### Nowe pliki
+- `includes/class-imagemappro-integration.php` - główna klasa integracji z Image Map Pro
+- `admin/class-admin-imagemappro.php` - panel administracyjny konfiguracji integracji
+- `examples/image-map-pro-config-example.php` - przykłady programatycznej konfiguracji
+- `CHANGELOG_IMAGE_MAP_PRO_INTEGRATION.md` - szczegółowa dokumentacja integracji
+- `IMAGE_MAP_PRO_INTEGRATION.md` - przewodnik użytkownika
+
+### Zmieniono
+- `includes/class-sync.php`: Dodano wywołanie `do_action('develogic_sync_completed', $stats)` po synchronizacji
+- `develogic-integration.php`: Włączono integrację z Image Map Pro
+
+### Funkcje integracji
+- Automatyczne dopasowanie kształtów po numerze lokalu (pole "title" w Image Map Pro)
+- Wsparcie dla wielu budynków i projektów
+- Konfigurowalne kolory dla każdego statusu z WordPress Color Picker
+- Logi wszystkich operacji w panelu synchronizacji
+- Bezpieczne API z walidacją danych i sprawdzaniem uprawnień
+
+### Wymagania
+- Image Map Pro v6+ (wtyczka musi być aktywna)
+- Kształty w Image Map Pro muszą mieć w polu "title" numer lokalu z Develogic
+
+### Korzyści
+- ✅ Wizualna synchronizacja statusów lokali w czasie rzeczywistym
+- ✅ Automatyzacja - zero ręcznej pracy po konfiguracji
+- ✅ Elastyczna konfiguracja kolorów i mapowań
+- ✅ Łatwa obsługa wielu budynków
+- ✅ Pełne logowanie dla łatwego debugowania
+
+**Zobacz szczegóły**:
+- `IMAGE_MAP_PRO_INTEGRATION.md` - szybki start i FAQ
+- `CHANGELOG_IMAGE_MAP_PRO_INTEGRATION.md` - pełna dokumentacja techniczna
+- `examples/image-map-pro-config-example.php` - przykłady programistyczne
+
 ## [2.1.1] - 2025-11-14
 
 ### Dodano

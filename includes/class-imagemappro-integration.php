@@ -1,0 +1,639 @@
+<?php
+/**
+ * Develogic Image Map Pro Integration
+ *
+ * @package Develogic
+ */
+
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * Class Develogic_ImageMapPro_Integration
+ * 
+ * Integrates with Image Map Pro plugin to automatically update shape colors
+ * based on local status from Develogic
+ */
+class Develogic_ImageMapPro_Integration {
+    
+    /**
+     * Status color mapping
+     *
+     * @var array
+     */
+    private $status_colors = array(
+        'Wolny' => '7ED322',        // Green - available
+        'Sprzedany' => 'ee1c24',    // Red - sold
+        'Rezerwacja' => 'FFA500',   // Orange - reserved
+        'Niedostępny' => 'cccccc',  // Gray - unavailable
+    );
+    
+    /**
+     * Building to shortcode mapping
+     * Maps building names/IDs to Image Map Pro shortcodes
+     *
+     * @var array
+     */
+    private $building_shortcode_map = array();
+    
+    /**
+     * Constructor
+     */
+    public function __construct() {
+        // Hook into Develogic sync completion
+        add_action('develogic_sync_completed', array($this, 'update_image_map_pro_colors'), 10, 1);
+        
+        // Admin notices
+        add_action('admin_notices', array($this, 'show_admin_notices'));
+        
+        // Load building mapping from settings
+        $this->load_building_mapping();
+        
+        // Load custom color mapping from settings
+        $this->load_color_mapping();
+    }
+    
+    /**
+     * Load building to shortcode mapping from settings
+     */
+    private function load_building_mapping() {
+        $mapping = get_option('develogic_imagemappro_building_map', array());
+        
+        if (!empty($mapping) && is_array($mapping)) {
+            $this->building_shortcode_map = $mapping;
+        }
+    }
+    
+    /**
+     * Load custom status color mapping from settings
+     */
+    private function load_color_mapping() {
+        $colors = get_option('develogic_imagemappro_colors', array());
+        
+        if (!empty($colors) && is_array($colors)) {
+            $this->status_colors = array_merge($this->status_colors, $colors);
+        }
+    }
+    
+    /**
+     * Update Image Map Pro colors after sync
+     *
+     * @param array $sync_stats Sync statistics
+     * @param array $project_ids Optional. Array of specific project IDs to update
+     */
+    public function update_image_map_pro_colors($sync_stats, $project_ids = array()) {
+        $this->log('=== Starting Image Map Pro color update ===', 'info');
+        
+        // Check if Image Map Pro is active
+        if (!$this->is_imagemappro_active()) {
+            $this->log('Image Map Pro plugin is not active', 'error');
+            return;
+        }
+        
+        $this->log('Image Map Pro is active', 'info');
+        
+        $updated_projects = 0;
+        $updated_shapes = 0;
+        
+        // Get all Image Map Pro projects
+        $projects = $this->get_all_imagemappro_projects();
+        
+        if (empty($projects)) {
+            $this->log('No Image Map Pro projects found', 'error');
+            return;
+        }
+        
+        $this->log(sprintf('Found %d Image Map Pro projects', count($projects)), 'info');
+        
+        // Get all Develogic locals
+        $locals = $this->get_all_develogic_locals();
+        
+        if (empty($locals)) {
+            $this->log('No Develogic locals found', 'error');
+            return;
+        }
+        
+        $this->log(sprintf('Found %d Develogic locals', count($locals)), 'info');
+        
+        // Filter projects if specific IDs provided
+        if (!empty($project_ids) && is_array($project_ids)) {
+            $projects = array_filter($projects, function($project) use ($project_ids) {
+                return in_array($project->id, $project_ids) || in_array($project->shortcode, $project_ids);
+            });
+        }
+        
+        // Process each project
+        foreach ($projects as $project) {
+            $result = $this->update_project_colors($project, $locals);
+            
+            if ($result['updated']) {
+                $updated_projects++;
+                $updated_shapes += $result['shapes_updated'];
+                
+                $this->log(sprintf(
+                    'Updated project "%s" (shortcode: %s) - %d shapes updated',
+                    $project->name,
+                    $project->shortcode,
+                    $result['shapes_updated']
+                ));
+            }
+        }
+        
+        if ($updated_projects > 0) {
+            $message = sprintf(
+                __('Image Map Pro: zaktualizowano %d projektów, %d kształtów', 'develogic'),
+                $updated_projects,
+                $updated_shapes
+            );
+            
+            $this->log($message, 'success');
+            
+            // Store notification for admin
+            set_transient('develogic_imagemappro_update_notice', $message, 60);
+        }
+    }
+    
+    /**
+     * Update colors for a single project
+     *
+     * @param object $project Image Map Pro project object
+     * @param array $locals Array of Develogic locals
+     * @return array Result with 'updated' flag and 'shapes_updated' count
+     */
+    private function update_project_colors($project, $locals) {
+        $this->log(sprintf('Processing project: %s (shortcode: %s)', $project->name, $project->shortcode), 'info');
+        
+        $result = array(
+            'updated' => false,
+            'shapes_updated' => 0,
+        );
+        
+        // Decode project JSON
+        $project_data = json_decode($project->json, true);
+        
+        if (empty($project_data) || !is_array($project_data)) {
+            $this->log('Failed to decode project JSON for: ' . $project->name, 'error');
+            return $result;
+        }
+        
+        // Check if project has artboards
+        if (empty($project_data['artboards']) || !is_array($project_data['artboards'])) {
+            $this->log('No artboards found in project: ' . $project->name, 'warning');
+            return $result;
+        }
+        
+        $this->log(sprintf('Project has %d artboards', count($project_data['artboards'])), 'info');
+        
+        $modified = false;
+        
+        // Process each artboard
+        foreach ($project_data['artboards'] as &$artboard) {
+            if (empty($artboard['children']) || !is_array($artboard['children'])) {
+                continue;
+            }
+            
+            $this->log(sprintf('Processing artboard with %d shapes', count($artboard['children'])), 'info');
+            
+            // Process each shape (polygon/spot)
+            foreach ($artboard['children'] as &$shape) {
+                $shape_title = isset($shape['title']) ? $shape['title'] : 'untitled';
+                
+                // Try to match shape with local
+                $local = $this->find_local_for_shape($shape, $locals, $project);
+                
+                if (!$local) {
+                    $this->log(sprintf('No match for shape "%s"', $shape_title), 'info');
+                    continue;
+                }
+                
+                $this->log(sprintf('Found match for shape "%s" -> local %s', $shape_title, $local['number']), 'success');
+                
+                // Get status
+                $status = isset($local['status']) ? $local['status'] : '';
+                
+                if (empty($status)) {
+                    $this->log(sprintf('Local %s has no status', $local['number']), 'warning');
+                    continue;
+                }
+                
+                // Get color for status
+                $color = $this->get_color_for_status($status);
+                
+                if (empty($color)) {
+                    $this->log(sprintf('No color mapped for status "%s"', $status), 'warning');
+                    continue;
+                }
+                
+                $this->log(sprintf('Updating shape "%s" to color #%s (status: %s)', $shape_title, $color, $status), 'info');
+                
+                // Update shape color
+                if ($this->update_shape_color($shape, $color)) {
+                    $modified = true;
+                    $result['shapes_updated']++;
+                    $this->log(sprintf('Successfully updated shape "%s"', $shape_title), 'success');
+                }
+            }
+        }
+        
+        if ($modified) {
+            // Encode and save with JSON_UNESCAPED_UNICODE to preserve m² and other Unicode characters
+            $new_json = wp_json_encode($project_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            
+            if ($this->save_project_json($project->id, $new_json)) {
+                $result['updated'] = true;
+            }
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Find Develogic local that matches a shape
+     *
+     * @param array $shape Shape data
+     * @param array $locals Array of locals
+     * @param object $project Project object
+     * @return array|null Local data or null
+     */
+    private function find_local_for_shape($shape, $locals, $project) {
+        // Try to extract local number from shape title
+        $shape_title = isset($shape['title']) ? trim($shape['title']) : '';
+        
+        if (empty($shape_title)) {
+            return null;
+        }
+        
+        // Determine which buildings this project belongs to (can be multiple!)
+        $building_ids = array();
+        $building_names = array();
+        
+        // Check if we have a mapping for this shortcode
+        if (!empty($this->building_shortcode_map)) {
+            $this->log(sprintf('Building map: %s', json_encode($this->building_shortcode_map)), 'info');
+            
+            // Collect ALL buildings that map to this shortcode
+            foreach ($this->building_shortcode_map as $building => $shortcodes) {
+                // Handle both single shortcode (string) and multiple (array) - backwards compatibility
+                $shortcodes_array = is_array($shortcodes) ? $shortcodes : array($shortcodes);
+                
+                // Check if this project shortcode is in the building's shortcodes
+                if (in_array($project->shortcode, $shortcodes_array)) {
+                    // Try to parse building info
+                    if (is_numeric($building)) {
+                        $building_ids[] = intval($building);
+                        $this->log(sprintf('Matched project %s to building ID: %d', $project->shortcode, $building), 'info');
+                    } else {
+                        $building_names[] = $building;
+                        $this->log(sprintf('Matched project %s to building NAME: %s', $project->shortcode, $building), 'info');
+                    }
+                    // DON'T break - collect all buildings!
+                }
+            }
+        } else {
+            $this->log('Building map is empty!', 'warning');
+        }
+        
+        // Search for local by number
+        foreach ($locals as $local) {
+            $local_number = isset($local['number']) ? trim($local['number']) : '';
+            $local_external_number = isset($local['externalNumber']) ? trim($local['externalNumber']) : '';
+            
+            // Debug logging
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                if ($shape_title === 'M63' || $local_number === 'M63') {
+                    error_log(sprintf(
+                        '[ImageMapPro Debug] Comparing shape "%s" with local "%s" (external: "%s")',
+                        $shape_title,
+                        $local_number,
+                        $local_external_number
+                    ));
+                }
+            }
+            
+            // Match by number or external number
+            if ($shape_title === $local_number || $shape_title === $local_external_number) {
+                // Found a number match!
+                $this->log(sprintf(
+                    'Found number match: shape "%s" = local "%s", checking building...',
+                    $shape_title,
+                    $local_number
+                ), 'info');
+                
+                // If we have building filters, check if it matches ANY of them
+                if (!empty($building_ids)) {
+                    $local_building_id = isset($local['buildingId']) ? intval($local['buildingId']) : null;
+                    $this->log(sprintf(
+                        'Comparing building IDs: expected one of [%s], local has=%s',
+                        implode(', ', $building_ids),
+                        $local_building_id
+                    ), 'info');
+                    
+                    if (in_array($local_building_id, $building_ids)) {
+                        $this->log(sprintf(
+                            'Matched shape "%s" to local %s (building ID: %d)',
+                            $shape_title,
+                            $local_number,
+                            $local_building_id
+                        ), 'success');
+                        return $local;
+                    } else {
+                        $this->log(sprintf(
+                            'Building ID mismatch for "%s": expected one of [%s], got %s',
+                            $local_number,
+                            implode(', ', $building_ids),
+                            $local_building_id
+                        ), 'warning');
+                    }
+                } elseif (!empty($building_names)) {
+                    $local_building_name = isset($local['building']) ? $local['building'] : null;
+                    $this->log(sprintf(
+                        'Comparing building names: expected one of [%s], local has="%s"',
+                        implode(', ', $building_names),
+                        $local_building_name
+                    ), 'info');
+                    
+                    if (in_array($local_building_name, $building_names)) {
+                        $this->log(sprintf(
+                            'Matched shape "%s" to local %s (building: %s)',
+                            $shape_title,
+                            $local_number,
+                            $local_building_name
+                        ), 'success');
+                        return $local;
+                    } else {
+                        $this->log(sprintf(
+                            'Building name mismatch for "%s": expected one of [%s], got "%s"',
+                            $local_number,
+                            implode(', ', $building_names),
+                            $local_building_name
+                        ), 'warning');
+                    }
+                } else {
+                    // No building filter, return first match
+                    $this->log(sprintf(
+                        'Matched shape "%s" to local %s (no building filter)',
+                        $shape_title,
+                        $local_number
+                    ), 'success');
+                    return $local;
+                }
+            }
+        }
+        
+        // Log when shape is not found
+        $this->log(sprintf(
+            'No local found for shape "%s" in project %s',
+            $shape_title,
+            $project->shortcode
+        ), 'warning');
+        
+        return null;
+    }
+    
+    /**
+     * Get color for status
+     *
+     * @param string $status Status name
+     * @return string|null Hex color without #
+     */
+    private function get_color_for_status($status) {
+        if (isset($this->status_colors[$status])) {
+            return ltrim($this->status_colors[$status], '#');
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Update shape color
+     *
+     * @param array &$shape Shape data (passed by reference)
+     * @param string $color Hex color without #
+     * @return bool True if color was updated
+     */
+    private function update_shape_color(&$shape, $color) {
+        $updated = false;
+        
+        // Update default_style background_color
+        if (isset($shape['default_style']) && is_array($shape['default_style'])) {
+            $old_color = isset($shape['default_style']['background_color']) ? $shape['default_style']['background_color'] : '';
+            
+            // Only update if color is different
+            if ($old_color !== $color) {
+                $shape['default_style']['background_color'] = $color;
+                $updated = true;
+            }
+        }
+        
+        // Update mouseover_style background_color (optional)
+        if (isset($shape['mouseover_style']) && is_array($shape['mouseover_style'])) {
+            // Keep mouseover color but adjust opacity
+            if ($updated && !empty($shape['mouseover_style']['background_color'])) {
+                // Optionally update mouseover to match or leave as is
+                // $shape['mouseover_style']['background_color'] = $color;
+            }
+        }
+        
+        return $updated;
+    }
+    
+    /**
+     * Save project JSON to database
+     *
+     * @param string $project_id Project ID
+     * @param string $json JSON string
+     * @return bool Success
+     */
+    private function save_project_json($project_id, $json) {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'image_map_pro_projects';
+        
+        $result = $wpdb->update(
+            $table_name,
+            array('json' => $json),
+            array('id' => $project_id),
+            array('%s'),
+            array('%s')
+        );
+        
+        return $result !== false;
+    }
+    
+    /**
+     * Get all Image Map Pro projects
+     *
+     * @return array Array of project objects
+     */
+    private function get_all_imagemappro_projects() {
+        global $wpdb;
+        
+        $table_name = $wpdb->prefix . 'image_map_pro_projects';
+        
+        // Check if table exists
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
+            return array();
+        }
+        
+        $projects = $wpdb->get_results("SELECT * FROM $table_name ORDER BY name ASC");
+        
+        // Strip slashes from JSON
+        if (!empty($projects)) {
+            foreach ($projects as $key => $value) {
+                $projects[$key]->json = stripslashes($value->json);
+            }
+        }
+        
+        return $projects;
+    }
+    
+    /**
+     * Get all Develogic locals from CPT
+     *
+     * @return array Array of local data
+     */
+    private function get_all_develogic_locals() {
+        $args = array(
+            'post_type' => 'develogic_local',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'orderby' => 'title',
+            'order' => 'ASC',
+        );
+        
+        $query = new WP_Query($args);
+        
+        if (!$query->have_posts()) {
+            return array();
+        }
+        
+        $locals = array();
+        
+        foreach ($query->posts as $post) {
+            // Get all meta data
+            $meta = get_post_meta($post->ID);
+            
+            $local_data = array(
+                'post_id' => $post->ID,
+                'title' => $post->post_title,
+            );
+            
+            // Flatten meta data
+            foreach ($meta as $key => $value) {
+                if (is_array($value) && count($value) === 1) {
+                    $local_data[$key] = $value[0];
+                } else {
+                    $local_data[$key] = $value;
+                }
+            }
+            
+            $locals[] = $local_data;
+        }
+        
+        return $locals;
+    }
+    
+    /**
+     * Check if Image Map Pro plugin is active
+     *
+     * @return bool
+     */
+    private function is_imagemappro_active() {
+        return class_exists('ImageMapPro_v6') || class_exists('ImageMapPro');
+    }
+    
+    /**
+     * Log message
+     *
+     * @param string $message Message
+     * @param string $level Log level (info, success, warning, error)
+     */
+    private function log($message, $level = 'info') {
+        // Always log to error_log for debugging
+        error_log(sprintf('[Develogic ImageMapPro] [%s] %s', strtoupper($level), $message));
+        
+        // Add to sync log
+        $log = get_option('develogic_sync_log', array());
+        
+        $log[] = array(
+            'time' => current_time('mysql'),
+            'level' => $level,
+            'message' => '[ImageMapPro] ' . $message,
+        );
+        
+        // Keep only last 50 entries
+        $log = array_slice($log, -50);
+        
+        update_option('develogic_sync_log', $log);
+    }
+    
+    /**
+     * Show admin notices
+     */
+    public function show_admin_notices() {
+        $notice = get_transient('develogic_imagemappro_update_notice');
+        
+        if ($notice) {
+            echo '<div class="notice notice-success is-dismissible">';
+            echo '<p>' . esc_html($notice) . '</p>';
+            echo '</div>';
+            
+            delete_transient('develogic_imagemappro_update_notice');
+        }
+    }
+    
+    /**
+     * Get status colors mapping
+     *
+     * @return array
+     */
+    public function get_status_colors() {
+        return $this->status_colors;
+    }
+    
+    /**
+     * Set status color
+     *
+     * @param string $status Status name
+     * @param string $color Hex color (with or without #)
+     */
+    public function set_status_color($status, $color) {
+        $this->status_colors[$status] = ltrim($color, '#');
+        
+        // Save to options
+        update_option('develogic_imagemappro_colors', $this->status_colors);
+    }
+    
+    /**
+     * Get building to shortcode mapping
+     *
+     * @return array
+     */
+    public function get_building_map() {
+        return $this->building_shortcode_map;
+    }
+    
+    /**
+     * Set building to shortcode mapping
+     *
+     * @param string $building Building name or ID
+     * @param string $shortcode Image Map Pro shortcode
+     */
+    public function set_building_map($building, $shortcode) {
+        $this->building_shortcode_map[$building] = $shortcode;
+        
+        // Save to options
+        update_option('develogic_imagemappro_building_map', $this->building_shortcode_map);
+    }
+    
+    /**
+     * Clear all mappings
+     */
+    public function clear_mappings() {
+        $this->building_shortcode_map = array();
+        delete_option('develogic_imagemappro_building_map');
+    }
+}
+
