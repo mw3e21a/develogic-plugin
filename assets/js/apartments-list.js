@@ -192,12 +192,7 @@
             // Floor filter
             if (selectedFloor !== 'all') {
                 const itemFloor = parseInt(item.getAttribute('data-floor-number')) || 0;
-                if (selectedFloor === '5') {
-                    // Floor V+
-                    shouldShow = shouldShow && itemFloor >= 5;
-                } else {
-                    shouldShow = shouldShow && itemFloor === parseInt(selectedFloor);
-                }
+                shouldShow = shouldShow && itemFloor === parseInt(selectedFloor);
             }
             
             // Area filter
@@ -618,7 +613,7 @@
         // Set status
         const statusEl = modal.querySelector('.status');
         if (data.statusClass === 'available') {
-            statusEl.innerHTML = '<span style="color: #00b341;">Dostępne</span> od ręki';
+            statusEl.innerHTML = '<span style="color: #00b341;">Dostępne</span>';
         } else if (data.statusClass === 'reserved') {
             statusEl.innerHTML = '<span style="color: #ff9500;">Rezerwacja</span>';
         } else if (data.statusClass === 'sold') {

@@ -105,7 +105,6 @@ if (!defined('ABSPATH')) {
                     <option value="2">Piętro II</option>
                     <option value="3">Piętro III</option>
                     <option value="4">Piętro IV</option>
-                    <option value="5">Piętro V+</option>
                 </select>
             </div>
         </div>
@@ -488,7 +487,7 @@ if (!defined('ABSPATH')) {
                     ?>">
                         <?php 
                         if ($status_class === 'available') {
-                            echo esc_html($local['status']) . '<br>od ręki';
+                            echo 'Dostępne';
                         } else {
                             echo esc_html($local['status']);
                         }
