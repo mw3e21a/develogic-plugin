@@ -4,8 +4,8 @@
  * Plugin URI: https://github.com/yourusername/develogic-wp-plugin
  * Description: Integracja z API Develogic - wyświetlanie ofert mieszkań, filtrowanie, sortowanie, galerie i więcej
  * Version: 2.2.0
- * Author: Your Name
- * Author URI: https://yourwebsite.com
+ * Author: JawneCenyMieszkan.pl
+ * Author URI: https://jawnecenymieszkań.pl
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: develogic
