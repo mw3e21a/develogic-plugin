@@ -17,8 +17,20 @@ if (!defined('ABSPATH')) {
 }
 ?>
 
-<div class="container">
-    <div class="header">
+<div class="develogic-apartments-container">
+    <!-- Loading Spinner -->
+    <div class="develogic-loading-overlay">
+        <div class="develogic-spinner">
+            <div class="develogic-spinner-ring"></div>
+            <div class="develogic-spinner-ring"></div>
+            <div class="develogic-spinner-ring"></div>
+            <div class="develogic-spinner-ring"></div>
+        </div>
+        <p class="develogic-loading-text">Ładowanie mieszkań...</p>
+    </div>
+
+    <div class="container">
+        <div class="header">
         <?php if ($atts['show_counters'] === 'true'): ?>
         <div class="stats">
             <?php if (isset($status_counts['Wolny'])): ?>
@@ -795,5 +807,6 @@ if (!defined('ABSPATH')) {
             </div>
         </div>
     </div>
-</div>
+    </div><!-- .container -->
+</div><!-- .develogic-apartments-container -->
 

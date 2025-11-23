@@ -61,6 +61,50 @@
             applyFilters();
             scrollToApartmentFromUrl();
         });
+        
+        // Hide loading spinner and show content
+        hideLoadingSpinner();
+    }
+    
+    // ===========================
+    // Loading Spinner
+    // ===========================
+    function hideLoadingSpinner() {
+        const loadingOverlay = document.querySelector('.develogic-loading-overlay');
+        const container = document.querySelector('.develogic-apartments-container');
+        
+        // Wait for images and styles to load
+        window.addEventListener('load', function() {
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('hidden');
+                // Remove from DOM after animation
+                setTimeout(function() {
+                    if (loadingOverlay.parentNode) {
+                        loadingOverlay.remove();
+                    }
+                }, 300);
+            }
+            
+            if (container) {
+                container.classList.add('loaded');
+            }
+        });
+        
+        // Fallback: hide after 2 seconds even if images aren't fully loaded
+        setTimeout(function() {
+            if (loadingOverlay && !loadingOverlay.classList.contains('hidden')) {
+                loadingOverlay.classList.add('hidden');
+                setTimeout(function() {
+                    if (loadingOverlay.parentNode) {
+                        loadingOverlay.remove();
+                    }
+                }, 300);
+            }
+            
+            if (container && !container.classList.contains('loaded')) {
+                container.classList.add('loaded');
+            }
+        }, 2000);
     }
     
     // ===========================

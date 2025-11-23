@@ -5,7 +5,7 @@
  * Description: Integracja z API Develogic - wyświetlanie ofert mieszkań, filtrowanie, sortowanie, galerie i więcej
  * Version: 2.2.0
  * Author: JawneCenyMieszkan.pl
- * Author URI: https://jawnecenymieszkań.pl
+ * Author URI: https://jawnecenymieszkan.pl
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: develogic

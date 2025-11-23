@@ -11,6 +11,105 @@
 }
 
 /* ===========================
+   Loading Spinner
+   =========================== */
+.develogic-apartments-container {
+    position: relative;
+    min-height: 400px;
+}
+
+.develogic-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    min-height: 400px;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.develogic-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.develogic-spinner {
+    position: relative;
+    width: 60px;
+    height: 60px;
+}
+
+.develogic-spinner-ring {
+    position: absolute;
+    border: 3px solid transparent;
+    border-top-color: #333;
+    border-radius: 50%;
+    animation: develogic-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.develogic-spinner-ring:nth-child(1) {
+    width: 60px;
+    height: 60px;
+    animation-delay: -0.45s;
+}
+
+.develogic-spinner-ring:nth-child(2) {
+    width: 48px;
+    height: 48px;
+    top: 6px;
+    left: 6px;
+    animation-delay: -0.3s;
+    border-top-color: #666;
+}
+
+.develogic-spinner-ring:nth-child(3) {
+    width: 36px;
+    height: 36px;
+    top: 12px;
+    left: 12px;
+    animation-delay: -0.15s;
+    border-top-color: #999;
+}
+
+.develogic-spinner-ring:nth-child(4) {
+    width: 24px;
+    height: 24px;
+    top: 18px;
+    left: 18px;
+    border-top-color: #ccc;
+}
+
+@keyframes develogic-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.develogic-loading-text {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+    font-weight: 500;
+}
+
+.develogic-apartments-container .container {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.develogic-apartments-container.loaded .container {
+    opacity: 1;
+}
+
+/* ===========================
    Apartment List Page
    =========================== */
 .container {
