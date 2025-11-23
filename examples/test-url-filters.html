@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test URL Filters - Develogic</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .controls {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .button-group {
+            margin: 15px 0;
+        }
+        .button-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .reset-btn {
+            background: #dc3545;
+        }
+        .reset-btn:hover {
+            background: #c82333;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            margin-bottom: 20px;
+        }
+        .current-url {
+            background: #fff;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .current-params {
+            background: #f9f9f9;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 4px;
+        }
+        .param {
+            padding: 5px 0;
+        }
+        .param strong {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Filtrowania przez URL</h1>
+    
+    <div class="info">
+        <strong>ℹ️ Instrukcja:</strong>
+        <p>Ta strona demonstruje jak działają filtry URL. Użyj przycisków poniżej aby zmienić URL bez przeładowania strony.</p>
+        <p><strong>Uwaga:</strong> Ta strona jest tylko demo. W prawdziwej implementacji WordPress, lista mieszkań zostanie automatycznie przefiltrowana.</p>
+    </div>
+
+    <div class="controls">
+        <div class="button-group">
+            <label>Piętro:</label>
+            <button onclick="setFloor(0)">Parter</button>
+            <button onclick="setFloor(1)">Piętro 1</button>
+            <button onclick="setFloor(2)">Piętro 2</button>
+            <button onclick="setFloor(3)">Piętro 3</button>
+            <button onclick="setFloor(4)">Piętro 4</button>
+        </div>
+
+        <div class="button-group">
+            <label>Pokoje:</label>
+            <button onclick="setRooms(1)">1 pokój</button>
+            <button onclick="setRooms(2)">2 pokoje</button>
+            <button onclick="setRooms(3)">3 pokoje</button>
+            <button onclick="setRooms(4)">4 pokoje</button>
+        </div>
+
+        <div class="button-group">
+            <label>Opcje dodatkowe:</label>
+            <button onclick="togglePromotion()">Promocja</button>
+            <button onclick="toggleWardrobe()">Z garderobą</button>
+            <button onclick="toggle2Bathrooms()">2 łazienki</button>
+        </div>
+
+        <div class="button-group">
+            <label>Kombinacje:</label>
+            <button onclick="set2RoomsWithPromo()">2 pokoje w promocji</button>
+            <button onclick="setFloor3WithWardrobe()">Piętro 3 z garderobą</button>
+        </div>
+
+        <div class="button-group">
+            <button class="reset-btn" onclick="resetFilters()">🔄 Reset wszystkich filtrów</button>
+        </div>
+    </div>
+
+    <h2>Aktualny URL:</h2>
+    <div class="current-url" id="currentUrl"></div>
+
+    <div class="current-params">
+        <h3>Aktywne parametry:</h3>
+        <div id="currentParams"></div>
+    </div>
+
+    <script>
+        // Twoja funkcja z przykładu
+        function setFloor(floor) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('pietro', floor);
+            history.pushState({}, '', url.toString());
+            updateDisplay();
+        }
+
+        function setRooms(rooms) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('pokoje', rooms);
+            history.pushState({}, '', url.toString());
+            updateDisplay();
+        }
+
+        function togglePromotion() {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('promocja')) {
+                url.searchParams.delete('promocja');
+            } else {
+                url.searchParams.set('promocja', '1');
+            }
+            history.pushState({}, '', url.toString());
+            updateDisplay();
+        }
+
+        function toggleWardrobe() {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('garderoba')) {
+                url.searchParams.delete('garderoba');
+            } else {
+                url.searchParams.set('garderoba', '1');
+            }
+            history.pushState({}, '', url.toString());
+            updateDisplay();
+        }
+
+        function toggle2Bathrooms() {
+            const url = new URL(window.location.href);
+            if (url.searchParams.has('2_lazienki')) {
+                url.searchParams.delete('2_lazienki');
+            } else {
+                url.searchParams.set('2_lazienki', '1');
+            }
+            history.pushState({}, '', url.toString());
+            updateDisplay();
+        }
+
+        function set2RoomsWithPromo() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('pokoje', '2');
+            url.searchParams.set('promocja', '1');
+            history.pushState({}, '', url.toString());
+            updateDisplay();
+        }
+
+        function setFloor3WithWardrobe() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('pietro', '3');
+            url.searchParams.set('garderoba', '1');
+            history.pushState({}, '', url.toString());
+            updateDisplay();
+        }
+
+        function resetFilters() {
+            const url = new URL(window.location.href);
+            // Usuń wszystkie parametry filtrów
+            const filterParams = ['pietro', 'pokoje', 'budynek', 'typ_lokalu', 
+                                  'metraz_od', 'metraz_do', 'cena_od', 'cena_do',
+                                  'promocja', '2_lazienki', 'garderoba'];
+            filterParams.forEach(param => url.searchParams.delete(param));
+            history.pushState({}, '', url.toString());
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const urlDisplay = document.getElementById('currentUrl');
+            urlDisplay.textContent = window.location.href;
+
+            const paramsDisplay = document.getElementById('currentParams');
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.toString() === '') {
+                paramsDisplay.innerHTML = '<p style="color: #999;">Brak aktywnych filtrów</p>';
+                return;
+            }
+
+            let html = '';
+            const paramNames = {
+                'pietro': 'Piętro',
+                'pokoje': 'Pokoje',
+                'budynek': 'Budynek',
+                'typ_lokalu': 'Typ lokalu',
+                'metraz_od': 'Metraż od',
+                'metraz_do': 'Metraż do',
+                'cena_od': 'Cena od',
+                'cena_do': 'Cena do',
+                'promocja': 'Promocja',
+                '2_lazienki': '2 łazienki',
+                'garderoba': 'Garderoba'
+            };
+
+            urlParams.forEach((value, key) => {
+                const name = paramNames[key] || key;
+                html += `<div class="param"><strong>${name}:</strong> ${value}</div>`;
+            });
+
+            paramsDisplay.innerHTML = html;
+        }
+
+        // Obsługa przycisków wstecz/dalej
+        window.addEventListener('popstate', updateDisplay);
+
+        // Inicjalizacja
+        updateDisplay();
+    </script>
+
+    <div style="margin-top: 50px; padding: 20px; background: #fffbea; border-left: 4px solid #ffc107;">
+        <h3>💡 W prawdziwej implementacji WordPress:</h3>
+        <ul>
+            <li>Po kliknięciu przycisku URL zostanie zmieniony (jak tutaj)</li>
+            <li>Plugin automatycznie wykryje zmianę URL</li>
+            <li>Lista mieszkań zostanie przefiltrowana zgodnie z parametrami</li>
+            <li>Nie nastąpi przeładowanie strony</li>
+            <li>Przyciski wstecz/dalej w przeglądarce będą działać</li>
+        </ul>
+    </div>
+</body>
+</html>
+
+
+

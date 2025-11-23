@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Przykłady linków z filtrami URL - Develogic</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+        }
+        .example {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .example h3 {
+            margin-top: 0;
+            color: #2980b9;
+        }
+        .example p {
+            margin: 10px 0;
+        }
+        .link {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin: 10px 0;
+            transition: background 0.3s;
+        }
+        .link:hover {
+            background: #2980b9;
+        }
+        .code {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .params {
+            background: #e8f4f8;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .category {
+            background: white;
+            padding: 30px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏠 Przykłady linków z filtrami URL</h1>
+    <p>Poniżej znajdziesz gotowe przykłady linków z różnymi kombinacjami filtrów. Zastąp <strong>TWOJA-DOMENA</strong> właściwym adresem.</p>
+
+    <div class="note">
+        <strong>💡 Wskazówka:</strong> Wszystkie linki można łączyć i modyfikować według własnych potrzeb. Parametry są rozdzielane znakiem <code>&</code>.
+    </div>
+
+    <div class="category">
+        <h2>📋 Podstawowe filtry</h2>
+
+        <div class="example">
+            <h3>Mieszkania na 3 piętrze</h3>
+            <div class="params">Parametr: <code>pietro=3</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pietro=3</div>
+            <p><strong>Zastosowanie:</strong> Dla klientów zainteresowanych konkretną kondygnacją</p>
+        </div>
+
+        <div class="example">
+            <h3>Mieszkania 2-pokojowe</h3>
+            <div class="params">Parametr: <code>pokoje=2</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pokoje=2</div>
+            <p><strong>Zastosowanie:</strong> Młode pary, single szukający małych mieszkań</p>
+        </div>
+
+        <div class="example">
+            <h3>Mieszkania 4-pokojowe</h3>
+            <div class="params">Parametr: <code>pokoje=4</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pokoje=4</div>
+            <p><strong>Zastosowanie:</strong> Rodziny z dziećmi</p>
+        </div>
+
+        <div class="example">
+            <h3>Mieszkania na parterze</h3>
+            <div class="params">Parametr: <code>pietro=0</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pietro=0</div>
+            <p><strong>Zastosowanie:</strong> Osoby starsze, rodziny z małymi dziećmi</p>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>💰 Filtry cenowe</h2>
+
+        <div class="example">
+            <h3>Mieszkania do 400 000 zł</h3>
+            <div class="params">Parametr: <code>cena_do=400000</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?cena_do=400000</div>
+            <p><strong>Zastosowanie:</strong> Klienci z ograniczonym budżetem</p>
+        </div>
+
+        <div class="example">
+            <h3>Mieszkania od 500 000 zł do 700 000 zł</h3>
+            <div class="params">Parametry: <code>cena_od=500000&cena_do=700000</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?cena_od=500000&cena_do=700000</div>
+            <p><strong>Zastosowanie:</strong> Klienci z określonym zakresem budżetu</p>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>📐 Filtry metrażu</h2>
+
+        <div class="example">
+            <h3>Mieszkania 40-60 m²</h3>
+            <div class="params">Parametry: <code>metraz_od=40&metraz_do=60</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?metraz_od=40&metraz_do=60</div>
+            <p><strong>Zastosowanie:</strong> Małe mieszkania dla par lub singli</p>
+        </div>
+
+        <div class="example">
+            <h3>Mieszkania powyżej 80 m²</h3>
+            <div class="params">Parametr: <code>metraz_od=80</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?metraz_od=80</div>
+            <p><strong>Zastosowanie:</strong> Duże rodziny, klienci premium</p>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>🎁 Promocje i dodatki</h2>
+
+        <div class="example">
+            <h3>Mieszkania w promocji</h3>
+            <div class="params">Parametr: <code>promocja=1</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?promocja=1</div>
+            <p><strong>Zastosowanie:</strong> Kampanie marketingowe, newslettery promocyjne</p>
+        </div>
+
+        <div class="example">
+            <h3>Mieszkania z 2 łazienkami</h3>
+            <div class="params">Parametr: <code>2_lazienki=1</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?2_lazienki=1</div>
+            <p><strong>Zastosowanie:</strong> Rodziny szukające większego komfortu</p>
+        </div>
+
+        <div class="example">
+            <h3>Mieszkania z garderobą</h3>
+            <div class="params">Parametr: <code>garderoba=1</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?garderoba=1</div>
+            <p><strong>Zastosowanie:</strong> Klienci premium, rodziny</p>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>🎯 Kampanie marketingowe</h2>
+
+        <div class="example">
+            <h3>Kampania Facebook: "Mieszkania 2-pokojowe w promocji"</h3>
+            <div class="params">Parametry: <code>pokoje=2&promocja=1</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pokoje=2&promocja=1</div>
+            <p><strong>UTM tracking:</strong></p>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pokoje=2&promocja=1&utm_source=facebook&utm_medium=social&utm_campaign=2pok_promo</div>
+        </div>
+
+        <div class="example">
+            <h3>Kampania Google Ads: "Mieszkania na parterze"</h3>
+            <div class="params">Parametr: <code>pietro=0</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pietro=0&utm_source=google&utm_medium=cpc&utm_campaign=parter</div>
+        </div>
+
+        <div class="example">
+            <h3>Newsletter: "Nowości do 450 000 zł"</h3>
+            <div class="params">Parametr: <code>cena_do=450000</code></div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?cena_do=450000&utm_source=newsletter&utm_medium=email&utm_campaign=nowosci_450k</div>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>🔥 Kombinacje zaawansowane</h2>
+
+        <div class="example">
+            <h3>Idealne dla młodej pary</h3>
+            <div class="params">2 pokoje, 40-60m², do 400k, z balkonem</div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pokoje=2&metraz_od=40&metraz_do=60&cena_do=400000</div>
+        </div>
+
+        <div class="example">
+            <h3>Premium dla rodziny</h3>
+            <div class="params">3-4 pokoje, powyżej 70m², z garderobą i 2 łazienkami</div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pokoje=3&metraz_od=70&garderoba=1&2_lazienki=1</div>
+        </div>
+
+        <div class="example">
+            <h3>Dla seniora</h3>
+            <div class="params">Parter lub piętro 1, 2 pokoje</div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pietro=0&pokoje=2</div>
+            <p>lub</p>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?pietro=1&pokoje=2</div>
+        </div>
+
+        <div class="example">
+            <h3>Okazja dnia</h3>
+            <div class="params">W promocji, 3 piętro, 3 pokoje</div>
+            <div class="code">https://TWOJA-DOMENA/mieszkania/?promocja=1&pietro=3&pokoje=3</div>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>📱 Użycie w komunikacji</h2>
+
+        <div class="example">
+            <h3>Email do klienta - szablon</h3>
+            <div class="code" style="background: white; color: #333; border: 1px solid #ddd;">
+Szanowny Panie/Pani,
+
+Zgodnie z Pana/Pani preferencjami przygotowałem listę mieszkań spełniających kryteria:
+- 3 pokoje
+- Piętro 2 lub 3
+- Powierzchnia 60-80 m²
+- Budżet do 550 000 zł
+
+Link do ofert:
+https://TWOJA-DOMENA/mieszkania/?pokoje=3&metraz_od=60&metraz_do=80&cena_do=550000
+
+Pozostaję do dyspozycji,
+Jan Kowalski
+Agent sprzedaży
+            </div>
+        </div>
+    </div>
+
+    <div class="category">
+        <h2>⚡ Dynamiczne filtrowanie (JavaScript API)</h2>
+        
+        <p>Wtyczka udostępnia globalną funkcję JavaScript do programatycznej zmiany filtrów <strong>bez przeładowania strony</strong>:</p>
+        
+        <div class="example">
+            <h3>Funkcja develogicUpdateFilters()</h3>
+            <div class="code" style="background: #2c3e50; color: #ecf0f1;">
+window.develogicUpdateFilters({
+    pietro: 3,
+    pokoje: 2,
+    promocja: 1
+});
+            </div>
+            <p><strong>Efekt:</strong> URL zostanie zaktualizowany i filtry zastosowane automatycznie bez przeładowania strony</p>
+        </div>
+
+        <div class="example">
+            <h3>Przykład: Przyciski szybkiego dostępu</h3>
+            <div class="code" style="background: white; color: #333; border: 1px solid #ddd;">
+&lt;button onclick="develogicUpdateFilters({ pietro: 3 })"&gt;
+    Piętro 3
+&lt;/button&gt;
+
+&lt;button onclick="develogicUpdateFilters({ pokoje: 2, promocja: 1 })"&gt;
+    2-pokojowe w promocji
+&lt;/button&gt;
+
+&lt;button onclick="develogicUpdateFilters({ metraz_od: 40, metraz_do: 60 })"&gt;
+    40-60 m²
+&lt;/button&gt;
+            </div>
+        </div>
+
+        <div class="example">
+            <h3>Przykład: Reset filtra</h3>
+            <div class="code" style="background: #2c3e50; color: #ecf0f1;">
+// Usuń filtr piętra
+window.develogicUpdateFilters({ pietro: null });
+
+// Lub ustaw na 'all'
+window.develogicUpdateFilters({ pietro: 'all' });
+            </div>
+        </div>
+
+        <div class="example">
+            <h3>Przykład: Integracja z własnym formularzem</h3>
+            <div class="code" style="background: #2c3e50; color: #ecf0f1;">
+document.getElementById('myForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    window.develogicUpdateFilters({
+        pokoje: document.getElementById('rooms').value,
+        pietro: document.getElementById('floor').value,
+        budynek: document.getElementById('building').value
+    });
+});
+            </div>
+        </div>
+
+        <div class="note">
+            <strong>💡 Wskazówka:</strong> Funkcja automatycznie aktualizuje URL w pasku przeglądarki (bez przeładowania) 
+            i aplikuje filtry. Użytkownicy mogą używać przycisków "wstecz" i "dalej" w przeglądarce!
+        </div>
+    </div>
+
+    <div class="note">
+        <strong>📖 Pełna dokumentacja:</strong> Zobacz plik <code>URL_FILTERS_USAGE.md</code> po więcej informacji o wszystkich dostępnych parametrach.
+    </div>
+
+    <div style="margin-top: 60px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #7f8c8d;">
+        <p>Develogic WordPress Plugin - URL Filters Feature</p>
+    </div>
+</body>
+</html>
+

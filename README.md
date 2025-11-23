@@ -319,6 +319,28 @@ Lub programowo:
 develogic()->cache_manager->clear_all_cache();
 ```
 
+## Filtrowanie przez URL
+
+Wtyczka umożliwia **predefiniowanie filtrów** mieszkań przez parametry URL. Dzięki temu można tworzyć bezpośrednie linki do konkretnych zestawów mieszkań.
+
+**Przykłady:**
+- Mieszkania na 3 piętrze: `?pietro=3`
+- 2-pokojowe w promocji: `?pokoje=2&promocja=1`
+- Zakres 40-60m², do 450k: `?metraz_od=40&metraz_do=60&cena_do=450000`
+
+**Dostępne parametry:**
+- `pokoje` - ilość pokoi (1, 2, 3, 4, 5, all)
+- `pietro` - piętro (-1, 0, 1, 2, 3, 4, all)
+- `budynek` - nazwa budynku
+- `typ_lokalu` - typ lokalu
+- `metraz_od`, `metraz_do` - zakres powierzchni
+- `cena_od`, `cena_do` - zakres ceny
+- `promocja`, `2_lazienki`, `garderoba` - opcje dodatkowe (1/true)
+- `mieszkanie` lub `m` - scroll i podświetlenie mieszkania (np. M18)
+
+**Pełna dokumentacja:** Zobacz [URL_FILTERS_USAGE.md](URL_FILTERS_USAGE.md)
+**Przykłady linków:** Zobacz [examples/url-filters-examples.html](examples/url-filters-examples.html)
+
 ## Funkcja "Obserwuj" (Favorites)
 
 Wtyczka przechowuje ulubione oferty w `localStorage` przeglądarki. Nie wymaga logowania użytkownika.

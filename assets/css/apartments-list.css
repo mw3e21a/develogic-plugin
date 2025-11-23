@@ -141,6 +141,17 @@
     min-width: 200px;
 }
 
+.filter-selects-wrapper {
+    display: flex;
+    gap: 20px;
+    flex: 1 1 auto;
+}
+
+.filter-selects-wrapper .filter-group {
+    flex: 1 1 auto;
+    min-width: 150px;
+}
+
 .filter-group.filter-extras {
     flex: 2 1 auto;
     min-width: 400px;
@@ -348,6 +359,28 @@
     background: #f9f9f9;
 }
 
+/* Highlight animation for apartment scroll-to */
+.apartment-item.apartment-highlight {
+    animation: highlightPulse 3s ease-in-out;
+    background: #fff3cd;
+    box-shadow: 0 0 0 3px #ffc107;
+}
+
+@keyframes highlightPulse {
+    0% {
+        background: #fff3cd;
+        box-shadow: 0 0 0 3px #ffc107;
+    }
+    50% {
+        background: #fffaeb;
+        box-shadow: 0 0 0 5px #ffc107;
+    }
+    100% {
+        background: white;
+        box-shadow: none;
+    }
+}
+
 .apartment-item[style*="display: none"] {
     display: none !important;
 }
@@ -388,7 +421,7 @@
 .apartment-details {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 1px;
 }
 
 .detail-row {
@@ -458,6 +491,13 @@
     margin-bottom: 4px;
 }
 
+.price-old {
+    font-size: 18px;
+    color: #999;
+    text-decoration: line-through;
+    margin-bottom: 4px;
+}
+
 .price-main {
     font-size: 24px;
     font-weight: 700;
@@ -465,10 +505,27 @@
     line-height: 1.2;
 }
 
+.apartment-item[data-has-promo="true"] .price-main {
+    color: #00b341;
+}
+
 .price-sqm {
     font-size: 14px;
     color: #666;
     margin-top: 2px;
+}
+
+.price-omnibus-label {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+    margin-bottom: 2px;
+}
+
+.price-omnibus-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
 }
 
 /* Promo badge for apartment list */
@@ -646,10 +703,10 @@
 
 .modal-close {
     position: absolute;
-    top: 40px;
-    right: 20px;
-    width: 60px;
-    height: 60px;
+    top: 20px;
+    right: 30px;
+    width: 40px;
+    height: 40px;
     background: transparent;
     border: none;
     cursor: pointer;
@@ -665,19 +722,19 @@
 }
 
 .modal-close svg {
-    width: 64px;
-    height: 64px;
+    width: 32px;
+    height: 32px;
     stroke: #000;
-    stroke-width: 1;
+    stroke-width: 2;
 }
 
 .modal-header {
-    padding: 50px 40px 20px;
+    padding: 30px 40px 15px;
     border-bottom: 1px solid #e5e5e5;
 }
 
 .modal-title {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 700;
     margin: 0;
 }
@@ -908,17 +965,17 @@
 
 /* Modal Details Section */
 .modal-details {
-    padding: 40px;
+    padding: 20px 40px 40px 40px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 20px;
 }
 
 .detail-header {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
     text-transform: capitalize;
 }
 
@@ -937,13 +994,12 @@
 .status {
     font-size: 16px;
     font-weight: 600;
-    margin-top: 8px;
 }
 
 .detail-specs {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
 }
 
 .spec-item {
@@ -963,9 +1019,23 @@
 }
 
 .detail-features {
-    font-size: 16px;
-    color: #1a1a1a;
-    line-height: 1.6;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.detail-feature-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 14px;
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    color: #374151;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1;
 }
 
 .detail-price {
@@ -988,10 +1058,31 @@
     line-height: 1.2;
 }
 
+.detail-price .price-main.promo-price {
+    color: #00b341;
+}
+
 .detail-price .price-per-m2 {
     font-size: 16px;
     color: #666;
     margin-top: 4px;
+}
+
+/* Omnibus price section */
+.detail-price-omnibus {
+    padding: 8px 0 16px 0;
+}
+
+.detail-price-omnibus .omnibus-label {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 6px;
+}
+
+.detail-price-omnibus .omnibus-value {
+    font-size: 20px;
+    font-weight: 600;
+    color: #666;
 }
 
 /* Promo badge for modal price section */
@@ -1145,7 +1236,7 @@
     justify-content: center;
     gap: 12px;
     margin-top: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 0;
     padding: 16px 24px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #ffffff;
@@ -1157,6 +1248,54 @@
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     position: relative;
     overflow: hidden;
+}
+
+/* Promo Banner Link Styles (full width like 3D tour) */
+.promo-banner-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 0;
+    margin-bottom: 16px;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 16px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(238, 90, 111, 0.4);
+    position: relative;
+    overflow: hidden;
+    animation: pulse-promo 2s ease-in-out infinite;
+}
+
+@keyframes pulse-promo {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 15px rgba(238, 90, 111, 0.4);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 6px 20px rgba(238, 90, 111, 0.6);
+    }
+}
+
+.promo-banner-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.promo-banner-link:hover::before {
+    left: 100%;
 }
 
 .tour-3d-link::before {
@@ -1207,6 +1346,37 @@
 
 .tour-3d-link:hover .tour-3d-arrow {
     transform: translateX(5px);
+}
+
+.promo-banner-link svg {
+    width: 24px;
+    height: 24px;
+}
+
+.promo-banner-link svg:first-child {
+    stroke: currentColor;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.promo-banner-text {
+    flex: 1;
+    text-align: center;
+}
+
+.promo-banner-icon {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    animation: rotate-star 4s linear infinite;
+}
+
+@keyframes rotate-star {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes pulse {
@@ -1708,6 +1878,17 @@
     }
     
     .filter-group.filter-extras {
+        min-width: 100%;
+    }
+    
+    .filter-selects-wrapper {
+        flex-direction: column;
+        gap: 16px;
+        width: 100%;
+    }
+    
+    .filter-selects-wrapper .filter-group {
+        width: 100%;
         min-width: 100%;
     }
     

@@ -7,6 +7,20 @@
 (function() {
     'use strict';
     
+    // Monitor URL changes made by pushState/replaceState
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    
+    history.pushState = function() {
+        originalPushState.apply(history, arguments);
+        window.dispatchEvent(new Event('urlchange'));
+    };
+    
+    history.replaceState = function() {
+        originalReplaceState.apply(history, arguments);
+        window.dispatchEvent(new Event('urlchange'));
+    };
+    
     // Wait for DOM
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
@@ -26,8 +40,27 @@
         updateFavoritesCount();
         checkSharedFavorites();
         
+        // Apply URL filters first
+        applyUrlFilters();
+        
         // Apply filters on page load to respect default localType selection
         applyFilters();
+        
+        // Scroll to specific apartment if specified in URL
+        scrollToApartmentFromUrl();
+        
+        // Listen for URL changes (browser back/forward)
+        window.addEventListener('popstate', function() {
+            applyUrlFilters();
+            applyFilters();
+        });
+        
+        // Listen for URL changes (pushState/replaceState)
+        window.addEventListener('urlchange', function() {
+            applyUrlFilters();
+            applyFilters();
+            scrollToApartmentFromUrl();
+        });
     }
     
     // ===========================
@@ -84,6 +117,198 @@
         
         // Re-append sorted items
         items.forEach(item => apartmentList.appendChild(item));
+    }
+    
+    // ===========================
+    // URL Filters functionality
+    // ===========================
+    
+    /**
+     * Scroll to specific apartment from URL parameter
+     */
+    function scrollToApartmentFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const apartmentNumber = urlParams.get('mieszkanie') || urlParams.get('m');
+        
+        if (!apartmentNumber) {
+            return;
+        }
+        
+        // Find apartment by number
+        const apartmentItems = document.querySelectorAll('.apartment-item');
+        let targetApartment = null;
+        
+        apartmentItems.forEach(item => {
+            const numberEl = item.querySelector('.apartment-number');
+            if (numberEl && numberEl.textContent.trim().toUpperCase() === apartmentNumber.toUpperCase()) {
+                targetApartment = item;
+            }
+        });
+        
+        if (!targetApartment) {
+            console.log('Apartment not found:', apartmentNumber);
+            return;
+        }
+        
+        // Check if apartment is visible (not filtered out)
+        if (targetApartment.style.display === 'none') {
+            console.log('Apartment is filtered out:', apartmentNumber);
+            return;
+        }
+        
+        // Scroll to apartment with smooth behavior
+        setTimeout(function() {
+            targetApartment.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            // Add highlight class
+            targetApartment.classList.add('apartment-highlight');
+            
+            // Remove highlight after 3 seconds
+            setTimeout(function() {
+                targetApartment.classList.remove('apartment-highlight');
+            }, 3000);
+        }, 500); // Delay to ensure filters are applied first
+    }
+    
+    /**
+     * Helper function to update URL params and apply filters
+     * Usage: updateUrlFilters({ pietro: 3, pokoje: 2 })
+     */
+    window.develogicUpdateFilters = function(params) {
+        const url = new URL(window.location.href);
+        
+        // Clear existing filter params or update them
+        Object.keys(params).forEach(key => {
+            if (params[key] === null || params[key] === '' || params[key] === 'all') {
+                url.searchParams.delete(key);
+            } else {
+                url.searchParams.set(key, params[key]);
+            }
+        });
+        
+        // Update URL without reload
+        window.history.pushState({}, '', url.toString());
+        
+        // Trigger filter application
+        applyUrlFilters();
+        applyFilters();
+    };
+    
+    /**
+     * Helper function to scroll to specific apartment
+     * Usage: scrollToApartment('M18')
+     */
+    window.develogicScrollToApartment = function(apartmentNumber) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('mieszkanie', apartmentNumber);
+        window.history.pushState({}, '', url.toString());
+        scrollToApartmentFromUrl();
+    };
+    
+    function applyUrlFilters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Rooms filter (pokoje)
+        if (urlParams.has('pokoje')) {
+            const rooms = urlParams.get('pokoje');
+            const roomChips = document.querySelectorAll('#roomsFilter .filter-chip');
+            roomChips.forEach(chip => {
+                chip.classList.toggle('active', chip.getAttribute('data-value') === rooms);
+            });
+        }
+        
+        // Floor filter (pietro)
+        if (urlParams.has('pietro')) {
+            const floor = urlParams.get('pietro');
+            const floorFilter = document.getElementById('floorFilter');
+            if (floorFilter) {
+                floorFilter.value = floor;
+            }
+        }
+        
+        // Building filter (budynek)
+        if (urlParams.has('budynek')) {
+            const building = urlParams.get('budynek');
+            const buildingFilter = document.getElementById('buildingFilter');
+            if (buildingFilter) {
+                buildingFilter.value = building;
+            }
+        }
+        
+        // Local type filter (typ_lokalu)
+        if (urlParams.has('typ_lokalu')) {
+            const localType = urlParams.get('typ_lokalu');
+            const localTypeFilter = document.getElementById('localTypeFilter');
+            if (localTypeFilter) {
+                localTypeFilter.value = localType;
+            }
+        }
+        
+        // Area min (metraz_od)
+        if (urlParams.has('metraz_od')) {
+            const areaMin = urlParams.get('metraz_od');
+            const areaMinInput = document.getElementById('areaMin');
+            if (areaMinInput) {
+                areaMinInput.value = areaMin;
+            }
+        }
+        
+        // Area max (metraz_do)
+        if (urlParams.has('metraz_do')) {
+            const areaMax = urlParams.get('metraz_do');
+            const areaMaxInput = document.getElementById('areaMax');
+            if (areaMaxInput) {
+                areaMaxInput.value = areaMax;
+            }
+        }
+        
+        // Price min (cena_od)
+        if (urlParams.has('cena_od')) {
+            const priceMin = urlParams.get('cena_od');
+            const priceMinInput = document.getElementById('priceMin');
+            if (priceMinInput) {
+                priceMinInput.value = priceMin;
+            }
+        }
+        
+        // Price max (cena_do)
+        if (urlParams.has('cena_do')) {
+            const priceMax = urlParams.get('cena_do');
+            const priceMaxInput = document.getElementById('priceMax');
+            if (priceMaxInput) {
+                priceMaxInput.value = priceMax;
+            }
+        }
+        
+        // Promo filter (promocja)
+        if (urlParams.has('promocja')) {
+            const promoValue = urlParams.get('promocja');
+            const promoFilter = document.getElementById('promoFilter');
+            if (promoFilter && (promoValue === '1' || promoValue === 'true')) {
+                promoFilter.checked = true;
+            }
+        }
+        
+        // Bathroom filter (2_lazienki)
+        if (urlParams.has('2_lazienki')) {
+            const bathValue = urlParams.get('2_lazienki');
+            const bathFilter = document.getElementById('bathFilter');
+            if (bathFilter && (bathValue === '1' || bathValue === 'true')) {
+                bathFilter.checked = true;
+            }
+        }
+        
+        // Wardrobe filter (garderoba)
+        if (urlParams.has('garderoba')) {
+            const wardrobeValue = urlParams.get('garderoba');
+            const wardrobeFilter = document.getElementById('wardrobeFilter');
+            if (wardrobeFilter && (wardrobeValue === '1' || wardrobeValue === 'true')) {
+                wardrobeFilter.checked = true;
+            }
+        }
     }
     
     // ===========================
@@ -634,33 +859,59 @@
         addSpecRow(detailSpecs, 'Powierzchnia', formatArea(data.area));
         addSpecRow(detailSpecs, 'Ilość pokoi', data.rooms);
         
-        // Add omnibus price if available
-        if (data.omnibusPriceGross && data.omnibusPriceGross > 0) {
-            const omnibusPriceText = formatPrice(data.omnibusPriceGross);
-            if (data.omnibusPriceGrossm2 && data.omnibusPriceGrossm2 > 0) {
-                const omnibusPriceM2Text = formatPriceM2(data.omnibusPriceGrossm2);
-                addSpecRow(detailSpecs, 'Cena omnibus', omnibusPriceText + ' (' + omnibusPriceM2Text + ' zł/m²)');
+        // Set features - include plannedDate in tags if available
+        const featuresEl = modal.querySelector('.detail-features');
+        featuresEl.innerHTML = '';
+        
+        const allTags = [];
+        
+        if (data.tags && data.tags.length > 0) {
+            allTags.push(...data.tags);
+        }
+        
+        if (data.plannedDate) {
+            const plannedDateText = 'Planowane oddanie: ' + formatDate(data.plannedDate);
+            allTags.push(plannedDateText);
+        }
+        
+        // Create tag elements
+        allTags.forEach(tag => {
+            const tagEl = document.createElement('span');
+            tagEl.className = 'detail-feature-tag';
+            tagEl.textContent = tag;
+            featuresEl.appendChild(tagEl);
+        });
+        
+        // Set price with old price if promo
+        const priceMain = modal.querySelector('.detail-price .price-main');
+        const pricePerM2 = modal.querySelector('.detail-price .price-per-m2');
+        
+        if (data.hasPromo && data.oldPriceGross) {
+            // Show old price as strikethrough before main price
+            priceMain.innerHTML = '<span style="font-size: 24px; color: #999; text-decoration: line-through; display: block; margin-bottom: 8px;">' + formatPrice(data.oldPriceGross) + '</span>' + formatPrice(data.priceGross);
+            priceMain.classList.add('promo-price');
+        } else {
+            priceMain.textContent = formatPrice(data.priceGross);
+            priceMain.classList.remove('promo-price');
+        }
+        
+        pricePerM2.textContent = '(' + formatPriceM2(data.priceM2) + ' zł/m²)';
+        
+        // Set omnibus price if available
+        const omnibusContainer = modal.querySelector('.detail-price-omnibus');
+        if (omnibusContainer) {
+            if (data.hasPromo && data.omnibusPriceGross && data.omnibusPriceGross > 0) {
+                omnibusContainer.querySelector('.omnibus-value').textContent = formatPrice(data.omnibusPriceGross);
+                omnibusContainer.style.display = 'block';
             } else {
-                addSpecRow(detailSpecs, 'Cena omnibus', omnibusPriceText);
+                omnibusContainer.style.display = 'none';
             }
         }
         
-        // Set features
-        const featuresEl = modal.querySelector('.detail-features');
-        if (data.tags && data.tags.length > 0) {
-            featuresEl.textContent = data.tags.join(', ');
-        } else {
-            featuresEl.textContent = '';
-        }
-        
-        // Set price
-        modal.querySelector('.detail-price .price-main').textContent = formatPrice(data.priceGross);
-        modal.querySelector('.detail-price .price-per-m2').textContent = '(' + formatPriceM2(data.priceM2) + ' zł/m²)';
-        
-        // Show/hide promo badge in price section
-        const promoBadgePrice = modal.querySelector('.detail-price .promo-badge');
-        if (promoBadgePrice) {
-            promoBadgePrice.style.display = data.hasPromo ? 'inline-flex' : 'none';
+        // Show/hide promo banner (full width)
+        const promoBanner = modal.querySelector('.promo-banner-link');
+        if (promoBanner) {
+            promoBanner.style.display = data.hasPromo ? 'flex' : 'none';
         }
         
         // Show/hide promo badge in gallery
@@ -669,23 +920,16 @@
             promoBadgeGallery.style.display = data.hasPromo ? 'inline-flex' : 'none';
         }
         
-        // Set info box
-        const infoBox = modal.querySelector('.info-box');
-        if (data.plannedDate) {
-            const infoText = 'Planowane oddanie budynku - ' + formatDate(data.plannedDate);
-            modal.querySelector('.info-text').textContent = infoText;
-            infoBox.style.display = 'block';
-        } else {
-            infoBox.style.display = 'none';
-        }
-        
         // Set download link
         const downloadLink = modal.querySelector('.download-link');
+        const infoBox = modal.querySelector('.info-box');
         if (data.pdfLink) {
             downloadLink.href = data.pdfLink;
             downloadLink.style.display = 'flex';
+            if (infoBox) infoBox.style.display = 'block';
         } else {
             downloadLink.style.display = 'none';
+            if (infoBox) infoBox.style.display = 'none';
         }
         
         // Set 3D tour link
@@ -1109,8 +1353,8 @@
     function formatDate(dateString) {
         if (!dateString) return '';
         const date = new Date(dateString);
-        const months = ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 
-                       'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'];
+        const months = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 
+                       'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień'];
         return months[date.getMonth()] + ' ' + date.getFullYear();
     }
 

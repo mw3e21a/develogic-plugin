@@ -52,60 +52,62 @@ if (!defined('ABSPATH')) {
                 </div>
             </div>
             
-            <div class="filter-group">
-                <label class="filter-label">Typ lokalu:</label>
-                <select class="filter-select" id="localTypeFilter">
-                    <?php
-                    // Get unique local types
-                    $local_types_list = array();
-                    foreach ($locals as $local) {
-                        if (!empty($local['localType']) && !in_array($local['localType'], $local_types_list)) {
-                            $local_types_list[] = $local['localType'];
+            <div class="filter-selects-wrapper">
+                <div class="filter-group filter-group-local-type">
+                    <label class="filter-label">Typ lokalu:</label>
+                    <select class="filter-select" id="localTypeFilter">
+                        <?php
+                        // Get unique local types
+                        $local_types_list = array();
+                        foreach ($locals as $local) {
+                            if (!empty($local['localType']) && !in_array($local['localType'], $local_types_list)) {
+                                $local_types_list[] = $local['localType'];
+                            }
                         }
-                    }
-                    sort($local_types_list);
-                    // Set default to "Lokal mieszkalny" if it exists
-                    $default_type = in_array('Lokal mieszkalny', $local_types_list) ? 'Lokal mieszkalny' : 'all';
-                    echo '<option value="all"' . ($default_type === 'all' ? ' selected' : '') . '>Wszystkie typy</option>';
-                    foreach ($local_types_list as $local_type) {
-                        $is_selected = ($local_type === $default_type) ? ' selected' : '';
-                        echo '<option value="' . esc_attr($local_type) . '"' . $is_selected . '>' . esc_html($local_type) . '</option>';
-                    }
-                    ?>
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label class="filter-label">Budynek:</label>
-                <select class="filter-select" id="buildingFilter">
-                    <option value="all">Wszystkie budynki</option>
-                    <?php
-                    // Get unique buildings
-                    $buildings_list = array();
-                    foreach ($locals as $local) {
-                        if (!empty($local['building']) && !in_array($local['building'], $buildings_list)) {
-                            $buildings_list[] = $local['building'];
+                        sort($local_types_list);
+                        // Set default to "Lokal mieszkalny" if it exists
+                        $default_type = in_array('Lokal mieszkalny', $local_types_list) ? 'Lokal mieszkalny' : 'all';
+                        echo '<option value="all"' . ($default_type === 'all' ? ' selected' : '') . '>Wszystkie typy</option>';
+                        foreach ($local_types_list as $local_type) {
+                            $is_selected = ($local_type === $default_type) ? ' selected' : '';
+                            echo '<option value="' . esc_attr($local_type) . '"' . $is_selected . '>' . esc_html($local_type) . '</option>';
                         }
-                    }
-                    sort($buildings_list);
-                    foreach ($buildings_list as $building) {
-                        echo '<option value="' . esc_attr($building) . '">' . esc_html($building) . '</option>';
-                    }
-                    ?>
-                </select>
-            </div>
-            
-            <div class="filter-group">
-                <label class="filter-label">Piętro:</label>
-                <select class="filter-select" id="floorFilter">
-                    <option value="all">Wszystkie piętra</option>
-                    <option value="-1">Piwnica</option>
-                    <option value="0">Parter</option>
-                    <option value="1">Piętro I</option>
-                    <option value="2">Piętro II</option>
-                    <option value="3">Piętro III</option>
-                    <option value="4">Piętro IV</option>
-                </select>
+                        ?>
+                    </select>
+                </div>
+                
+                <div class="filter-group filter-group-building">
+                    <label class="filter-label">Budynek:</label>
+                    <select class="filter-select" id="buildingFilter">
+                        <option value="all">Wszystkie budynki</option>
+                        <?php
+                        // Get unique buildings
+                        $buildings_list = array();
+                        foreach ($locals as $local) {
+                            if (!empty($local['building']) && !in_array($local['building'], $buildings_list)) {
+                                $buildings_list[] = $local['building'];
+                            }
+                        }
+                        sort($buildings_list);
+                        foreach ($buildings_list as $building) {
+                            echo '<option value="' . esc_attr($building) . '">' . esc_html($building) . '</option>';
+                        }
+                        ?>
+                    </select>
+                </div>
+                
+                <div class="filter-group filter-group-floor">
+                    <label class="filter-label">Piętro:</label>
+                    <select class="filter-select" id="floorFilter">
+                        <option value="all">Wszystkie piętra</option>
+                        <option value="-1">Piwnica</option>
+                        <option value="0">Parter</option>
+                        <option value="1">Piętro I</option>
+                        <option value="2">Piętro II</option>
+                        <option value="3">Piętro III</option>
+                        <option value="4">Piętro IV</option>
+                    </select>
+                </div>
             </div>
         </div>
         
@@ -281,6 +283,30 @@ if (!defined('ABSPATH')) {
                 $price_m2 = isset($local[$price_m2_source]) ? $local[$price_m2_source] : $local['priceGrossm2'];
                 $developer_name = develogic()->get_setting('developer_name', get_bloginfo('name'));
                 
+                // Determine which price to use (packagePriceGross or packagePromoPriceGross)
+                $package_price = isset($local['packagePriceGross']) ? $local['packagePriceGross'] : $local['priceGross'];
+                $package_promo_price = isset($local['packagePromoPriceGross']) ? $local['packagePromoPriceGross'] : null;
+                
+                // Check if there's a promotion (promo price exists and is lower than package price)
+                $has_package_promo = false;
+                $display_price = $package_price;
+                $old_price = null;
+                
+                if ($package_promo_price && $package_promo_price < $package_price) {
+                    $has_package_promo = true;
+                    $display_price = $package_promo_price;
+                    $old_price = $package_price;
+                }
+                
+                // For price_m2, use corresponding package price
+                if ($has_package_promo && isset($local['packagePromoPriceGrossm2'])) {
+                    $price_m2 = $local['packagePromoPriceGrossm2'];
+                } elseif (isset($local['packagePriceGrossm2'])) {
+                    $price_m2 = $local['packagePriceGrossm2'];
+                } else {
+                    $price_m2 = isset($local[$price_m2_source]) ? $local[$price_m2_source] : $local['priceGrossm2'];
+                }
+                
                 // PDF link
                 $pdf_link = '';
                 $pdf_source = develogic()->get_setting('pdf_source', 'off');
@@ -305,7 +331,7 @@ if (!defined('ABSPATH')) {
                 $floor_sort = ($floor_value == -1) ? 999 : str_pad(max(0, $floor_value), 3, '0', STR_PAD_LEFT);
                 $floor_display = Develogic_Data_Formatter::format_floor($local['floor']);
                 $floor_padded = $floor_sort;
-                $price_padded = str_pad($local['priceGross'], 8, '0', STR_PAD_LEFT);
+                $price_padded = str_pad($display_price, 8, '0', STR_PAD_LEFT);
                 $price_m2_padded = str_pad($price_m2, 8, '0', STR_PAD_LEFT);
                 $area_padded = str_pad(str_replace(array('.', ','), '', number_format($local['area'], 2, '.', '')), 8, '0', STR_PAD_LEFT);
                 
@@ -382,13 +408,14 @@ if (!defined('ABSPATH')) {
                     'area' => $local['area'],
                     'rooms' => $local['rooms'],
                     'tags' => $tags,
-                    'priceGross' => $local['priceGross'],
+                    'priceGross' => $display_price,
+                    'oldPriceGross' => $old_price,
                     'priceM2' => $price_m2,
                     'omnibusPriceGross' => isset($local['omnibusPriceGross']) ? $local['omnibusPriceGross'] : 0,
                     'omnibusPriceGrossm2' => isset($local['omnibusPriceGrossm2']) ? $local['omnibusPriceGrossm2'] : 0,
                     'pdfLink' => $pdf_link,
                     'plannedDate' => isset($local['plannedDateOfFinishing']) ? $local['plannedDateOfFinishing'] : '',
-                    'hasPromo' => $has_promo,
+                    'hasPromo' => $has_package_promo,
                     'projections' => array(),
                     'tour3dUrl' => '' // Will be set below
                 );
@@ -470,9 +497,9 @@ if (!defined('ABSPATH')) {
                  data-local-type="<?php echo esc_attr(isset($local['localType']) ? $local['localType'] : ''); ?>"
                  data-floor-number="<?php echo esc_attr($floor_value); ?>"
                  data-area-value="<?php echo esc_attr($local['area']); ?>"
-                 data-price-value="<?php echo esc_attr($local['priceGross']); ?>"
+                 data-price-value="<?php echo esc_attr($display_price); ?>"
                  data-rooms-value="<?php echo esc_attr($local['rooms']); ?>"
-                 data-has-promo="<?php echo (!empty($local['maxDiscountPercent']) && $local['maxDiscountPercent'] > 0) ? 'true' : 'false'; ?>"
+                 data-has-promo="<?php echo $has_package_promo ? 'true' : 'false'; ?>"
                  data-attributes="<?php echo esc_attr(json_encode($all_attributes)); ?>"
                  data-modal='<?php echo esc_attr(json_encode($modal_data)); ?>'>
                 <div class="apartment-info">
@@ -538,9 +565,16 @@ if (!defined('ABSPATH')) {
 
                 <div class="apartment-price">
                     <div class="price-label">Cena</div>
-                    <div class="price-main"><?php echo number_format($local['priceGross'], 0, ',', ' '); ?> zł</div>
+                    <?php if ($has_package_promo && $old_price): ?>
+                        <div class="price-old"><?php echo number_format($old_price, 0, ',', ' '); ?> zł</div>
+                    <?php endif; ?>
+                    <div class="price-main"><?php echo number_format($display_price, 0, ',', ' '); ?> zł</div>
                     <div class="price-sqm">(<?php echo number_format($price_m2, 2, ',', ' '); ?> zł/m²)</div>
-                    <?php if ($has_promo): ?>
+                    <?php if ($has_package_promo && !empty($local['omnibusPriceGross']) && $local['omnibusPriceGross'] > 0): ?>
+                        <div class="price-omnibus-label">Najniższa cena z ostatnich 30 dni</div>
+                        <div class="price-omnibus-value"><?php echo number_format($local['omnibusPriceGross'], 0, ',', ' '); ?> zł</div>
+                    <?php endif; ?>
+                    <?php if ($has_package_promo): ?>
                         <div class="promo-badge">Promocja</div>
                     <?php endif; ?>
                 </div>
@@ -664,13 +698,30 @@ if (!defined('ABSPATH')) {
                     </svg>
                 </a>
 
+                <!-- Promo Banner (full width like 3D tour) -->
+                <div class="promo-banner-link" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                    <span class="promo-banner-text">Promocja</span>
+                    <svg class="promo-banner-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                </div>
+
                 <div class="detail-features"></div>
 
                 <div class="detail-price">
                     <div class="price-label">Cena</div>
                     <div class="price-main"></div>
                     <div class="price-per-m2"></div>
-                    <div class="promo-badge" style="display: none;">Promocja</div>
+                </div>
+
+                <!-- Omnibus price section -->
+                <div class="detail-price-omnibus" style="display: none;">
+                    <div class="omnibus-label">Najniższa cena z ostatnich 30 dni</div>
+                    <div class="omnibus-value"></div>
                 </div>
 
                 <!-- Price history section -->
@@ -692,7 +743,6 @@ if (!defined('ABSPATH')) {
                 </div>
 
                 <div class="info-box" style="display: none;">
-                    <div class="info-text"></div>
                     <a href="#" class="download-link" style="display: none;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
