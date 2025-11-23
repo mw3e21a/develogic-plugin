@@ -43,12 +43,15 @@ if (!defined('ABSPATH')) {
             <div class="filter-group">
                 <label class="filter-label">Ilość pokoi:</label>
                 <div class="filter-chips" id="roomsFilter">
-                    <button class="filter-chip active" data-value="all">Wszystkie</button>
-                    <button class="filter-chip" data-value="1">1</button>
-                    <button class="filter-chip" data-value="2">2</button>
-                    <button class="filter-chip" data-value="3">3</button>
-                    <button class="filter-chip" data-value="4">4</button>
-                    <button class="filter-chip" data-value="5">5+</button>
+                    <?php
+                    $default_rooms = !empty($atts['rooms']) ? $atts['rooms'] : 'all';
+                    ?>
+                    <button class="filter-chip <?php echo ($default_rooms === 'all') ? 'active' : ''; ?>" data-value="all">Wszystkie</button>
+                    <button class="filter-chip <?php echo ($default_rooms === '1') ? 'active' : ''; ?>" data-value="1">1</button>
+                    <button class="filter-chip <?php echo ($default_rooms === '2') ? 'active' : ''; ?>" data-value="2">2</button>
+                    <button class="filter-chip <?php echo ($default_rooms === '3') ? 'active' : ''; ?>" data-value="3">3</button>
+                    <button class="filter-chip <?php echo ($default_rooms === '4') ? 'active' : ''; ?>" data-value="4">4</button>
+                    <button class="filter-chip <?php echo ($default_rooms === '5') ? 'active' : ''; ?>" data-value="5">5+</button>
                 </div>
             </div>
             
@@ -79,7 +82,27 @@ if (!defined('ABSPATH')) {
                 <div class="filter-group filter-group-building">
                     <label class="filter-label">Budynek:</label>
                     <select class="filter-select" id="buildingFilter">
-                        <option value="all">Wszystkie budynki</option>
+                        <?php
+                        // Get default building from shortcode
+                        $default_building = '';
+                        if (!empty($atts['building'])) {
+                            // Use building name directly from shortcode (preferred)
+                            // Only set default if it's a single building (no comma)
+                            if (strpos($atts['building'], ',') === false) {
+                                $default_building = trim($atts['building']);
+                            }
+                            // For multiple buildings, leave "Wszystkie budynki" selected
+                        } elseif (!empty($atts['building_id'])) {
+                            // Legacy support - get building name from ID
+                            foreach ($buildings as $building) {
+                                if ($building['id'] == $atts['building_id']) {
+                                    $default_building = $building['name'];
+                                    break;
+                                }
+                            }
+                        }
+                        ?>
+                        <option value="all" <?php echo empty($default_building) ? 'selected' : ''; ?>>Wszystkie budynki</option>
                         <?php
                         // Get unique buildings
                         $buildings_list = array();
@@ -90,7 +113,8 @@ if (!defined('ABSPATH')) {
                         }
                         sort($buildings_list);
                         foreach ($buildings_list as $building) {
-                            echo '<option value="' . esc_attr($building) . '">' . esc_html($building) . '</option>';
+                            $is_selected = ($building === $default_building) ? ' selected' : '';
+                            echo '<option value="' . esc_attr($building) . '"' . $is_selected . '>' . esc_html($building) . '</option>';
                         }
                         ?>
                     </select>
@@ -99,13 +123,14 @@ if (!defined('ABSPATH')) {
                 <div class="filter-group filter-group-floor">
                     <label class="filter-label">Piętro:</label>
                     <select class="filter-select" id="floorFilter">
-                        <option value="all">Wszystkie piętra</option>
-                        <option value="-1">Piwnica</option>
-                        <option value="0">Parter</option>
-                        <option value="1">Piętro I</option>
-                        <option value="2">Piętro II</option>
-                        <option value="3">Piętro III</option>
-                        <option value="4">Piętro IV</option>
+                        <?php $default_floor = isset($atts['floor']) && $atts['floor'] !== '' ? $atts['floor'] : 'all'; ?>
+                        <option value="all" <?php echo ($default_floor === 'all') ? 'selected' : ''; ?>>Wszystkie piętra</option>
+                        <option value="-1" <?php echo ($default_floor === '-1') ? 'selected' : ''; ?>>Piwnica</option>
+                        <option value="0" <?php echo ($default_floor === '0') ? 'selected' : ''; ?>>Parter</option>
+                        <option value="1" <?php echo ($default_floor === '1') ? 'selected' : ''; ?>>Piętro I</option>
+                        <option value="2" <?php echo ($default_floor === '2') ? 'selected' : ''; ?>>Piętro II</option>
+                        <option value="3" <?php echo ($default_floor === '3') ? 'selected' : ''; ?>>Piętro III</option>
+                        <option value="4" <?php echo ($default_floor === '4') ? 'selected' : ''; ?>>Piętro IV</option>
                     </select>
                 </div>
             </div>
@@ -115,18 +140,18 @@ if (!defined('ABSPATH')) {
             <div class="filter-group">
                 <label class="filter-label">Metraż (m²):</label>
                 <div class="filter-range">
-                    <input type="number" class="filter-input" id="areaMin" placeholder="od" step="1" min="0">
+                    <input type="number" class="filter-input" id="areaMin" placeholder="od" step="1" min="0" value="<?php echo !empty($atts['min_area']) ? esc_attr($atts['min_area']) : ''; ?>">
                     <span class="filter-separator">-</span>
-                    <input type="number" class="filter-input" id="areaMax" placeholder="do" step="1" min="0">
+                    <input type="number" class="filter-input" id="areaMax" placeholder="do" step="1" min="0" value="<?php echo !empty($atts['max_area']) ? esc_attr($atts['max_area']) : ''; ?>">
                 </div>
             </div>
             
             <div class="filter-group">
                 <label class="filter-label">Cena (zł):</label>
                 <div class="filter-range">
-                    <input type="number" class="filter-input" id="priceMin" placeholder="od" step="10000" min="0">
+                    <input type="number" class="filter-input" id="priceMin" placeholder="od" step="10000" min="0" value="<?php echo !empty($atts['min_price_gross']) ? esc_attr($atts['min_price_gross']) : ''; ?>">
                     <span class="filter-separator">-</span>
-                    <input type="number" class="filter-input" id="priceMax" placeholder="do" step="10000" min="0">
+                    <input type="number" class="filter-input" id="priceMax" placeholder="do" step="10000" min="0" value="<?php echo !empty($atts['max_price_gross']) ? esc_attr($atts['max_price_gross']) : ''; ?>">
                 </div>
             </div>
             

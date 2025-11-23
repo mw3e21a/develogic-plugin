@@ -43,6 +43,19 @@ class Develogic_Filter_Sort {
                 return false;
             }
             
+            // Building name
+            if (!empty($filters['building'])) {
+                if (is_array($filters['building'])) {
+                    if (!in_array($local['building'], $filters['building'])) {
+                        return false;
+                    }
+                } else {
+                    if ($local['building'] != $filters['building']) {
+                        return false;
+                    }
+                }
+            }
+            
             // Status
             if (!empty($filters['status'])) {
                 $status_filter = is_array($filters['status']) ? $filters['status'] : array($filters['status']);

@@ -49,6 +49,62 @@ Wyświetl tylko oferty z określonego budynku.
 
 ---
 
+### 2a. Nowy layout - Lista mieszkań z domyślnymi filtrami
+
+Wyświetl listę mieszkań z predefiniowanymi filtrami (np. tylko 3-pokojowe na 2 piętrze).
+
+**Shortcode:**
+```
+[develogic_apartments_list 
+    building="H"
+    rooms="3"
+    floor="2"
+    min_area="60"
+    max_area="80"
+    title="Mieszkania 3-pokojowe na II piętrze w budynku H"]
+```
+
+**Parametry filtrowania:**
+- `building` - nazwa budynku (np. "H", "G") lub wiele budynków "G,H"
+- `rooms` - domyślna liczba pokoi (1-5)
+- `floor` - domyślne piętro (-1 = piwnica, 0 = parter, 1-4 = piętra)
+- `min_area` / `max_area` - zakres metrażu w m²
+- `min_price_gross` / `max_price_gross` - zakres ceny brutto
+- `status` - domyślny status (np. "Wolny")
+
+**Więcej przykładów:**
+
+```
+# Tylko mieszkania w budynku H
+[develogic_apartments_list building="H" title="Budynek H"]
+
+# Mieszkania w budynkach G i H
+[develogic_apartments_list building="G,H" title="Budynki G i H"]
+
+# Tylko mieszkania na parterze
+[develogic_apartments_list floor="0" title="Mieszkania na parterze"]
+
+# 2-pokojowe do 350 tys.
+[develogic_apartments_list rooms="2" max_price_gross="350000" title="Mieszkania dla młodych"]
+
+# Większe mieszkania w budynku H (powyżej 80m²)
+[develogic_apartments_list building="H" min_area="80" rooms="4" title="Apartamenty premium w budynku H"]
+```
+
+**WAŻNE:** Parametry shortcode **tylko ustawiają domyślne wartości** w filtrach. Użytkownik może je swobodnie zmieniać i przeglądać wszystkie mieszkania. Dane NIE są filtrowane po stronie serwera (oprócz `status`).
+
+**Przykład:**
+```
+[develogic_apartments_list building="H" floor="0"]
+```
+- Po załadowaniu: widoczne mieszkania z budynku H, piętro 0
+- Użytkownik zmienia piętro na "2": widoczne mieszkania z budynku H, piętro 2 ✅
+- Użytkownik zmienia budynek na "G": widoczne mieszkania z budynku G, piętro 2 ✅
+
+Pełna dokumentacja: [CHANGELOG_DEFAULT_FILTERS.md](CHANGELOG_DEFAULT_FILTERS.md)
+
+---
+
 ### 3. Strona z filtrem i listą ofert
 
 Połączenie panelu filtrów z listą ofert.

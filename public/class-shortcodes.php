@@ -96,7 +96,6 @@ class Develogic_Shortcodes {
             'locals' => $locals,
             'buildings' => $buildings,
             'status_counts' => $status_counts,
-            'api_filters' => $api_filters,
         ));
         return ob_get_clean();
     }
@@ -109,6 +108,7 @@ class Develogic_Shortcodes {
             'investment_id' => '',
             'local_type_id' => '',
             'building_id' => '',
+            'building' => '',
             'title' => '',
             'show_counters' => 'true',
             'show_print' => develogic()->get_setting('show_print', true),
@@ -116,6 +116,13 @@ class Develogic_Shortcodes {
             'sort_by' => develogic()->get_setting('default_sort_by', 'priceGrossm2'),
             'sort_dir' => develogic()->get_setting('default_sort_dir', 'asc'),
             'gallery' => 'true',
+            'rooms' => '',
+            'floor' => '',
+            'min_area' => '',
+            'max_area' => '',
+            'min_price_gross' => '',
+            'max_price_gross' => '',
+            'status' => '',
         ), $atts, 'develogic_apartments_list');
         
         // Enqueue assets
@@ -145,18 +152,26 @@ class Develogic_Shortcodes {
         // Get buildings
         $buildings = Develogic_Filter_Sort::get_buildings($locals);
         
-        // Apply building filter if specified in shortcode (overrides settings)
-        if (!empty($atts['building_id'])) {
-            $locals = Develogic_Filter_Sort::filter_locals($locals, array(
-                'building_id' => absint($atts['building_id'])
-            ));
+        // Only apply hard filters from settings (status and building_id if explicitly set for data limiting)
+        $filter_criteria = array();
+        
+        // Apply visible statuses filter (this is always a hard filter)
+        if (!empty($atts['status'])) {
+            // Custom status from shortcode
+            $filter_criteria['status'] = is_array($atts['status']) ? $atts['status'] : array($atts['status']);
+        } else {
+            // Default visible statuses from settings
+            $visible_statuses = develogic()->get_setting('visible_statuses', array('Wolny', 'Rezerwacja'));
+            $filter_criteria['status'] = $visible_statuses;
         }
         
-        // Apply visible statuses filter
-        $visible_statuses = develogic()->get_setting('visible_statuses', array('Wolny', 'Rezerwacja'));
-        $locals = Develogic_Filter_Sort::filter_locals($locals, array(
-            'status' => $visible_statuses
-        ));
+        // Apply hard filters (only if explicitly needed for data limiting)
+        if (!empty($filter_criteria)) {
+            $locals = Develogic_Filter_Sort::filter_locals($locals, $filter_criteria);
+        }
+        
+        // Note: Other parameters (building, rooms, floor, area, price) are only used
+        // for setting default UI values in the template, not for filtering data
         
         // Sort
         $locals = Develogic_Filter_Sort::sort_locals($locals, $atts['sort_by'], $atts['sort_dir']);
