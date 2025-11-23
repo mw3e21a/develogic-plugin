@@ -10,6 +10,13 @@
 
 ---
 
+## 📚 Dodatkowa dokumentacja
+
+- **[Scroll do mieszkania po kliknięciu](IMAGE_MAP_PRO_SCROLL_TO_APARTMENT.md)** - Jak skonfigurować akcję "Run Script" aby po kliknięciu w polygon zjechać do tabeli i podświetlić mieszkanie
+- **[Szybki przewodnik](IMAGE_MAP_PRO_QUICK_GUIDE.md)** - Skrócona wersja z przykładami kodu do kopiowania
+
+---
+
 ## 📋 Krok 1: Przygotuj projekty w Image Map Pro
 
 ### 1.1. Utwórz projekt dla każdego budynku/piętra

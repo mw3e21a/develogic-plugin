@@ -361,19 +361,19 @@
 
 /* Highlight animation for apartment scroll-to */
 .apartment-item.apartment-highlight {
-    animation: highlightPulse 3s ease-in-out;
-    background: #fff3cd;
-    box-shadow: 0 0 0 3px #ffc107;
+    animation: highlightPulse 5s ease-in-out;
+    background: #fffbf0;
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.5);
 }
 
 @keyframes highlightPulse {
     0% {
-        background: #fff3cd;
-        box-shadow: 0 0 0 3px #ffc107;
+        background: #fffbf0;
+        box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.5);
     }
-    50% {
-        background: #fffaeb;
-        box-shadow: 0 0 0 5px #ffc107;
+    40% {
+        background: #fffef8;
+        box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.4);
     }
     100% {
         background: white;

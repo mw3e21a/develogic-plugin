@@ -10,8 +10,12 @@ Wtyczka WordPress do integracji z API Develogic. Umożliwia wyświetlanie ofert 
 - Konfiguruj kolory dla każdego statusu (Wolny, Sprzedany, Rezerwacja)
 - Automatyczna synchronizacja po każdej aktualizacji lokali
 - Panel administracyjny z edytorem kolorów
+- **NOWE:** Scroll do mieszkania po kliknięciu w polygon!
 
-👉 **Zobacz:** `IMAGE_MAP_PRO_SETUP.md` dla szczegółowej instrukcji
+👉 **Zobacz dokumentację:**
+- `IMAGE_MAP_PRO_SETUP.md` - Szczegółowa instrukcja konfiguracji
+- `IMAGE_MAP_PRO_SCROLL_TO_APARTMENT.md` - Jak skonfigurować scroll do mieszkania
+- `IMAGE_MAP_PRO_QUICK_GUIDE.md` - Szybki przewodnik z przykładami kodu
 
 ## Wymagania
 
