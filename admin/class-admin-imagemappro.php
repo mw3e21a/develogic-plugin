@@ -353,12 +353,14 @@ class Develogic_Admin_ImageMapPro {
                                                 style="width: 100%; max-width: 400px;"
                                                 class="develogic-multi-select"
                                             >
-                                                <?php foreach ($projects as $project): ?>
+                                                <?php foreach ($projects as $project): 
+                                                    $version_label = isset($project->version) && $project->version === 'old' ? ' [v4/v5]' : '';
+                                                ?>
                                                     <option 
                                                         value="<?php echo esc_attr($project->shortcode); ?>"
                                                         <?php selected(in_array($project->shortcode, $selected_shortcodes)); ?>
                                                     >
-                                                        <?php echo esc_html($project->name); ?> (<?php echo esc_html($project->shortcode); ?>)
+                                                        <?php echo esc_html($project->name); ?> (<?php echo esc_html($project->shortcode); ?>)<?php echo esc_html($version_label); ?>
                                                     </option>
                                                 <?php endforeach; ?>
                                             </select>
@@ -422,6 +424,19 @@ class Develogic_Admin_ImageMapPro {
                     </li>
                     <li><?php _e('Liczba projektów Image Map Pro:', 'develogic'); ?> 
                         <strong><?php echo count($projects); ?></strong>
+                        <?php 
+                        if (!empty($projects)) {
+                            $old_count = count(array_filter($projects, function($p) { return isset($p->version) && $p->version === 'old'; }));
+                            $new_count = count($projects) - $old_count;
+                            if ($old_count > 0 && $new_count > 0) {
+                                echo ' <span style="color: #666;">(' . $new_count . ' v6+, ' . $old_count . ' v4/v5)</span>';
+                            } elseif ($old_count > 0) {
+                                echo ' <span style="color: #666;">(Image Map Pro v4/v5)</span>';
+                            } elseif ($new_count > 0) {
+                                echo ' <span style="color: #666;">(Image Map Pro v6+)</span>';
+                            }
+                        }
+                        ?>
                     </li>
                     <li><?php _e('Liczba budynków w Develogic:', 'develogic'); ?> 
                         <strong><?php echo count($buildings); ?></strong>
@@ -517,16 +532,40 @@ class Develogic_Admin_ImageMapPro {
     private function get_imagemappro_projects() {
         global $wpdb;
         
+        $projects = array();
+        
+        // Try new version (table-based)
         $table_name = $wpdb->prefix . 'image_map_pro_projects';
         
-        // Check if table exists
-        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
-            return array();
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $table_projects = $wpdb->get_results("SELECT id, name, shortcode FROM $table_name ORDER BY name ASC");
+            
+            if ($table_projects) {
+                foreach ($table_projects as $project) {
+                    $project->version = 'new';
+                }
+                $projects = array_merge($projects, $table_projects);
+            }
         }
         
-        $projects = $wpdb->get_results("SELECT id, name, shortcode FROM $table_name ORDER BY name ASC");
+        // Try old version (wp_options based)
+        $old_options = get_option('image-map-pro-wordpress-admin-options', false);
         
-        return $projects ? $projects : array();
+        if ($old_options && isset($old_options['saves']) && is_array($old_options['saves'])) {
+            foreach ($old_options['saves'] as $project_id => $project_data) {
+                if (isset($project_data['meta'])) {
+                    $project = new stdClass();
+                    $project->id = $project_id;
+                    $project->name = isset($project_data['meta']['name']) ? $project_data['meta']['name'] : "Project $project_id";
+                    $project->shortcode = isset($project_data['meta']['shortcode']) ? $project_data['meta']['shortcode'] : "project_$project_id";
+                    $project->version = 'old';
+                    
+                    $projects[] = $project;
+                }
+            }
+        }
+        
+        return $projects;
     }
 }
 

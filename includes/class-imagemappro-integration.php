@@ -163,76 +163,73 @@ class Develogic_ImageMapPro_Integration {
      * @return array Result with 'updated' flag and 'shapes_updated' count
      */
     private function update_project_colors($project, $locals) {
-        $this->log(sprintf('Processing project: %s (shortcode: %s)', $project->name, $project->shortcode), 'info');
+        $this->log(sprintf('Processing project: %s (shortcode: %s, version: %s)', 
+            $project->name, 
+            $project->shortcode,
+            isset($project->version) ? $project->version : 'unknown'
+        ), 'info');
         
         $result = array(
             'updated' => false,
             'shapes_updated' => 0,
         );
         
-        // Decode project JSON
+        // Decode project JSON (slashes already stripped in get_all_imagemappro_projects)
         $project_data = json_decode($project->json, true);
         
         if (empty($project_data) || !is_array($project_data)) {
-            $this->log('Failed to decode project JSON for: ' . $project->name, 'error');
+            $json_error = json_last_error_msg();
+            $this->log(sprintf('Failed to decode project JSON for: %s. Error: %s', $project->name, $json_error), 'error');
+            $this->log(sprintf('JSON first 200 chars: %s', substr($project->json, 0, 200)), 'error');
             return $result;
         }
         
-        // Check if project has artboards
-        if (empty($project_data['artboards']) || !is_array($project_data['artboards'])) {
-            $this->log('No artboards found in project: ' . $project->name, 'warning');
-            return $result;
-        }
-        
-        $this->log(sprintf('Project has %d artboards', count($project_data['artboards'])), 'info');
+        $this->log('JSON decoded successfully', 'success');
         
         $modified = false;
+        $version = isset($project->version) ? $project->version : 'new';
         
-        // Process each artboard
-        foreach ($project_data['artboards'] as &$artboard) {
-            if (empty($artboard['children']) || !is_array($artboard['children'])) {
-                continue;
+        // Handle different versions
+        if ($version === 'old') {
+            // OLD version: spots array directly in project
+            if (empty($project_data['spots']) || !is_array($project_data['spots'])) {
+                $this->log('No spots found in OLD version project: ' . $project->name, 'warning');
+                return $result;
             }
             
-            $this->log(sprintf('Processing artboard with %d shapes', count($artboard['children'])), 'info');
+            $this->log(sprintf('OLD version project has %d spots', count($project_data['spots'])), 'info');
             
-            // Process each shape (polygon/spot)
-            foreach ($artboard['children'] as &$shape) {
-                $shape_title = isset($shape['title']) ? $shape['title'] : 'untitled';
-                
-                // Try to match shape with local
-                $local = $this->find_local_for_shape($shape, $locals, $project);
-                
-                if (!$local) {
-                    $this->log(sprintf('No match for shape "%s"', $shape_title), 'info');
-                    continue;
-                }
-                
-                $this->log(sprintf('Found match for shape "%s" -> local %s', $shape_title, $local['number']), 'success');
-                
-                // Get status
-                $status = isset($local['status']) ? $local['status'] : '';
-                
-                if (empty($status)) {
-                    $this->log(sprintf('Local %s has no status', $local['number']), 'warning');
-                    continue;
-                }
-                
-                // Get color for status
-                $color = $this->get_color_for_status($status);
-                
-                if (empty($color)) {
-                    $this->log(sprintf('No color mapped for status "%s"', $status), 'warning');
-                    continue;
-                }
-                
-                $this->log(sprintf('Updating shape "%s" to color #%s (status: %s)', $shape_title, $color, $status), 'info');
-                
-                // Update shape color
-                if ($this->update_shape_color($shape, $color)) {
+            // Process each spot
+            foreach ($project_data['spots'] as &$shape) {
+                if ($this->process_single_shape($shape, $locals, $project)) {
                     $modified = true;
                     $result['shapes_updated']++;
-                    $this->log(sprintf('Successfully updated shape "%s"', $shape_title), 'success');
+                }
+            }
+            
+        } else {
+            // NEW version: artboards with children
+            if (empty($project_data['artboards']) || !is_array($project_data['artboards'])) {
+                $this->log('No artboards found in NEW version project: ' . $project->name, 'warning');
+                return $result;
+            }
+            
+            $this->log(sprintf('NEW version project has %d artboards', count($project_data['artboards'])), 'info');
+            
+            // Process each artboard
+            foreach ($project_data['artboards'] as &$artboard) {
+                if (empty($artboard['children']) || !is_array($artboard['children'])) {
+                    continue;
+                }
+                
+                $this->log(sprintf('Processing artboard with %d shapes', count($artboard['children'])), 'info');
+                
+                // Process each shape (polygon/spot)
+                foreach ($artboard['children'] as &$shape) {
+                    if ($this->process_single_shape($shape, $locals, $project)) {
+                        $modified = true;
+                        $result['shapes_updated']++;
+                    }
                 }
             }
         }
@@ -241,12 +238,60 @@ class Develogic_ImageMapPro_Integration {
             // Encode and save with JSON_UNESCAPED_UNICODE to preserve m² and other Unicode characters
             $new_json = wp_json_encode($project_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             
-            if ($this->save_project_json($project->id, $new_json)) {
+            if ($this->save_project_json($project->id, $new_json, $version)) {
                 $result['updated'] = true;
             }
         }
         
         return $result;
+    }
+    
+    /**
+     * Process a single shape (spot/polygon)
+     *
+     * @param array &$shape Shape data (passed by reference)
+     * @param array $locals Array of Develogic locals
+     * @param object $project Project object
+     * @return bool True if shape was modified
+     */
+    private function process_single_shape(&$shape, $locals, $project) {
+        $shape_title = isset($shape['title']) ? $shape['title'] : 'untitled';
+        
+        // Try to match shape with local
+        $local = $this->find_local_for_shape($shape, $locals, $project);
+        
+        if (!$local) {
+            $this->log(sprintf('No match for shape "%s"', $shape_title), 'info');
+            return false;
+        }
+        
+        $this->log(sprintf('Found match for shape "%s" -> local %s', $shape_title, $local['number']), 'success');
+        
+        // Get status
+        $status = isset($local['status']) ? $local['status'] : '';
+        
+        if (empty($status)) {
+            $this->log(sprintf('Local %s has no status', $local['number']), 'warning');
+            return false;
+        }
+        
+        // Get color for status
+        $color = $this->get_color_for_status($status);
+        
+        if (empty($color)) {
+            $this->log(sprintf('No color mapped for status "%s"', $status), 'warning');
+            return false;
+        }
+        
+        $this->log(sprintf('Updating shape "%s" to color #%s (status: %s)', $shape_title, $color, $status), 'info');
+        
+        // Update shape color
+        if ($this->update_shape_color($shape, $color)) {
+            $this->log(sprintf('Successfully updated shape "%s"', $shape_title), 'success');
+            return true;
+        }
+        
+        return false;
     }
     
     /**
@@ -444,22 +489,62 @@ class Develogic_ImageMapPro_Integration {
      *
      * @param string $project_id Project ID
      * @param string $json JSON string
+     * @param string $version Version ('old' or 'new')
      * @return bool Success
      */
-    private function save_project_json($project_id, $json) {
+    private function save_project_json($project_id, $json, $version = 'new') {
         global $wpdb;
         
-        $table_name = $wpdb->prefix . 'image_map_pro_projects';
-        
-        $result = $wpdb->update(
-            $table_name,
-            array('json' => $json),
-            array('id' => $project_id),
-            array('%s'),
-            array('%s')
-        );
-        
-        return $result !== false;
+        if ($version === 'old') {
+            // OLD version: save to wp_options
+            $this->log('Saving to OLD version (wp_options)', 'info');
+            
+            $old_options = get_option('image-map-pro-wordpress-admin-options', array());
+            
+            if (!isset($old_options['saves']) || !is_array($old_options['saves'])) {
+                $old_options['saves'] = array();
+            }
+            
+            // Update the specific project's JSON
+            if (isset($old_options['saves'][$project_id])) {
+                $old_options['saves'][$project_id]['json'] = $json;
+                
+                $result = update_option('image-map-pro-wordpress-admin-options', $old_options);
+                
+                if ($result) {
+                    $this->log('Successfully saved to OLD version', 'success');
+                } else {
+                    $this->log('Failed to save to OLD version', 'error');
+                }
+                
+                return $result;
+            } else {
+                $this->log('Project ID not found in OLD version options', 'error');
+                return false;
+            }
+            
+        } else {
+            // NEW version: save to table
+            $this->log('Saving to NEW version (table)', 'info');
+            
+            $table_name = $wpdb->prefix . 'image_map_pro_projects';
+            
+            $result = $wpdb->update(
+                $table_name,
+                array('json' => $json),
+                array('id' => $project_id),
+                array('%s'),
+                array('%s')
+            );
+            
+            if ($result !== false) {
+                $this->log('Successfully saved to NEW version', 'success');
+            } else {
+                $this->log('Failed to save to NEW version: ' . $wpdb->last_error, 'error');
+            }
+            
+            return $result !== false;
+        }
     }
     
     /**
@@ -470,20 +555,52 @@ class Develogic_ImageMapPro_Integration {
     private function get_all_imagemappro_projects() {
         global $wpdb;
         
+        $projects = array();
+        
+        // Try new version (table-based)
         $table_name = $wpdb->prefix . 'image_map_pro_projects';
         
-        // Check if table exists
-        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
-            return array();
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $this->log('Detected NEW Image Map Pro version (table-based)', 'info');
+            
+            $table_projects = $wpdb->get_results("SELECT * FROM $table_name ORDER BY name ASC");
+            
+            // Strip slashes from JSON
+            if (!empty($table_projects)) {
+                foreach ($table_projects as $key => $value) {
+                    $table_projects[$key]->json = stripslashes($value->json);
+                    $table_projects[$key]->version = 'new';
+                }
+                $projects = array_merge($projects, $table_projects);
+            }
         }
         
-        $projects = $wpdb->get_results("SELECT * FROM $table_name ORDER BY name ASC");
+        // Try old version (wp_options based)
+        $old_options = get_option('image-map-pro-wordpress-admin-options', false);
         
-        // Strip slashes from JSON
-        if (!empty($projects)) {
-            foreach ($projects as $key => $value) {
-                $projects[$key]->json = stripslashes($value->json);
+        if ($old_options && isset($old_options['saves']) && is_array($old_options['saves'])) {
+            $this->log('Detected OLD Image Map Pro version (wp_options based)', 'info');
+            
+            foreach ($old_options['saves'] as $project_id => $project_data) {
+                if (isset($project_data['json']) && isset($project_data['meta'])) {
+                    $project = new stdClass();
+                    $project->id = $project_id;
+                    $project->name = isset($project_data['meta']['name']) ? $project_data['meta']['name'] : "Project $project_id";
+                    $project->shortcode = isset($project_data['meta']['shortcode']) ? $project_data['meta']['shortcode'] : "project_$project_id";
+                    
+                    // Strip slashes from JSON (same as new version)
+                    $project->json = stripslashes($project_data['json']);
+                    $project->version = 'old';
+                    
+                    $projects[] = $project;
+                }
             }
+        }
+        
+        if (empty($projects)) {
+            $this->log('No Image Map Pro projects found in either version', 'warning');
+        } else {
+            $this->log(sprintf('Found %d Image Map Pro projects', count($projects)), 'info');
         }
         
         return $projects;
