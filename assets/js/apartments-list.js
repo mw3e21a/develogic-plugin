@@ -866,13 +866,13 @@
         }
         modal.querySelector('.modal-title').textContent = headerTitle || 'Szczegóły mieszkania';
         
-        // Set location
+        // Set location (Building and Subdivision in one row)
         let locationText = '';
         if (data.building) {
             locationText = 'Budynek ' + data.building;
         }
         if (data.subdivision) {
-            locationText += (locationText ? '<br>' : '') + data.subdivision;
+            locationText += (locationText ? ' • ' : '') + data.subdivision;
         }
         modal.querySelector('.location').innerHTML = locationText;
         

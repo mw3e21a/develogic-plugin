@@ -659,6 +659,21 @@ if (!defined('ABSPATH')) {
 
         <div class="modal-header">
             <h2 class="modal-title"></h2>
+            <div class="action-buttons">
+                <button class="icon-btn" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>">
+                    <svg viewBox="0 0 24 24">
+                        <rect x="3" y="5" width="18" height="14" rx="2"/>
+                        <path d="M3 7l9 6 9-6"/>
+                    </svg>
+                </button>
+                <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
+                <button class="icon-btn" data-action="favorite-modal" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                </button>
+                <?php endif; ?>
+            </div>
         </div>
 
         <div class="modal-body">
@@ -790,21 +805,6 @@ if (!defined('ABSPATH')) {
                     </a>
                 </div>
 
-            <div class="action-buttons">
-                <button class="icon-btn" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>">
-                    <svg viewBox="0 0 24 24">
-                        <rect x="3" y="5" width="18" height="14" rx="2"/>
-                        <path d="M3 7l9 6 9-6"/>
-                    </svg>
-                </button>
-                <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
-                <button class="icon-btn" data-action="favorite-modal" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                    </svg>
-                </button>
-                <?php endif; ?>
-            </div>
         </div>
     </div>
     </div><!-- .container -->

@@ -802,7 +802,7 @@
 
 .modal-close {
     position: absolute;
-    top: 20px;
+    top: 30px;
     right: 30px;
     width: 40px;
     height: 40px;
@@ -830,12 +830,23 @@
 .modal-header {
     padding: 30px 40px 15px;
     border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
 }
 
 .modal-title {
     font-size: 18px;
     font-weight: 700;
     margin: 0;
+    flex: 1;
+}
+
+.modal-header .action-buttons {
+    display: flex;
+    gap: 12px;
+    margin-right: 250px;
 }
 
 .modal-body {
@@ -1064,48 +1075,54 @@
 
 /* Modal Details Section */
 .modal-details {
-    padding: 20px 40px 40px 40px;
+    padding: 16px 40px 30px 40px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 14px;
 }
 
 .detail-header {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
     text-transform: capitalize;
 }
 
 .location {
-    font-size: 14px;
+    font-size: 13px;
     color: #999;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .unit-name {
-    font-size: 48px;
+    font-size: 32px;
     font-weight: 700;
     color: #1a1a1a;
-    line-height: 1;
+    line-height: 1.1;
+    padding-bottom: 0;
+    margin-bottom: 0;
 }
 
 .status {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
 }
 
 .detail-specs {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0px;
 }
 
 .spec-item {
     display: grid;
-    grid-template-columns: 140px 1fr;
-    gap: 20px;
-    font-size: 16px;
+    grid-template-columns: 120px 1fr;
+    gap: 16px;
+    font-size: 15px;
 }
 
 .spec-label {
@@ -1120,38 +1137,38 @@
 .detail-features {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    font-size: 14px;
+    gap: 6px;
+    font-size: 13px;
 }
 
 .detail-feature-tag {
     display: inline-flex;
     align-items: center;
-    padding: 8px 14px;
+    padding: 6px 12px;
     background: #f8f9fa;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    border-radius: 6px;
     color: #374151;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1;
 }
 
 .detail-price {
-    padding: 20px 0;
+    padding: 14px 0;
     border-top: 1px solid #e5e5e5;
     border-bottom: 1px solid #e5e5e5;
     position: relative;
 }
 
 .detail-price .price-label {
-    font-size: 14px;
+    font-size: 13px;
     color: #666;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
 }
 
 .detail-price .price-main {
-    font-size: 36px;
+    font-size: 28px;
     font-weight: 700;
     color: #1a1a1a;
     line-height: 1.2;
@@ -1162,24 +1179,24 @@
 }
 
 .detail-price .price-per-m2 {
-    font-size: 16px;
+    font-size: 15px;
     color: #666;
-    margin-top: 4px;
+    margin-top: 3px;
 }
 
 /* Omnibus price section */
 .detail-price-omnibus {
-    padding: 8px 0 16px 0;
+    padding: 6px 0 12px 0;
 }
 
 .detail-price-omnibus .omnibus-label {
-    font-size: 14px;
+    font-size: 13px;
     color: #666;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .detail-price-omnibus .omnibus-value {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
     color: #666;
 }
@@ -1188,36 +1205,36 @@
 .detail-price .promo-badge {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
     color: white;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-size: 14px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-top: 12px;
+    letter-spacing: 0.6px;
+    margin-top: 8px;
     box-shadow: 0 3px 12px rgba(238, 90, 111, 0.35);
 }
 
 .detail-price .promo-badge::before {
     content: '⚡';
-    font-size: 18px;
+    font-size: 14px;
 }
 
 /* ===========================
    Price History
    =========================== */
 .detail-price-history {
-    padding: 20px 0;
+    padding: 12px 0;
     border-top: 1px solid #e5e5e5;
 }
 
 .price-history-label {
-    font-size: 14px;
+    font-size: 13px;
     color: #666;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     font-weight: 600;
 }
 
@@ -1333,16 +1350,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    margin-top: 16px;
+    gap: 10px;
+    margin-top: 12px;
     margin-bottom: 0;
-    padding: 16px 24px;
+    padding: 20px 20px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #ffffff;
     text-decoration: none;
     font-weight: 700;
-    font-size: 16px;
-    border-radius: 12px;
+    font-size: 15px;
+    border-radius: 10px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     position: relative;
@@ -1354,16 +1371,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 10px;
     margin-top: 0;
-    margin-bottom: 16px;
-    padding: 16px 24px;
+    margin-bottom: 12px;
+    padding: 20px 20px;
     background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
     color: #ffffff;
     text-decoration: none;
     font-weight: 700;
-    font-size: 16px;
-    border-radius: 12px;
+    font-size: 15px;
+    border-radius: 10px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(238, 90, 111, 0.4);
     position: relative;
@@ -1576,10 +1593,12 @@
 
     .modal-details {
         max-height: 50vh;
+        padding: 12px 30px 24px 30px;
+        gap: 12px;
     }
 
     .unit-name {
-        font-size: 40px;
+        font-size: 28px;
     }
 
     .gallery-main {
@@ -1599,20 +1618,81 @@
         flex-wrap: wrap;
     }
 
+    .modal-header {
+        padding: 20px 20px 12px;
+    }
+
+    .modal-close {
+        top: 20px;
+        right: 20px;
+    }
+
+    .modal-header .action-buttons {
+        margin-right: 80px;
+        gap: 8px;
+    }
+
+    .modal-title {
+        font-size: 16px;
+    }
+
+    .modal-details {
+        padding: 10px 20px 20px 20px;
+        gap: 10px;
+    }
+
+    .detail-header {
+        gap: 2px;
+    }
+
+    .unit-name {
+        font-size: 24px;
+    }
+
+    .location {
+        font-size: 12px;
+    }
+
+    .status {
+        font-size: 14px;
+    }
+
+    .spec-item {
+        font-size: 14px;
+        grid-template-columns: 100px 1fr;
+        gap: 12px;
+    }
+
+    .detail-price {
+        padding: 10px 0;
+    }
+
+    .detail-price .price-main {
+        font-size: 24px;
+    }
+
+    .detail-price .price-per-m2 {
+        font-size: 14px;
+    }
+
+    .detail-price-omnibus .omnibus-value {
+        font-size: 16px;
+    }
+
     .gallery-main {
         height: 40vh;
         min-height: 300px;
     }
     
     .tour-3d-link {
-        padding: 14px 20px;
-        font-size: 15px;
-        margin-top: 16px;
+        padding: 12px 16px;
+        font-size: 14px;
+        margin-top: 12px;
     }
     
     .tour-3d-link svg {
-        width: 20px;
-        height: 20px;
+        width: 18px;
+        height: 18px;
     }
 }
 
