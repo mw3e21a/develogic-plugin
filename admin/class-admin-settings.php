@@ -21,7 +21,8 @@ class Develogic_Admin_Settings {
     public function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
         add_action('admin_init', array($this, 'register_settings'));
-        add_action('admin_notices', array($this, 'show_api_error_notice'));
+        // Disabled: API error notices in admin panel
+        // add_action('admin_notices', array($this, 'show_api_error_notice'));
     }
     
     /**
