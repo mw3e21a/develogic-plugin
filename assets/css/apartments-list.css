@@ -671,6 +671,7 @@
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
+    flex-shrink: 0;
 }
 
 .icon-btn:hover {
@@ -802,7 +803,7 @@
 
 .modal-close {
     position: absolute;
-    top: 30px;
+    top: 8px;
     right: 30px;
     width: 40px;
     height: 40px;
@@ -828,12 +829,13 @@
 }
 
 .modal-header {
-    padding: 30px 40px 15px;
+    padding: 6px 40px 6px;
     border-bottom: 1px solid #e5e5e5;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 20px;
+    min-height: 0;
 }
 
 .modal-title {
@@ -841,10 +843,15 @@
     font-weight: 700;
     margin: 0;
     flex: 1;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
 }
 
 .modal-header .action-buttons {
     display: flex;
+    align-items: center;
     gap: 12px;
     margin-right: 250px;
 }
@@ -1619,11 +1626,11 @@
     }
 
     .modal-header {
-        padding: 20px 20px 12px;
+        padding: 5px 20px 5px;
     }
 
     .modal-close {
-        top: 20px;
+        top: 10px;
         right: 20px;
     }
 
