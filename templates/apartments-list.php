@@ -82,10 +82,16 @@ if (!defined('ABSPATH')) {
                         sort($local_types_list);
                         // Set default to "Lokal mieszkalny" if it exists
                         $default_type = in_array('Lokal mieszkalny', $local_types_list) ? 'Lokal mieszkalny' : 'all';
-                        echo '<option value="all"' . ($default_type === 'all' ? ' selected' : '') . '>Wszystkie typy</option>';
+                        // echo '<option value="all"' . ($default_type === 'all' ? ' selected' : '') . '>Wszystkie typy</option>';
                         foreach ($local_types_list as $local_type) {
-                            $is_selected = ($local_type === $default_type) ? ' selected' : '';
-                            echo '<option value="' . esc_attr($local_type) . '"' . $is_selected . '>' . esc_html($local_type) . '</option>';
+                            // Only show "Lokal mieszkalny", comment out others
+                            if ($local_type === 'Lokal mieszkalny') {
+                                $is_selected = ($local_type === $default_type) ? ' selected' : '';
+                                echo '<option value="' . esc_attr($local_type) . '"' . $is_selected . '>' . esc_html($local_type) . '</option>';
+                            }
+                            // Other types commented out:
+                            // $is_selected = ($local_type === $default_type) ? ' selected' : '';
+                            // echo '<option value="' . esc_attr($local_type) . '"' . $is_selected . '>' . esc_html($local_type) . '</option>';
                         }
                         ?>
                     </select>
