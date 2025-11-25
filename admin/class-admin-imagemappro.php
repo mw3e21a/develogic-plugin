@@ -322,56 +322,58 @@ class Develogic_Admin_ImageMapPro {
                         <?php wp_nonce_field('develogic_imagemappro_settings', 'develogic_imagemappro_nonce'); ?>
                         <input type="hidden" name="develogic_imagemappro_action" value="save_mappings">
                         
-                        <table class="widefat striped">
-                            <thead>
-                                <tr>
-                                    <th><?php _e('Budynek (Develogic)', 'develogic'); ?></th>
-                                    <th><?php _e('Shortcode Image Map Pro', 'develogic'); ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($buildings as $building): 
-                                    // Get current mappings for this building (now an array)
-                                    $selected_shortcodes = isset($mappings[$building['name']]) ? $mappings[$building['name']] : array();
-                                    // Ensure it's an array (backwards compatibility)
-                                    if (!is_array($selected_shortcodes)) {
-                                        $selected_shortcodes = array($selected_shortcodes);
-                                    }
-                                ?>
+                        <div style="overflow-x: auto;">
+                            <table class="widefat striped" style="width: 100%;">
+                                <thead>
                                     <tr>
-                                        <td>
-                                            <strong><?php echo esc_html($building['name']); ?></strong>
-                                            <br>
-                                            <code>ID: <?php echo esc_html($building['id']); ?></code>
-                                        </td>
-                                        <td>
-                                            <!-- Multi-select dla wielu projektów -->
-                                            <select 
-                                                name="building_map[<?php echo esc_attr($building['name']); ?>][]" 
-                                                multiple 
-                                                size="5"
-                                                style="width: 100%; max-width: 400px;"
-                                                class="develogic-multi-select"
-                                            >
-                                                <?php foreach ($projects as $project): 
-                                                    $version_label = isset($project->version) && $project->version === 'old' ? ' [v4/v5]' : '';
-                                                ?>
-                                                    <option 
-                                                        value="<?php echo esc_attr($project->shortcode); ?>"
-                                                        <?php selected(in_array($project->shortcode, $selected_shortcodes)); ?>
-                                                    >
-                                                        <?php echo esc_html($project->name); ?> (<?php echo esc_html($project->shortcode); ?>)<?php echo esc_html($version_label); ?>
-                                                    </option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                            <p class="description">
-                                                <?php _e('Przytrzymaj Ctrl (Cmd na Mac) aby wybrać wiele projektów', 'develogic'); ?>
-                                            </p>
-                                        </td>
+                                        <th style="width: 30%;"><?php _e('Budynek (Develogic)', 'develogic'); ?></th>
+                                        <th style="width: 70%;"><?php _e('Shortcode Image Map Pro', 'develogic'); ?></th>
                                     </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($buildings as $building): 
+                                        // Get current mappings for this building (now an array)
+                                        $selected_shortcodes = isset($mappings[$building['name']]) ? $mappings[$building['name']] : array();
+                                        // Ensure it's an array (backwards compatibility)
+                                        if (!is_array($selected_shortcodes)) {
+                                            $selected_shortcodes = array($selected_shortcodes);
+                                        }
+                                    ?>
+                                        <tr>
+                                            <td>
+                                                <strong><?php echo esc_html($building['name']); ?></strong>
+                                                <br>
+                                                <code>ID: <?php echo esc_html($building['id']); ?></code>
+                                            </td>
+                                            <td>
+                                                <!-- Multi-select dla wielu projektów -->
+                                                <select 
+                                                    name="building_map[<?php echo esc_attr($building['name']); ?>][]" 
+                                                    multiple 
+                                                    size="5"
+                                                    style="width: 100%; max-width: 400px;"
+                                                    class="develogic-multi-select"
+                                                >
+                                                    <?php foreach ($projects as $project): 
+                                                        $version_label = isset($project->version) && $project->version === 'old' ? ' [v4/v5]' : '';
+                                                    ?>
+                                                        <option 
+                                                            value="<?php echo esc_attr($project->shortcode); ?>"
+                                                            <?php selected(in_array($project->shortcode, $selected_shortcodes)); ?>
+                                                        >
+                                                            <?php echo esc_html($project->name); ?> (<?php echo esc_html($project->shortcode); ?>)<?php echo esc_html($version_label); ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <p class="description">
+                                                    <?php _e('Przytrzymaj Ctrl (Cmd na Mac) aby wybrać wiele projektów', 'develogic'); ?>
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
                         
                         <p class="submit">
                             <button type="submit" class="button button-primary">

@@ -277,36 +277,38 @@ class Develogic_Admin_Sync {
             <div class="card">
                 <h2><?php _e('Log synchronizacji (ostatnie 20 wpisów)', 'develogic'); ?></h2>
                 
-                <table class="widefat striped">
-                    <thead>
-                        <tr>
-                            <th><?php _e('Czas', 'develogic'); ?></th>
-                            <th><?php _e('Poziom', 'develogic'); ?></th>
-                            <th><?php _e('Wiadomość', 'develogic'); ?></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach (array_reverse(array_slice($sync_log, -20)) as $entry): ?>
-                        <tr>
-                            <td><?php echo esc_html($entry['time']); ?></td>
-                            <td>
-                                <?php
-                                $level_colors = array(
-                                    'success' => '#28a745',
-                                    'error' => '#dc3545',
-                                    'warning' => '#ffc107',
-                                );
-                                $color = isset($level_colors[$entry['level']]) ? $level_colors[$entry['level']] : '#6c757d';
-                                ?>
-                                <span style="color: <?php echo $color; ?>; font-weight: bold;">
-                                    <?php echo esc_html(strtoupper($entry['level'])); ?>
-                                </span>
-                            </td>
-                            <td><?php echo esc_html($entry['message']); ?></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table class="widefat striped" style="table-layout: fixed; width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 150px;"><?php _e('Czas', 'develogic'); ?></th>
+                                <th style="width: 100px;"><?php _e('Poziom', 'develogic'); ?></th>
+                                <th style="width: auto;"><?php _e('Wiadomość', 'develogic'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach (array_reverse(array_slice($sync_log, -20)) as $entry): ?>
+                            <tr>
+                                <td style="white-space: nowrap;"><?php echo esc_html($entry['time']); ?></td>
+                                <td style="white-space: nowrap;">
+                                    <?php
+                                    $level_colors = array(
+                                        'success' => '#28a745',
+                                        'error' => '#dc3545',
+                                        'warning' => '#ffc107',
+                                    );
+                                    $color = isset($level_colors[$entry['level']]) ? $level_colors[$entry['level']] : '#6c757d';
+                                    ?>
+                                    <span style="color: <?php echo $color; ?>; font-weight: bold;">
+                                        <?php echo esc_html(strtoupper($entry['level'])); ?>
+                                    </span>
+                                </td>
+                                <td style="word-break: break-word; overflow-wrap: break-word;"><?php echo esc_html($entry['message']); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <?php endif; ?>
             
