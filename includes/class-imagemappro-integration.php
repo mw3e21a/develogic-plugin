@@ -472,13 +472,23 @@ class Develogic_ImageMapPro_Integration {
             }
         }
         
-        // Update mouseover_style background_color (optional)
-        if (isset($shape['mouseover_style']) && is_array($shape['mouseover_style'])) {
-            // Keep mouseover color but adjust opacity
-            if ($updated && !empty($shape['mouseover_style']['background_color'])) {
-                // Optionally update mouseover to match or leave as is
-                // $shape['mouseover_style']['background_color'] = $color;
+        // Update mouseover_style to match color but with lighter opacity
+        if ($updated) {
+            if (!isset($shape['mouseover_style'])) {
+                $shape['mouseover_style'] = array();
             }
+            
+            // Set same color as default_style
+            $shape['mouseover_style']['background_color'] = $color;
+            
+            // Get default opacity, or use 0.7 as default
+            $default_opacity = isset($shape['default_style']['background_opacity']) 
+                ? floatval($shape['default_style']['background_opacity']) 
+                : 0.7;
+            
+            // Reduce opacity by 0.2 to make it lighter on hover (but not less than 0.2)
+            $hover_opacity = max(0.2, $default_opacity - 0.2);
+            $shape['mouseover_style']['background_opacity'] = $hover_opacity;
         }
         
         return $updated;
