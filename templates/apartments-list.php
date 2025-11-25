@@ -137,7 +137,6 @@ if (!defined('ABSPATH')) {
                     <select class="filter-select" id="floorFilter">
                         <?php $default_floor = isset($atts['floor']) && $atts['floor'] !== '' ? $atts['floor'] : 'all'; ?>
                         <option value="all" <?php echo ($default_floor === 'all') ? 'selected' : ''; ?>>Wszystkie piętra</option>
-                        <option value="-1" <?php echo ($default_floor === '-1') ? 'selected' : ''; ?>>Piwnica</option>
                         <option value="0" <?php echo ($default_floor === '0') ? 'selected' : ''; ?>>Parter</option>
                         <option value="1" <?php echo ($default_floor === '1') ? 'selected' : ''; ?>>Piętro I</option>
                         <option value="2" <?php echo ($default_floor === '2') ? 'selected' : ''; ?>>Piętro II</option>
