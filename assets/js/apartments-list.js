@@ -964,25 +964,22 @@
             promoBadgeGallery.style.display = data.hasPromo ? 'inline-flex' : 'none';
         }
         
-        // Set download link
-        const downloadLink = modal.querySelector('.download-link');
-        const infoBox = modal.querySelector('.info-box');
-        if (data.pdfLink) {
-            downloadLink.href = data.pdfLink;
-            downloadLink.style.display = 'flex';
-            if (infoBox) infoBox.style.display = 'block';
-        } else {
-            downloadLink.style.display = 'none';
-            if (infoBox) infoBox.style.display = 'none';
-        }
-        
         // Set 3D tour link
-        const tour3dLink = modal.querySelector('.tour-3d-link');
+        const tour3dLink = modal.querySelector('.tour-3d-link:not(.download-card-link)');
         if (tour3dLink && data.tour3dUrl) {
             tour3dLink.href = data.tour3dUrl;
             tour3dLink.style.display = 'flex';
         } else if (tour3dLink) {
             tour3dLink.style.display = 'none';
+        }
+        
+        // Set download card link
+        const downloadCardLink = modal.querySelector('.download-card-link');
+        if (downloadCardLink && data.pdfLink) {
+            downloadCardLink.href = data.pdfLink;
+            downloadCardLink.style.display = 'flex';
+        } else if (downloadCardLink) {
+            downloadCardLink.style.display = 'none';
         }
         
         // Set favorite button

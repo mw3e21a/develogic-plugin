@@ -325,6 +325,9 @@ if (!defined('ABSPATH')) {
                 $price_m2 = isset($local[$price_m2_source]) ? $local[$price_m2_source] : $local['priceGrossm2'];
                 $developer_name = develogic()->get_setting('developer_name', get_bloginfo('name'));
                 
+                // Projections - MUST be loaded first before using
+                $projections = isset($local['projections']) ? $local['projections'] : array();
+                
                 // Determine which price to use (packagePriceGross or packagePromoPriceGross)
                 $package_price = isset($local['packagePriceGross']) ? $local['packagePriceGross'] : $local['priceGross'];
                 $package_promo_price = isset($local['packagePromoPriceGross']) ? $local['packagePromoPriceGross'] : null;
@@ -349,22 +352,29 @@ if (!defined('ABSPATH')) {
                     $price_m2 = isset($local[$price_m2_source]) ? $local[$price_m2_source] : $local['priceGrossm2'];
                 }
                 
-                // PDF link
+                // PDF link - get WordPress PDF URL from "Karta lokalu" projection
                 $pdf_link = '';
-                $pdf_source = develogic()->get_setting('pdf_source', 'off');
-                if ($pdf_source === 'pattern') {
-                    $pdf_pattern = develogic()->get_setting('pdf_pattern', '');
-                    if (!empty($pdf_pattern)) {
-                        $pdf_link = str_replace(
-                            array('{localId}', '{number}'),
-                            array($local['localId'], $local['number']),
-                            $pdf_pattern
-                        );
+                foreach ($projections as $proj) {
+                    if (isset($proj['type']) && $proj['type'] === 'Karta lokalu' && !empty($proj['pdf_url'])) {
+                        $pdf_link = $proj['pdf_url'];
+                        break;
                     }
                 }
                 
-                // Projections
-                $projections = isset($local['projections']) ? $local['projections'] : array();
+                // Fallback to pattern-based PDF link if projection not found
+                if (empty($pdf_link)) {
+                    $pdf_source = develogic()->get_setting('pdf_source', 'off');
+                    if ($pdf_source === 'pattern') {
+                        $pdf_pattern = develogic()->get_setting('pdf_pattern', '');
+                        if (!empty($pdf_pattern)) {
+                            $pdf_link = str_replace(
+                                array('{localId}', '{number}'),
+                                array($local['localId'], $local['number']),
+                                $pdf_pattern
+                            );
+                        }
+                    }
+                }
                 
                 // Prepare sortable data
                 $rooms_padded = str_pad($local['rooms'], 2, '0', STR_PAD_LEFT);
@@ -633,6 +643,17 @@ if (!defined('ABSPATH')) {
                         <span class="text-360">360°</span>
                     </a>
                     <?php endif; ?>
+                    <?php if (!empty($pdf_link)): ?>
+                    <a href="<?php echo esc_url($pdf_link); ?>" class="icon-btn icon-btn-pdf" target="_blank" rel="noopener noreferrer" aria-label="<?php esc_attr_e('Pobierz kartę lokalu', 'develogic'); ?>" title="Pobierz kartę lokalu (otwiera PDF w nowej karcie)" onclick="event.stopPropagation();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </a>
+                    <?php endif; ?>
                     <button class="icon-btn" data-action="email" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o mieszkanie (otwiera klienta email)">
                         <svg viewBox="0 0 24 24">
                             <rect x="3" y="5" width="18" height="14" rx="2"/>
@@ -761,6 +782,20 @@ if (!defined('ABSPATH')) {
                     </svg>
                 </a>
 
+                <!-- Download Card Link -->
+                <a href="#" class="tour-3d-link download-card-link" target="_blank" rel="noopener noreferrer" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span class="tour-3d-text">Pobierz kartę mieszkania</span>
+                    <svg class="tour-3d-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                    </svg>
+                </a>
+
                 <!-- Promo Banner (full width like 3D tour) -->
                 <div class="promo-banner-link" style="display: none;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -805,16 +840,6 @@ if (!defined('ABSPATH')) {
                     </div>
                 </div>
 
-                <div class="info-box" style="display: none;">
-                    <a href="#" class="download-link" style="display: none;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        Pobierz kartę mieszkania
-                    </a>
-                </div>
 
         </div>
     </div>

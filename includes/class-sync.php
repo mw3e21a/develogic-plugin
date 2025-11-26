@@ -411,6 +411,7 @@ class Develogic_Sync {
             
             // Check if we already have this projection uploaded
             $existing_attachment_id = $this->get_projection_attachment_id($post_id, $projection_id);
+            $existing_pdf_id = $this->get_projection_pdf_attachment_id($post_id, $projection_id);
             
             if ($existing_attachment_id) {
                 // Use existing attachment
@@ -418,6 +419,13 @@ class Develogic_Sync {
                 $projection['wordpress_url'] = wp_get_attachment_url($existing_attachment_id);
                 $projection['thumbnail_url'] = wp_get_attachment_image_url($existing_attachment_id, 'medium');
                 $projection['large_url'] = wp_get_attachment_image_url($existing_attachment_id, 'large');
+                
+                // Add PDF URL if exists
+                if ($existing_pdf_id) {
+                    $projection['pdf_attachment_id'] = $existing_pdf_id;
+                    $projection['pdf_url'] = wp_get_attachment_url($existing_pdf_id);
+                }
+                
                 $processed[] = $projection;
                 continue;
             }
@@ -484,6 +492,15 @@ class Develogic_Sync {
             // Check if the file is PDF (magic bytes: %PDF)
             $is_pdf = (substr($image_data, 0, 4) === '%PDF');
             
+            // Log file type detection
+            $this->log_sync('info', sprintf(
+                'Projekcja %d (%s): wykryto format %s (pierwsze 4 bajty: %s)',
+                $projection_id,
+                $projection['type'],
+                $is_pdf ? 'PDF' : 'obraz',
+                bin2hex(substr($image_data, 0, 4))
+            ));
+            
             // Determine file extension
             $file_extension = 'jpg';
             if ($is_pdf) {
@@ -517,15 +534,77 @@ class Develogic_Sync {
                 continue;
             }
             
-            // Convert PDF to JPEG if needed
+            // Convert PDF to JPEG if needed (but keep both PDF and JPEG)
+            $pdf_attachment_id = null;
             if ($is_pdf) {
-                $jpeg_file = $this->convert_pdf_to_jpeg($temp_file, $upload_dir['path'], $local_number, $projection_id, $projection['type']);
+                $this->log_sync('info', sprintf(
+                    'PDF wykryty dla projekcji %d - rozpoczynam zapis oryginalnego PDF',
+                    $projection_id
+                ));
+                
+                // Create a copy of PDF for conversion (media_handle_sideload deletes the temp file)
+                $pdf_copy_file = $temp_file . '.copy';
+                if (!copy($temp_file, $pdf_copy_file)) {
+                    $this->log_sync('warning', sprintf(
+                        'Nie udało się skopiować pliku PDF dla projekcji %d',
+                        $projection_id
+                    ));
+                    @unlink($temp_file);
+                    $processed[] = $projection;
+                    continue;
+                }
+                
+                $this->log_sync('info', sprintf(
+                    'Skopiowano PDF dla projekcji %d, zapisuję oryginalny plik: %s',
+                    $projection_id,
+                    $filename
+                ));
+                
+                // First, save the original PDF
+                $pdf_file_array = array(
+                    'name' => $filename,
+                    'tmp_name' => $temp_file,
+                );
+                
+                $pdf_attachment_id = media_handle_sideload(
+                    $pdf_file_array,
+                    $post_id,
+                    sprintf(
+                        'Lokal %s - %s (PDF)',
+                        $local_number,
+                        $projection['type']
+                    )
+                );
+                
+                if (!is_wp_error($pdf_attachment_id)) {
+                    // Save PDF attachment metadata
+                    update_post_meta($pdf_attachment_id, 'develogic_projection_id', $projection_id);
+                    update_post_meta($pdf_attachment_id, 'develogic_local_post_id', $post_id);
+                    update_post_meta($pdf_attachment_id, 'develogic_projection_type', $projection['type']);
+                    update_post_meta($pdf_attachment_id, 'develogic_is_pdf_original', true);
+                    
+                    $this->log_sync('success', sprintf(
+                        'Zapisano oryginalny PDF dla projekcji %d, attachment ID: %d',
+                        $projection_id,
+                        $pdf_attachment_id
+                    ));
+                } else {
+                    $this->log_sync('warning', sprintf(
+                        'Nie udało się zapisać PDF dla projekcji %d: %s',
+                        $projection_id,
+                        $pdf_attachment_id->get_error_message()
+                    ));
+                }
+                
+                // Now convert PDF copy to JPEG for display
+                $jpeg_file = $this->convert_pdf_to_jpeg($pdf_copy_file, $upload_dir['path'], $local_number, $projection_id, $projection['type']);
                 
                 if ($jpeg_file && file_exists($jpeg_file)) {
-                    // Replace temp file with JPEG
-                    @unlink($temp_file);
+                    // Use JPEG as temp file for next step
                     $temp_file = $jpeg_file;
                     $filename = basename($jpeg_file);
+                    // Clean up PDF copy
+                    @unlink($pdf_copy_file);
                 } else {
                     // Conversion failed, log and skip
                     $this->log_sync('warning', sprintf(
@@ -533,13 +612,13 @@ class Develogic_Sync {
                         $projection_id,
                         $local_number
                     ));
-                    @unlink($temp_file);
+                    @unlink($pdf_copy_file);
                     $processed[] = $projection;
                     continue;
                 }
             }
             
-            // Prepare attachment data
+            // Prepare attachment data for JPEG (or original image if not PDF)
             $file_array = array(
                 'name' => $filename,
                 'tmp_name' => $temp_file,
@@ -581,6 +660,12 @@ class Develogic_Sync {
             $projection['thumbnail_url'] = wp_get_attachment_image_url($attachment_id, 'medium');
             $projection['large_url'] = wp_get_attachment_image_url($attachment_id, 'large');
             
+            // Add PDF URL if available
+            if ($pdf_attachment_id && !is_wp_error($pdf_attachment_id)) {
+                $projection['pdf_attachment_id'] = $pdf_attachment_id;
+                $projection['pdf_url'] = wp_get_attachment_url($pdf_attachment_id);
+            }
+            
             $processed[] = $projection;
         }
         
@@ -602,6 +687,40 @@ class Develogic_Sync {
                 array(
                     'key' => 'develogic_projection_id',
                     'value' => $projection_id,
+                    'compare' => '=',
+                ),
+                array(
+                    'key' => 'develogic_is_pdf_original',
+                    'compare' => 'NOT EXISTS',
+                ),
+            ),
+            'posts_per_page' => 1,
+            'fields' => 'ids',
+        ));
+        
+        return !empty($attachments) ? $attachments[0] : null;
+    }
+    
+    /**
+     * Get existing projection PDF attachment ID
+     *
+     * @param int $post_id WordPress Post ID
+     * @param int $projection_id Develogic projection ID
+     * @return int|null PDF Attachment ID or null
+     */
+    private function get_projection_pdf_attachment_id($post_id, $projection_id) {
+        $attachments = get_posts(array(
+            'post_type' => 'attachment',
+            'post_parent' => $post_id,
+            'meta_query' => array(
+                array(
+                    'key' => 'develogic_projection_id',
+                    'value' => $projection_id,
+                    'compare' => '=',
+                ),
+                array(
+                    'key' => 'develogic_is_pdf_original',
+                    'value' => '1',
                     'compare' => '=',
                 ),
             ),

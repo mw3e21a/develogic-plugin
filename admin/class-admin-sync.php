@@ -25,6 +25,7 @@ class Develogic_Admin_Sync {
         add_action('admin_post_develogic_unlock_sync', array($this, 'handle_unlock_sync'));
         add_action('admin_post_develogic_fetch_investments', array($this, 'handle_fetch_investments'));
         add_action('admin_post_develogic_save_investments', array($this, 'handle_save_investments'));
+        add_action('admin_post_develogic_force_resync_projections', array($this, 'handle_force_resync_projections'));
     }
     
     /**
@@ -120,6 +121,16 @@ class Develogic_Admin_Sync {
             <?php if (isset($_GET['unlocked']) && $_GET['unlocked'] == '1'): ?>
                 <div class="notice notice-success is-dismissible">
                     <p>✅ <?php _e('Synchronizacja została odblokowana. Możesz teraz uruchomić nową synchronizację.', 'develogic'); ?></p>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($_GET['resync_projections']) && $_GET['resync_projections'] == 'success'): ?>
+                <?php 
+                $deleted = isset($_GET['deleted_count']) ? absint($_GET['deleted_count']) : 0;
+                $locals = isset($_GET['local_count']) ? absint($_GET['local_count']) : 0;
+                ?>
+                <div class="notice notice-success is-dismissible">
+                    <p>✅ <?php printf(__('Usunięto %d załączników projekcji z %d mieszkań. <strong>Uruchom teraz synchronizację aby pobrać pliki ponownie.</strong>', 'develogic'), $deleted, $locals); ?></p>
                 </div>
             <?php endif; ?>
             
@@ -236,10 +247,26 @@ class Develogic_Admin_Sync {
                     <p><?php _e('Najpierw skonfiguruj API w Ustawieniach.', 'develogic'); ?></p>
                 <?php endif; ?>
                 
+                <hr style="margin: 30px 0;">
+                
+                <h3><?php _e('Operacje zaawansowane', 'develogic'); ?></h3>
+                
+                <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="display: inline-block; margin-right: 10px;" onsubmit="return confirm('<?php esc_attr_e('To usunie wszystkie zdjęcia i PDF projekcji. Po tej operacji musisz uruchomić pełną synchronizację. Czy na pewno chcesz kontynuować?', 'develogic'); ?>');">
+                    <input type="hidden" name="action" value="develogic_force_resync_projections">
+                    <?php wp_nonce_field('develogic_force_resync_projections', 'develogic_resync_nonce'); ?>
+                    <?php submit_button(__('🔄 Wymuś re-synchronizację projekcji', 'develogic'), 'secondary', 'submit', false); ?>
+                    <p class="description" style="max-width: 400px;">
+                        <?php _e('Usuwa wszystkie załączniki projekcji (zdjęcia i PDF) i wymusza ponowne pobranie podczas następnej synchronizacji. Użyj gdy chcesz zaktualizować wszystkie pliki projekcji.', 'develogic'); ?>
+                    </p>
+                </form>
+                
                 <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="display: inline-block;" onsubmit="return confirm('<?php esc_attr_e('Czy na pewno chcesz usunąć wszystkie lokale z bazy? Ta operacja jest nieodwracalna!', 'develogic'); ?>');">
                     <input type="hidden" name="action" value="develogic_clear_locals">
                     <?php wp_nonce_field('develogic_clear_locals', 'develogic_clear_nonce'); ?>
                     <?php submit_button(__('Wyczyść wszystkie lokale', 'develogic'), 'secondary', 'submit', false); ?>
+                    <p class="description" style="max-width: 400px;">
+                        <?php _e('Usuwa wszystkie mieszkania z bazy danych. Użyj ostrożnie!', 'develogic'); ?>
+                    </p>
                 </form>
             </div>
             
@@ -496,6 +523,82 @@ class Develogic_Admin_Sync {
         wp_redirect(add_query_arg(array(
             'page' => 'develogic-sync',
             'unlocked' => '1',
+        ), admin_url('admin.php')));
+        exit;
+    }
+    
+    /**
+     * Handle force resync projections action
+     */
+    public function handle_force_resync_projections() {
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Brak uprawnień', 'develogic'));
+        }
+        
+        check_admin_referer('develogic_force_resync_projections', 'develogic_resync_nonce');
+        
+        // Get all locals
+        $args = array(
+            'post_type' => 'develogic_local',
+            'posts_per_page' => -1,
+            'post_status' => 'publish',
+            'fields' => 'ids',
+        );
+        
+        $query = new WP_Query($args);
+        $post_ids = $query->posts;
+        
+        $deleted_count = 0;
+        $local_count = 0;
+        
+        foreach ($post_ids as $post_id) {
+            // Find and delete all projection attachments for this local
+            $attachments = get_posts(array(
+                'post_type' => 'attachment',
+                'post_parent' => $post_id,
+                'posts_per_page' => -1,
+                'fields' => 'ids',
+                'meta_query' => array(
+                    array(
+                        'key' => 'develogic_projection_id',
+                        'compare' => 'EXISTS',
+                    ),
+                ),
+            ));
+            
+            $local_deleted = 0;
+            foreach ($attachments as $attachment_id) {
+                // Delete attachment and its files
+                if (wp_delete_attachment($attachment_id, true)) {
+                    $deleted_count++;
+                    $local_deleted++;
+                }
+            }
+            
+            if ($local_deleted > 0) {
+                $local_count++;
+            }
+        }
+        
+        // Log the operation
+        $log = get_option('develogic_sync_log', array());
+        $log[] = array(
+            'time' => current_time('mysql'),
+            'level' => 'info',
+            'message' => sprintf(
+                __('Wymuszono re-synchronizację projekcji: usunięto %d attachmentów z %d mieszkań. Uruchom synchronizację aby pobrać pliki ponownie.', 'develogic'),
+                $deleted_count,
+                $local_count
+            ),
+        );
+        $log = array_slice($log, -50);
+        update_option('develogic_sync_log', $log);
+        
+        wp_redirect(add_query_arg(array(
+            'page' => 'develogic-sync',
+            'resync_projections' => 'success',
+            'deleted_count' => $deleted_count,
+            'local_count' => $local_count,
         ), admin_url('admin.php')));
         exit;
     }
