@@ -377,6 +377,12 @@ if (!defined('ABSPATH')) {
                 $price_m2_padded = str_pad($price_m2, 8, '0', STR_PAD_LEFT);
                 $area_padded = str_pad(str_replace(array('.', ','), '', number_format($local['area'], 2, '.', '')), 8, '0', STR_PAD_LEFT);
                 
+                // Normalize status display
+                $display_status = $local['status'];
+                if ($display_status === 'Miękka rezerwacja') {
+                    $display_status = 'Rezerwacja';
+                }
+                
                 // Status class
                 $status_class = Develogic_Data_Formatter::get_status_class($local['status']);
                 
@@ -442,7 +448,7 @@ if (!defined('ABSPATH')) {
                     'building' => $local['building'],
                     'buildingAddress' => $building_address,
                     'subdivision' => isset($local['subdivision']) ? $local['subdivision'] : '',
-                    'status' => $local['status'],
+                    'status' => $display_status,
                     'statusClass' => $status_class,
                     'klatka' => $klatka,
                     'floor' => $local['floor'],
@@ -558,7 +564,7 @@ if (!defined('ABSPATH')) {
                         if ($status_class === 'available') {
                             echo 'Dostępne';
                         } else {
-                            echo esc_html($local['status']);
+                            echo esc_html($display_status);
                         }
                         ?>
                     </div>

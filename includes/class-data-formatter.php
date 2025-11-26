@@ -219,6 +219,7 @@ class Develogic_Data_Formatter {
         $status_map = array(
             'Wolny' => 'available',
             'Rezerwacja' => 'reserved',
+            'Miękka rezerwacja' => 'reserved',
             'Sprzedany' => 'sold',
             'Sprzedane' => 'sold',
         );

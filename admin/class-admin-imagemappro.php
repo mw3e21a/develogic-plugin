@@ -234,6 +234,7 @@ class Develogic_Admin_ImageMapPro {
             'Wolny' => '7ED322',
             'Sprzedany' => 'ee1c24',
             'Rezerwacja' => 'FFA500',
+            'Miękka rezerwacja' => 'FFA500',
             'Niedostępny' => 'cccccc',
         );
         

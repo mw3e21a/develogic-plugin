@@ -215,6 +215,7 @@ class Develogic_Debug_Helper {
                 'Wolny' => '7ED322',
                 'Sprzedany' => 'ee1c24',
                 'Rezerwacja' => 'FFA500',
+                'Miękka rezerwacja' => 'FFA500',
                 'Niedostępny' => 'cccccc',
             );
         }
@@ -318,6 +319,7 @@ class Develogic_Debug_Helper {
                 'Wolny' => '7ED322',
                 'Sprzedany' => 'ee1c24',
                 'Rezerwacja' => 'FFA500',
+                'Miękka rezerwacja' => 'FFA500',
                 'Niedostępny' => 'cccccc',
             ));
             

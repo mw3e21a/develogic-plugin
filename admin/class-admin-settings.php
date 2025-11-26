@@ -490,7 +490,7 @@ class Develogic_Admin_Settings {
         $settings = get_option('develogic_settings');
         $selected = isset($settings[$args['field']]) ? $settings[$args['field']] : array('Wolny', 'Rezerwacja');
         
-        $statuses = array('Wolny', 'Rezerwacja', 'Sprzedany', 'Sprzedane');
+        $statuses = array('Wolny', 'Rezerwacja', 'Miękka rezerwacja', 'Sprzedany', 'Sprzedane');
         
         foreach ($statuses as $status) {
             printf(

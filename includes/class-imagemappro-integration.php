@@ -27,6 +27,7 @@ class Develogic_ImageMapPro_Integration {
         'Wolny' => '7ED322',        // Green - available
         'Sprzedany' => 'ee1c24',    // Red - sold
         'Rezerwacja' => 'FFA500',   // Orange - reserved
+        'Miękka rezerwacja' => 'FFA500',  // Orange - soft reservation (same as regular reservation)
         'Niedostępny' => 'cccccc',  // Gray - unavailable
     );
     

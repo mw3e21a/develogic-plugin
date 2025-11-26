@@ -259,6 +259,11 @@ class Develogic_Filter_Sort {
         foreach ($locals as $local) {
             $status = $local['status'];
             
+            // Normalize "Miękka rezerwacja" to "Rezerwacja"
+            if ($status === 'Miękka rezerwacja') {
+                $status = 'Rezerwacja';
+            }
+            
             if (!isset($counts[$status])) {
                 $counts[$status] = 0;
             }
