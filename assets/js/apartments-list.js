@@ -463,8 +463,8 @@
                 }
             }
             
-            // Building filter
-            if (selectedBuilding !== 'all') {
+            // Building filter (skip for garage listings)
+            if (selectedBuilding !== 'all' && selectedLocalType !== 'Garaż') {
                 const itemBuilding = item.getAttribute('data-building') || '';
                 shouldShow = shouldShow && itemBuilding === selectedBuilding;
             }

@@ -143,12 +143,23 @@ class Develogic_Shortcodes {
         
         $locals = Develogic_Local_Query::get_locals($filters);
         
-        // Apply building filter from settings if specified
-        $selected_buildings = develogic()->get_setting('sync_buildings', array());
-        if (!empty($selected_buildings) && is_array($selected_buildings)) {
-            $locals = array_filter($locals, function($local) use ($selected_buildings) {
-                return !empty($local['buildingId']) && in_array(absint($local['buildingId']), array_map('absint', $selected_buildings));
-            });
+        // Check if this is a garage listing - if so, don't filter by building
+        $is_garage_listing = false;
+        if (!empty($atts['local_types'])) {
+            $local_types_array = array_map('trim', explode(',', $atts['local_types']));
+            if (in_array('Garaż', $local_types_array) || in_array('Garaz', $local_types_array)) {
+                $is_garage_listing = true;
+            }
+        }
+        
+        // Apply building filter from settings if specified (but not for garage listings)
+        if (!$is_garage_listing) {
+            $selected_buildings = develogic()->get_setting('sync_buildings', array());
+            if (!empty($selected_buildings) && is_array($selected_buildings)) {
+                $locals = array_filter($locals, function($local) use ($selected_buildings) {
+                    return !empty($local['buildingId']) && in_array(absint($local['buildingId']), array_map('absint', $selected_buildings));
+                });
+            }
         }
         
         // Get buildings
@@ -189,7 +200,13 @@ class Develogic_Shortcodes {
         }
         
         // Apply hard filters (only if explicitly needed for data limiting)
+        // For garage listings, exclude building filters
         if (!empty($filter_criteria)) {
+            if ($is_garage_listing) {
+                // Remove building filters for garage listings
+                unset($filter_criteria['building_id']);
+                unset($filter_criteria['building']);
+            }
             $locals = Develogic_Filter_Sort::filter_locals($locals, $filter_criteria);
         }
         
@@ -219,12 +236,14 @@ class Develogic_Shortcodes {
         
         // Check if floor filter should be hidden (e.g., for "Garaż" type)
         $hide_floor_filter = false;
+        $hide_building_filter = false;
         $default_local_type = null;
         if (!empty($atts['local_types'])) {
             $local_types_array = array_map('trim', explode(',', $atts['local_types']));
             // Hide floor filter if only "Garaż" is selected
             if (count($local_types_array) === 1 && in_array('Garaż', $local_types_array)) {
                 $hide_floor_filter = true;
+                $hide_building_filter = true;
                 $default_local_type = 'Garaż';
             } elseif (count($local_types_array) === 1) {
                 // If only one type is specified, use it as default
@@ -244,6 +263,7 @@ class Develogic_Shortcodes {
             'buildings' => $buildings,
             'status_counts' => $status_counts,
             'hide_floor_filter' => $hide_floor_filter,
+            'hide_building_filter' => $hide_building_filter,
             'default_local_type' => $default_local_type,
         ));
         return ob_get_clean();

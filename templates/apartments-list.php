@@ -43,7 +43,25 @@ if (!defined('ABSPATH')) {
         <?php endif; ?>
         <h1 class="title">
             <?php 
-            $title = !empty($atts['title']) ? $atts['title'] : __('Lista mieszkań', 'develogic');
+            // Check if this is a garage listing
+            $is_garage = false;
+            if ($default_local_type === 'Garaż') {
+                $is_garage = true;
+            } elseif (!empty($atts['local_types'])) {
+                $local_types_array = array_map('trim', explode(',', $atts['local_types']));
+                if (in_array('Garaż', $local_types_array) || in_array('Garaz', $local_types_array)) {
+                    $is_garage = true;
+                }
+            }
+            
+            // Set title based on context
+            if (!empty($atts['title'])) {
+                $title = $atts['title'];
+            } elseif ($is_garage) {
+                $title = 'Garaże - Wygoda, spokój i bezpieczeństwo';
+            } else {
+                $title = __('Lista mieszkań', 'develogic');
+            }
             echo esc_html($title);
             ?>
         </h1>
@@ -121,6 +139,7 @@ if (!defined('ABSPATH')) {
                     </select>
                 </div>
                 
+                <?php if (empty($hide_building_filter)): ?>
                 <div class="filter-group filter-group-building">
                     <label class="filter-label">Budynek:</label>
                     <select class="filter-select" id="buildingFilter">
@@ -161,6 +180,7 @@ if (!defined('ABSPATH')) {
                         ?>
                     </select>
                 </div>
+                <?php endif; ?>
                 
                 <?php if (empty($hide_floor_filter)): ?>
                 <div class="filter-group filter-group-floor">
