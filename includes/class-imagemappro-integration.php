@@ -517,6 +517,19 @@ class Develogic_ImageMapPro_Integration {
         $local_number = isset($local['number']) ? trim($local['number']) : '';
         $local_name = isset($local['name']) ? trim($local['name']) : '';
         
+        // Check if tooltip is disabled - enable it if so
+        $tooltip_was_disabled = false;
+        if (isset($shape['tooltip']['enable_tooltip']) && $shape['tooltip']['enable_tooltip'] === false) {
+            $tooltip_was_disabled = true;
+            // Initialize tooltip object if it doesn't exist
+            if (!isset($shape['tooltip'])) {
+                $shape['tooltip'] = array();
+            }
+            // Enable tooltip
+            $shape['tooltip']['enable_tooltip'] = true;
+            $this->log(sprintf('Tooltip was disabled for shape "%s", enabling it', $shape_title), 'info');
+        }
+        
         $this->log(sprintf('Updating tooltip for shape "%s" (localType: %s)', $shape_title, $local_type ? $local_type : 'empty'), 'info');
         
         // Check if it's an apartment (mieszkanie)
@@ -529,64 +542,108 @@ class Develogic_ImageMapPro_Integration {
                           stripos($local_type, 'mieszkalny') !== false;
         }
         
-        // Build tooltip content
-        $tooltip_elements = array();
+        // Build tooltip content HTML
+        $tooltip_html_parts = array();
         
         if ($is_apartment) {
             // For apartments: show number, area, and balcony (if exists)
             if (!empty($local_number)) {
-                // Heading with apartment number
-                $tooltip_elements[] = array(
-                    'settings' => array(
-                        'name' => 'Heading',
-                        'iconClass' => 'fa fa-header'
-                    ),
-                    'options' => array(
-                        'heading' => array(
-                            'text' => $local_number
-                        )
-                    )
-                );
+                $tooltip_html_parts[] = '<div>Mieszkanie ' . esc_html($local_number) . '</div>';
             }
             
             // Area
             $area = isset($local['area']) ? floatval($local['area']) : 0;
             if ($area > 0) {
                 $area_formatted = number_format($area, 2, ',', '');
-                $tooltip_elements[] = array(
-                    'settings' => array(
-                        'name' => 'Paragraph',
-                        'iconClass' => 'fa fa-paragraph'
-                    ),
-                    'options' => array(
-                        'text' => array(
-                            'text' => 'pow. ' . $area_formatted . ' m²'
-                        )
-                    )
-                );
+                $tooltip_html_parts[] = '<div>pow. ' . esc_html($area_formatted) . ' m²</div>';
             }
             
             // Balcony (if exists)
             $balcony = isset($local['areaBalcony']) ? floatval($local['areaBalcony']) : 0;
             if ($balcony > 0) {
                 $balcony_formatted = number_format($balcony, 2, ',', '');
-                $tooltip_elements[] = array(
-                    'settings' => array(
-                        'name' => 'Paragraph',
-                        'iconClass' => 'fa fa-paragraph'
-                    ),
-                    'options' => array(
-                        'text' => array(
-                            'text' => 'balkon ' . $balcony_formatted . 'm²'
-                        )
-                    )
-                );
+                $tooltip_html_parts[] = '<div>balkon ' . esc_html($balcony_formatted) . ' m²</div>';
             }
         } else {
             // For non-apartments: just show the name
             $display_name = !empty($local_name) ? $local_name : (!empty($local_number) ? $local_number : '');
             
             if (!empty($display_name)) {
+                $tooltip_html_parts[] = '<div>' . esc_html($display_name) . '</div>';
+            }
+        }
+        
+        // Only update if we have content
+        if (empty($tooltip_html_parts)) {
+            $this->log(sprintf('No tooltip content to generate for shape "%s"', $shape_title), 'info');
+            return false;
+        }
+        
+        // Build tooltip HTML
+        $tooltip_html = implode('', $tooltip_html_parts);
+        
+        // Check if tooltip content has changed and detect structure type
+        $old_tooltip = isset($shape['tooltip_content']) ? $shape['tooltip_content'] : null;
+        $tooltip_changed = true;
+        $use_new_structure = false; // Default to old structure
+        
+        // Check if old tooltip exists and compare content
+        if ($old_tooltip) {
+            // Detect structure type: new structure has squares_settings
+            if (is_array($old_tooltip) && isset($old_tooltip['squares_settings'])) {
+                $use_new_structure = true;
+                $this->log(sprintf('Detected NEW tooltip structure for shape "%s"', $shape_title), 'info');
+            } elseif (is_array($old_tooltip) && !empty($old_tooltip) && isset($old_tooltip[0]['type'])) {
+                $use_new_structure = false;
+                $this->log(sprintf('Detected OLD tooltip structure for shape "%s"', $shape_title), 'info');
+            }
+            
+            // Handle both old structure (array with type/text) and new structure (squares_settings)
+            $old_text = '';
+            
+            if (is_array($old_tooltip) && !empty($old_tooltip)) {
+                // Old structure: array with objects
+                if (isset($old_tooltip[0]['text'])) {
+                    $old_text = $old_tooltip[0]['text'];
+                } elseif (isset($old_tooltip['squares_settings']['containers'][0]['settings']['elements'])) {
+                    // New structure: squares_settings - convert to text for comparison
+                    $old_elements = $old_tooltip['squares_settings']['containers'][0]['settings']['elements'];
+                    // Try to extract text from elements
+                    if (!empty($old_elements)) {
+                        // Check for heading text
+                        if (isset($old_elements[0]['options']['heading']['text'])) {
+                            $old_text = $old_elements[0]['options']['heading']['text'];
+                        } elseif (isset($old_elements[0]['options']['text']['text'])) {
+                            $old_text = $old_elements[0]['options']['text']['text'];
+                        }
+                    }
+                }
+            }
+            
+            // Compare tooltip text content
+            if ($old_text === $tooltip_html) {
+                $tooltip_changed = false;
+                $this->log(sprintf('Tooltip content unchanged for shape "%s"', $shape_title), 'info');
+            } else {
+                $this->log(sprintf('Tooltip content changed for shape "%s" (old: "%s", new: "%s")', 
+                    $shape_title, 
+                    substr($old_text, 0, 50), 
+                    substr($tooltip_html, 0, 50)
+                ), 'info');
+            }
+        } else {
+            // No tooltip exists - create new one (default to old structure)
+            $this->log(sprintf('No existing tooltip for shape "%s", creating new one (old structure)', $shape_title), 'info');
+            $tooltip_changed = true;
+        }
+        
+        // Build tooltip_content structure based on detected structure type
+        if ($use_new_structure) {
+            // NEW structure: squares_settings with containers and elements
+            $tooltip_elements = array();
+            
+            // Heading element
+            if (!empty($local_number) || !empty($local_name)) {
                 $tooltip_elements[] = array(
                     'settings' => array(
                         'name' => 'Heading',
@@ -594,49 +651,107 @@ class Develogic_ImageMapPro_Integration {
                     ),
                     'options' => array(
                         'heading' => array(
-                            'text' => $display_name
+                            'text' => $tooltip_html
                         )
                     )
                 );
             }
-        }
-        
-        // Only update if we have elements
-        if (empty($tooltip_elements)) {
-            return false;
-        }
-        
-        // Generate unique container ID
-        $container_id = 'sq-container-' . time() . '-' . rand(1000, 9999);
-        
-        // Build tooltip_content structure
-        $tooltip_content = array(
-            'squares_settings' => array(
-                'containers' => array(
-                    array(
-                        'id' => $container_id,
-                        'settings' => array(
-                            'elements' => $tooltip_elements
+            
+            // Generate unique container ID
+            $container_id = 'sq-container-' . time() . '-' . rand(1000, 9999);
+            
+            $tooltip_content = array(
+                'squares_settings' => array(
+                    'containers' => array(
+                        array(
+                            'id' => $container_id,
+                            'settings' => array(
+                                'elements' => $tooltip_elements
+                            )
                         )
                     )
                 )
-            )
-        );
-        
-        // Check if tooltip content has changed
-        $old_tooltip = isset($shape['tooltip_content']) ? $shape['tooltip_content'] : null;
-        $tooltip_changed = true;
-        
-        if ($old_tooltip && isset($old_tooltip['squares_settings']['containers'][0]['settings']['elements'])) {
-            $old_elements = $old_tooltip['squares_settings']['containers'][0]['settings']['elements'];
-            // Compare elements (ignore container ID)
-            if (json_encode($old_elements) === json_encode($tooltip_elements)) {
-                $tooltip_changed = false;
+            );
+        } else {
+            // OLD structure: array with objects containing type, text, heading, style, etc.
+            // Preserve existing properties if they exist, otherwise use defaults
+            $existing_tooltip = null;
+            if (is_array($old_tooltip) && !empty($old_tooltip) && isset($old_tooltip[0])) {
+                $existing_tooltip = $old_tooltip[0];
             }
+            
+            // Build tooltip element preserving existing properties
+            $tooltip_element = array(
+                'type' => isset($existing_tooltip['type']) ? $existing_tooltip['type'] : 'Heading',
+                'text' => $tooltip_html, // Always update text with dynamic data
+                'heading' => isset($existing_tooltip['heading']) ? $existing_tooltip['heading'] : 'h3',
+            );
+            
+            // Preserve 'other' if exists
+            if (isset($existing_tooltip['other'])) {
+                $tooltip_element['other'] = $existing_tooltip['other'];
+            } else {
+                $tooltip_element['other'] = array(
+                    'id' => '',
+                    'classes' => '',
+                    'css' => ''
+                );
+            }
+            
+            // Preserve 'style' if exists, otherwise use defaults
+            if (isset($existing_tooltip['style'])) {
+                $tooltip_element['style'] = $existing_tooltip['style'];
+            } else {
+                $tooltip_element['style'] = array(
+                    'fontFamily' => 'sans-serif',
+                    'fontSize' => 13.8,
+                    'lineHeight' => '18',
+                    'color' => '#ffffff',
+                    'textAlign' => 'left'
+                );
+            }
+            
+            // Preserve 'boxModel' if exists, otherwise use defaults
+            if (isset($existing_tooltip['boxModel'])) {
+                $tooltip_element['boxModel'] = $existing_tooltip['boxModel'];
+            } else {
+                $tooltip_element['boxModel'] = array(
+                    'width' => 'auto',
+                    'height' => 'auto',
+                    'margin' => array(
+                        'top' => 0,
+                        'bottom' => 0,
+                        'left' => 0,
+                        'right' => 0
+                    ),
+                    'padding' => array(
+                        'top' => 10,
+                        'bottom' => 10,
+                        'left' => 10,
+                        'right' => 10
+                    )
+                );
+            }
+            
+            // Preserve 'id' if exists (important for Image Map Pro)
+            if (isset($existing_tooltip['id'])) {
+                $tooltip_element['id'] = $existing_tooltip['id'];
+            }
+            
+            $tooltip_content = array($tooltip_element);
         }
         
-        if ($tooltip_changed) {
+        // Update tooltip if content changed OR if tooltip was enabled
+        if ($tooltip_changed || $tooltip_was_disabled) {
             $shape['tooltip_content'] = $tooltip_content;
+            $structure_type = $use_new_structure ? 'new' : 'old';
+            $action = $tooltip_was_disabled ? 'enabled and updated' : 'updated';
+            $this->log(sprintf('Tooltip %s for shape "%s" with %s structure, content: %s', 
+                $action,
+                $shape_title, 
+                $structure_type,
+                substr($tooltip_html, 0, 100)
+            ), 'success');
             return true;
         }
         
