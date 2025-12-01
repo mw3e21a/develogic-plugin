@@ -362,7 +362,7 @@ if (!defined('ABSPATH')) {
         </div>
         <?php if (empty($locals)): ?>
             <div class="no-results">
-                <p><?php _e('Brak dostępnych mieszkań.', 'develogic'); ?></p>
+                <p><?php _e('Brak dostępnych nieruchomości', 'develogic'); ?></p>
             </div>
         <?php else: ?>
             <?php foreach ($locals as $local): 

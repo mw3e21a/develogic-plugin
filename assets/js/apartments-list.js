@@ -594,7 +594,7 @@
             if (!noResultsMsg) {
                 noResultsMsg = document.createElement('div');
                 noResultsMsg.className = 'no-results no-results-filter';
-                noResultsMsg.innerHTML = '<p>Brak mieszkań spełniających wybrane kryteria. Spróbuj zmienić filtry.</p>';
+                noResultsMsg.innerHTML = '<p>Brak nieruchomości spełniających wybrane kryteria. Spróbuj zmienić filtry.</p>';
                 apartmentList.appendChild(noResultsMsg);
             }
             noResultsMsg.style.display = 'block';
