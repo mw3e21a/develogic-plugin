@@ -504,6 +504,145 @@ class Develogic_ImageMapPro_Integration {
     }
     
     /**
+     * Update shape tooltip content
+     *
+     * @param array &$shape Shape data (passed by reference)
+     * @param array $local Local data from Develogic
+     * @return bool True if tooltip was updated
+     */
+    private function update_shape_tooltip(&$shape, $local) {
+        $shape_title = isset($shape['title']) ? $shape['title'] : 'untitled';
+        $local_type = isset($local['localType']) ? trim($local['localType']) : '';
+        $local_number = isset($local['number']) ? trim($local['number']) : '';
+        $local_name = isset($local['name']) ? trim($local['name']) : '';
+        
+        $this->log(sprintf('Updating tooltip for shape "%s" (localType: %s)', $shape_title, $local_type ? $local_type : 'empty'), 'info');
+        
+        // Check if it's an apartment (mieszkanie)
+        $is_apartment = false;
+        if (!empty($local_type)) {
+            // Check for common apartment type names
+            $apartment_types = array('Lokal mieszkalny', 'Mieszkanie', 'mieszkanie');
+            $is_apartment = in_array($local_type, $apartment_types, true) || 
+                          stripos($local_type, 'mieszkanie') !== false ||
+                          stripos($local_type, 'mieszkalny') !== false;
+        }
+        
+        // Build tooltip content
+        $tooltip_elements = array();
+        
+        if ($is_apartment) {
+            // For apartments: show number, area, and balcony (if exists)
+            if (!empty($local_number)) {
+                // Heading with apartment number
+                $tooltip_elements[] = array(
+                    'settings' => array(
+                        'name' => 'Heading',
+                        'iconClass' => 'fa fa-header'
+                    ),
+                    'options' => array(
+                        'heading' => array(
+                            'text' => $local_number
+                        )
+                    )
+                );
+            }
+            
+            // Area
+            $area = isset($local['area']) ? floatval($local['area']) : 0;
+            if ($area > 0) {
+                $area_formatted = number_format($area, 2, ',', '');
+                $tooltip_elements[] = array(
+                    'settings' => array(
+                        'name' => 'Paragraph',
+                        'iconClass' => 'fa fa-paragraph'
+                    ),
+                    'options' => array(
+                        'text' => array(
+                            'text' => 'pow. ' . $area_formatted . ' m²'
+                        )
+                    )
+                );
+            }
+            
+            // Balcony (if exists)
+            $balcony = isset($local['areaBalcony']) ? floatval($local['areaBalcony']) : 0;
+            if ($balcony > 0) {
+                $balcony_formatted = number_format($balcony, 2, ',', '');
+                $tooltip_elements[] = array(
+                    'settings' => array(
+                        'name' => 'Paragraph',
+                        'iconClass' => 'fa fa-paragraph'
+                    ),
+                    'options' => array(
+                        'text' => array(
+                            'text' => 'balkon ' . $balcony_formatted . 'm²'
+                        )
+                    )
+                );
+            }
+        } else {
+            // For non-apartments: just show the name
+            $display_name = !empty($local_name) ? $local_name : (!empty($local_number) ? $local_number : '');
+            
+            if (!empty($display_name)) {
+                $tooltip_elements[] = array(
+                    'settings' => array(
+                        'name' => 'Heading',
+                        'iconClass' => 'fa fa-header'
+                    ),
+                    'options' => array(
+                        'heading' => array(
+                            'text' => $display_name
+                        )
+                    )
+                );
+            }
+        }
+        
+        // Only update if we have elements
+        if (empty($tooltip_elements)) {
+            return false;
+        }
+        
+        // Generate unique container ID
+        $container_id = 'sq-container-' . time() . '-' . rand(1000, 9999);
+        
+        // Build tooltip_content structure
+        $tooltip_content = array(
+            'squares_settings' => array(
+                'containers' => array(
+                    array(
+                        'id' => $container_id,
+                        'settings' => array(
+                            'elements' => $tooltip_elements
+                        )
+                    )
+                )
+            )
+        );
+        
+        // Check if tooltip content has changed
+        $old_tooltip = isset($shape['tooltip_content']) ? $shape['tooltip_content'] : null;
+        $tooltip_changed = true;
+        
+        if ($old_tooltip && isset($old_tooltip['squares_settings']['containers'][0]['settings']['elements'])) {
+            $old_elements = $old_tooltip['squares_settings']['containers'][0]['settings']['elements'];
+            // Compare elements (ignore container ID)
+            if (json_encode($old_elements) === json_encode($tooltip_elements)) {
+                $tooltip_changed = false;
+            }
+        }
+        
+        if ($tooltip_changed) {
+            $shape['tooltip_content'] = $tooltip_content;
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /**
      * Save project JSON to database
      *
      * @param string $project_id Project ID
