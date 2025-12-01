@@ -286,13 +286,21 @@ class Develogic_ImageMapPro_Integration {
         
         $this->log(sprintf('Updating shape "%s" to color #%s (status: %s)', $shape_title, $color, $status), 'info');
         
+        $modified = false;
+        
         // Update shape color
         if ($this->update_shape_color($shape, $color)) {
-            $this->log(sprintf('Successfully updated shape "%s"', $shape_title), 'success');
-            return true;
+            $modified = true;
+            $this->log(sprintf('Successfully updated color for shape "%s"', $shape_title), 'success');
         }
         
-        return false;
+        // Update tooltip content
+        if ($this->update_shape_tooltip($shape, $local)) {
+            $modified = true;
+            $this->log(sprintf('Successfully updated tooltip for shape "%s"', $shape_title), 'success');
+        }
+        
+        return $modified;
     }
     
     /**

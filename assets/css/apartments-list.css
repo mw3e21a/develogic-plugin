@@ -1606,7 +1606,9 @@
     }
 
     .apartment-actions {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: row;
+        gap: 15px;
     }
 }
 
