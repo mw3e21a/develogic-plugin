@@ -308,13 +308,25 @@ class Develogic_Admin_Settings {
             $output['primary_color'] = '#0066cc'; // Default
         }
         
-        $output['sync_investments'] = isset($input['sync_investments']) && is_array($input['sync_investments']) 
-            ? array_map('absint', $input['sync_investments']) 
-            : array();
+        // Preserve sync_investments and sync_buildings if not in input
+        // (they are managed on the sync page, not in settings)
+        if (isset($input['sync_investments']) && is_array($input['sync_investments'])) {
+            $output['sync_investments'] = array_map('absint', $input['sync_investments']);
+        } else {
+            // Keep existing value if not in input (use $old_settings already loaded above)
+            $output['sync_investments'] = isset($old_settings['sync_investments']) && is_array($old_settings['sync_investments'])
+                ? $old_settings['sync_investments']
+                : array();
+        }
         
-        $output['sync_buildings'] = isset($input['sync_buildings']) && is_array($input['sync_buildings']) 
-            ? array_map('absint', $input['sync_buildings']) 
-            : array();
+        if (isset($input['sync_buildings']) && is_array($input['sync_buildings'])) {
+            $output['sync_buildings'] = array_map('absint', $input['sync_buildings']);
+        } else {
+            // Keep existing value if not in input (use $old_settings already loaded above)
+            $output['sync_buildings'] = isset($old_settings['sync_buildings']) && is_array($old_settings['sync_buildings'])
+                ? $old_settings['sync_buildings']
+                : array();
+        }
         
         return $output;
     }
