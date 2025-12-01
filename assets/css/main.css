@@ -61,7 +61,7 @@
 
 .develogic-building-card:hover,
 .develogic-building-card.active {
-    border-color: #0066cc;
+    border-color: var(--develogic-primary-color);
     box-shadow: 0 4px 12px rgba(0,102,204,0.2);
 }
 
@@ -328,7 +328,7 @@
 .price-total {
     font-size: 22px;
     font-weight: bold;
-    color: #0066cc;
+    color: var(--develogic-primary-color);
     margin-bottom: 5px;
 }
 
@@ -358,8 +358,8 @@
 }
 
 .action-btn:hover {
-    background: #0066cc;
-    border-color: #0066cc;
+    background: var(--develogic-primary-color);
+    border-color: var(--develogic-primary-color);
     color: #fff;
 }
 
@@ -381,7 +381,7 @@
 
 .develogic-print-btn {
     padding: 12px 30px;
-    background: #0066cc;
+    background: var(--develogic-primary-color);
     color: #fff;
     border: none;
     border-radius: 4px;
@@ -391,7 +391,7 @@
 }
 
 .develogic-print-btn:hover {
-    background: #0052a3;
+    background: var(--develogic-primary-color-hover);
 }
 
 /* ===========================

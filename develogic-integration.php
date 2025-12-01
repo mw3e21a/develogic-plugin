@@ -195,6 +195,7 @@ final class Develogic_Integration {
             'pdf_source' => 'off',
             'pdf_pattern' => '',
             'enable_cron_sync' => false, // Disabled by default
+            'primary_color' => '#0066cc', // Default primary color
         );
         
         add_option('develogic_settings', $default_options);

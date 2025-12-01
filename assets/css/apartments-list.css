@@ -291,14 +291,14 @@
 }
 
 .filter-chip:hover {
-    border-color: #0066cc;
+    border-color: var(--develogic-primary-color);
     background: #f0f7ff;
-    color: #0066cc;
+    color: var(--develogic-primary-color);
 }
 
 .filter-chip.active {
-    background: #0066cc;
-    border-color: #0066cc;
+    background: var(--develogic-primary-color);
+    border-color: var(--develogic-primary-color);
     color: white;
 }
 
@@ -317,11 +317,11 @@
 }
 
 .filter-select:hover {
-    border-color: #0066cc;
+    border-color: var(--develogic-primary-color);
 }
 
 .filter-select:focus {
-    border-color: #0066cc;
+    border-color: var(--develogic-primary-color);
     box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
 }
 
@@ -346,11 +346,11 @@
 }
 
 .filter-input:hover {
-    border-color: #0066cc;
+    border-color: var(--develogic-primary-color);
 }
 
 .filter-input:focus {
-    border-color: #0066cc;
+    border-color: var(--develogic-primary-color);
     box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
 }
 
@@ -389,11 +389,11 @@
     border: 2px solid #e5e7eb;
     border-radius: 4px;
     cursor: pointer;
-    accent-color: #0066cc;
+    accent-color: var(--develogic-primary-color);
 }
 
 .filter-checkbox:hover {
-    color: #0066cc;
+    color: var(--develogic-primary-color);
 }
 
 /* Filter Reset Button */
@@ -429,7 +429,7 @@
     display: inline-block;
     width: 8px;
     height: 8px;
-    background: #0066cc;
+    background: var(--develogic-primary-color);
     border-radius: 50%;
     margin-left: 4px;
 }
@@ -675,8 +675,8 @@
 }
 
 .icon-btn:hover {
-    border-color: #0066cc;
-    color: #0066cc;
+    border-color: var(--develogic-primary-color);
+    color: var(--develogic-primary-color);
 }
 
 .icon-btn svg {
@@ -702,7 +702,7 @@
 }
 
 .icon-btn-3d:hover svg {
-    stroke: #0066cc;
+    stroke: var(--develogic-primary-color);
 }
 
 /* 360 degree text button */
@@ -720,7 +720,7 @@
 }
 
 .icon-btn-360:hover .text-360 {
-    color: #0066cc;
+    color: var(--develogic-primary-color);
 }
 
 /* Tooltips for icon buttons */
@@ -1036,11 +1036,11 @@
 }
 
 .gallery-thumbnail:hover {
-    border-color: #0066cc;
+    border-color: var(--develogic-primary-color);
 }
 
 .gallery-thumbnail.active {
-    border-color: #0066cc;
+    border-color: var(--develogic-primary-color);
 }
 
 /* Fullscreen styles */
@@ -1874,14 +1874,14 @@
 }
 
 .favorites-toggle-btn:hover {
-    border-color: #0066cc;
-    color: #0066cc;
+    border-color: var(--develogic-primary-color);
+    color: var(--develogic-primary-color);
 }
 
 .favorites-toggle-btn.active {
-    background: #0066cc;
+    background: var(--develogic-primary-color);
     color: white;
-    border-color: #0066cc;
+    border-color: var(--develogic-primary-color);
 }
 
 .favorites-toggle-btn svg {

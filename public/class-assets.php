@@ -127,6 +127,63 @@ class Develogic_Assets {
             DEVELOGIC_VERSION
         );
         
+        // Add inline CSS with CSS variables for primary color
+        add_action('wp_head', array($this, 'add_primary_color_css'), 100);
+        
+    }
+    
+    /**
+     * Add inline CSS with CSS variables for primary color
+     */
+    public function add_primary_color_css() {
+        $primary_color = develogic()->get_setting('primary_color', '#0066cc');
+        
+        // Calculate hover color (slightly darker)
+        $hover_color = $this->darken_color($primary_color, 0.1);
+        
+        $css = sprintf(
+            ':root {
+                --develogic-primary-color: %s;
+                --develogic-primary-color-hover: %s;
+            }',
+            esc_attr($primary_color),
+            esc_attr($hover_color)
+        );
+        
+        echo '<style id="develogic-primary-color">' . $css . '</style>';
+    }
+    
+    /**
+     * Convert hex color to RGB array
+     *
+     * @param string $hex Hex color code
+     * @return array RGB values
+     */
+    private function hex_to_rgb($hex) {
+        $hex = ltrim($hex, '#');
+        if (strlen($hex) == 3) {
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        }
+        return array(
+            'r' => hexdec(substr($hex, 0, 2)),
+            'g' => hexdec(substr($hex, 2, 2)),
+            'b' => hexdec(substr($hex, 4, 2))
+        );
+    }
+    
+    /**
+     * Darken a hex color by a percentage
+     *
+     * @param string $hex Hex color code
+     * @param float $percent Percentage to darken (0-1)
+     * @return string Darkened hex color
+     */
+    private function darken_color($hex, $percent) {
+        $rgb = $this->hex_to_rgb($hex);
+        $r = max(0, min(255, round($rgb['r'] * (1 - $percent))));
+        $g = max(0, min(255, round($rgb['g'] * (1 - $percent))));
+        $b = max(0, min(255, round($rgb['b'] * (1 - $percent))));
+        return sprintf('#%02x%02x%02x', $r, $g, $b);
     }
     
     /**

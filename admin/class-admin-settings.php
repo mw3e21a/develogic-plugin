@@ -227,6 +227,23 @@ class Develogic_Admin_Settings {
             'develogic_a1_section',
             array('field' => 'pdf_pattern', 'placeholder' => 'https://example.com/pdf/{localId}', 'description' => __('Użyj {localId} lub {number} jako placeholdera', 'develogic'))
         );
+        
+        // Appearance Settings Section
+        add_settings_section(
+            'develogic_appearance_section',
+            __('Wygląd', 'develogic'),
+            array($this, 'render_appearance_section_description'),
+            'develogic'
+        );
+        
+        add_settings_field(
+            'primary_color',
+            __('Kolor primary', 'develogic'),
+            array($this, 'render_color_field'),
+            'develogic',
+            'develogic_appearance_section',
+            array('field' => 'primary_color', 'default' => '#0066cc', 'description' => __('Główny kolor przycisków i elementów interaktywnych', 'develogic'))
+        );
     }
     
     /**
@@ -277,6 +294,19 @@ class Develogic_Admin_Settings {
         
         $output['pdf_source'] = isset($input['pdf_source']) ? sanitize_key($input['pdf_source']) : 'off';
         $output['pdf_pattern'] = isset($input['pdf_pattern']) ? esc_url_raw($input['pdf_pattern']) : '';
+        
+        // Primary color - sanitize hex color
+        if (isset($input['primary_color'])) {
+            $color = sanitize_text_field($input['primary_color']);
+            // Validate hex color format
+            if (preg_match('/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/', $color)) {
+                $output['primary_color'] = $color;
+            } else {
+                $output['primary_color'] = '#0066cc'; // Default if invalid
+            }
+        } else {
+            $output['primary_color'] = '#0066cc'; // Default
+        }
         
         $output['sync_investments'] = isset($input['sync_investments']) && is_array($input['sync_investments']) 
             ? array_map('absint', $input['sync_investments']) 
@@ -354,6 +384,10 @@ class Develogic_Admin_Settings {
     
     public function render_a1_section_description() {
         echo '<p>' . __('Ustawienia dla layoutu A1 (JeziornaTowers, OstojaOsiedle).', 'develogic') . '</p>';
+    }
+    
+    public function render_appearance_section_description() {
+        echo '<p>' . __('Dostosuj wygląd elementów interfejsu.', 'develogic') . '</p>';
     }
     
     public function render_text_field($args) {
@@ -584,6 +618,21 @@ class Develogic_Admin_Settings {
         }
         echo '</fieldset>';
         echo '<p class="description">' . __('Zaznacz budynki które mają być wyświetlane w widoku mieszkań. Jeśli nic nie zostanie zaznaczone, wyświetlane będą wszystkie budynki.', 'develogic') . '</p>';
+    }
+    
+    public function render_color_field($args) {
+        $settings = get_option('develogic_settings');
+        $value = isset($settings[$args['field']]) ? $settings[$args['field']] : (isset($args['default']) ? $args['default'] : '#0066cc');
+        
+        printf(
+            '<input type="color" name="develogic_settings[%s]" value="%s" class="color-picker">',
+            esc_attr($args['field']),
+            esc_attr($value)
+        );
+        
+        if (isset($args['description'])) {
+            printf('<p class="description">%s</p>', esc_html($args['description']));
+        }
     }
 }
 
