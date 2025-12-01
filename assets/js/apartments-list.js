@@ -1558,6 +1558,8 @@
                 
                 // Toggle apartment list classes
                 if (view === 'favorites') {
+                    // Reset filters to show all observed apartments
+                    resetFilters();
                     apartmentList.classList.add('hide-favorites');
                     // Check if there are any favorites
                     checkAndToggleNoFavoritesPlaceholder();
