@@ -109,6 +109,7 @@ class Develogic_Shortcodes {
             'local_type_id' => '',
             'local_types' => '',
             'garage_name' => '',
+            'pg_name' => '',
             'kl_from' => '',
             'kl_to' => '',
             'building_id' => '',
@@ -178,7 +179,7 @@ class Develogic_Shortcodes {
             // If "Garaż" is in the list, automatically add related types for server-side filtering
             // This ensures all related types are available in the data, then JavaScript filters them
             if (in_array('Garaż', $local_types_array)) {
-                $additional_types = array('Komórka lokatorska', 'Miejsce postojowe', 'Pomieszczenia gospodarcze');
+                $additional_types = array('Komórka lokatorska', 'Miejsce postojowe', 'Pomieszczenie gospodarcze');
                 // Add additional types if not already present
                 foreach ($additional_types as $additional_type) {
                     if (!in_array($additional_type, $local_types_array)) {
@@ -213,16 +214,16 @@ class Develogic_Shortcodes {
         }
         
         // Apply garage name filter if specified and local_types is "Garaż"
-        // Note: This filter applies only to garages, not to "Komórka lokatorska"
+        // Note: This filter applies only to garages, not to "Komórka lokatorska" or "Pomieszczenie gospodarcze"
         if (!empty($atts['garage_name']) && !empty($atts['local_types'])) {
             $local_types_array = array_map('trim', explode(',', $atts['local_types']));
             if (in_array('Garaż', $local_types_array)) {
                 $garage_name_filter = trim($atts['garage_name']);
                 $locals = array_filter($locals, function($local) use ($garage_name_filter) {
                     $local_type = isset($local['localType']) ? trim($local['localType']) : '';
-                    // Skip garage_name filter for "Komórka lokatorska" - they are filtered by KL range
-                    if ($local_type === 'Komórka lokatorska') {
-                        return true; // Keep all KL cells, they will be filtered by KL range if specified
+                    // Skip garage_name filter for "Komórka lokatorska" and "Pomieszczenie gospodarcze" - they have their own filters
+                    if ($local_type === 'Komórka lokatorska' || $local_type === 'Pomieszczenie gospodarcze') {
+                        return true; // Keep all KL and PG cells, they will be filtered by their own parameters if specified
                     }
                     
                     $number = isset($local['number']) ? trim($local['number']) : '';
@@ -234,12 +235,34 @@ class Develogic_Shortcodes {
             }
         }
         
-        // Handle KL (Komórka lokatorska) filtering
-        // If local_types includes "Garaż", handle KL cells based on whether KL parameters are provided
+        // Apply PG (Pomieszczenie gospodarcze) name filter if specified
+        if (!empty($atts['pg_name']) && !empty($atts['local_types'])) {
+            $local_types_array = array_map('trim', explode(',', $atts['local_types']));
+            if (in_array('Garaż', $local_types_array)) {
+                $pg_name_filter = trim($atts['pg_name']);
+                $locals = array_filter($locals, function($local) use ($pg_name_filter) {
+                    $local_type = isset($local['localType']) ? trim($local['localType']) : '';
+                    // Only filter "Pomieszczenie gospodarcze" type
+                    if ($local_type !== 'Pomieszczenie gospodarcze') {
+                        return true; // Keep non-PG locals
+                    }
+                    
+                    $number = isset($local['number']) ? trim($local['number']) : '';
+                    $name = isset($local['name']) ? trim($local['name']) : '';
+                    // Check if PG name/number appears in number or name field
+                    return stripos($number, $pg_name_filter) !== false || 
+                           stripos($name, $pg_name_filter) !== false;
+                });
+            }
+        }
+        
+        // Handle KL (Komórka lokatorska) and PG (Pomieszczenie gospodarcze) filtering
+        // If local_types includes "Garaż", handle KL and PG cells based on whether parameters are provided
         if (!empty($atts['local_types'])) {
             $local_types_array = array_map('trim', explode(',', $atts['local_types']));
             if (in_array('Garaż', $local_types_array)) {
                 $has_kl_params = !empty($atts['kl_from']) || !empty($atts['kl_to']);
+                $has_pg_params = !empty($atts['pg_name']);
                 
                 if ($has_kl_params) {
                     // Filter KL cells by range if parameters are provided
@@ -287,6 +310,14 @@ class Develogic_Shortcodes {
                     $locals = array_filter($locals, function($local) {
                         $local_type = isset($local['localType']) ? trim($local['localType']) : '';
                         return $local_type !== 'Komórka lokatorska';
+                    });
+                }
+                
+                // If no PG parameters are provided, exclude all PG cells
+                if (!$has_pg_params) {
+                    $locals = array_filter($locals, function($local) {
+                        $local_type = isset($local['localType']) ? trim($local['localType']) : '';
+                        return $local_type !== 'Pomieszczenie gospodarcze';
                     });
                 }
             }

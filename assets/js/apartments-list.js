@@ -452,7 +452,7 @@
                 
                 if (selectedLocalType === 'Garaż') {
                     // If "Garaż" is selected, show also related types
-                    const garageRelatedTypes = ['Garaż', 'Komórka lokatorska', 'Miejsce postojowe', 'Pomieszczenia gospodarcze'];
+                    const garageRelatedTypes = ['Garaż', 'Komórka lokatorska', 'Miejsce postojowe', 'Pomieszczenie gospodarcze'];
                     shouldShow = shouldShow && garageRelatedTypes.includes(itemLocalType);
                 } else if (selectedLocalType === 'Lokal mieszkalny') {
                     // If "Lokal mieszkalny" is selected, show only that type
