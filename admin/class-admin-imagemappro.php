@@ -235,6 +235,7 @@ class Develogic_Admin_ImageMapPro {
             'Sprzedany' => 'ee1c24',
             'Rezerwacja' => 'FFA500',
             'Miękka rezerwacja' => 'FFA500',
+            'Przeniesiona własność' => 'ee1c24',
             'Niedostępny' => 'cccccc',
         );
         

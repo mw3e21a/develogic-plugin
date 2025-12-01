@@ -222,6 +222,7 @@ class Develogic_Data_Formatter {
             'Miękka rezerwacja' => 'reserved',
             'Sprzedany' => 'sold',
             'Sprzedane' => 'sold',
+            'Przeniesiona własność' => 'sold',
         );
         
         return isset($status_map[$status]) ? $status_map[$status] : sanitize_title($status);

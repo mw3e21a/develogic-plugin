@@ -902,7 +902,8 @@
         } else if (data.statusClass === 'reserved') {
             statusEl.innerHTML = '<span style="color: #ff9500;">Rezerwacja</span>';
         } else if (data.statusClass === 'sold') {
-            statusEl.innerHTML = '<span style="color: #8b0000;">Sprzedany</span>';
+            const statusText = data.status || 'Sprzedany';
+            statusEl.innerHTML = '<span style="color: #8b0000;">' + statusText + '</span>';
         } else {
             statusEl.textContent = data.status || '';
         }

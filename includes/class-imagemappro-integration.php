@@ -28,6 +28,7 @@ class Develogic_ImageMapPro_Integration {
         'Sprzedany' => 'ee1c24',    // Red - sold
         'Rezerwacja' => 'FFA500',   // Orange - reserved
         'Miękka rezerwacja' => 'FFA500',  // Orange - soft reservation (same as regular reservation)
+        'Przeniesiona własność' => 'ee1c24',  // Red - transferred ownership (same as sold)
         'Niedostępny' => 'cccccc',  // Gray - unavailable
     );
     
