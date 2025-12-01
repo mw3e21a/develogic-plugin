@@ -449,7 +449,18 @@
             // Local type filter
             if (selectedLocalType !== 'all') {
                 const itemLocalType = item.getAttribute('data-local-type') || '';
-                shouldShow = shouldShow && itemLocalType === selectedLocalType;
+                
+                if (selectedLocalType === 'Garaż') {
+                    // If "Garaż" is selected, show also related types
+                    const garageRelatedTypes = ['Garaż', 'Komórka lokatorska', 'Miejsce postojowe', 'Pomieszczenia gospodarcze'];
+                    shouldShow = shouldShow && garageRelatedTypes.includes(itemLocalType);
+                } else if (selectedLocalType === 'Lokal mieszkalny') {
+                    // If "Lokal mieszkalny" is selected, show only that type
+                    shouldShow = shouldShow && itemLocalType === selectedLocalType;
+                } else {
+                    // For other types (legacy support), exact match
+                    shouldShow = shouldShow && itemLocalType === selectedLocalType;
+                }
             }
             
             // Building filter
@@ -535,9 +546,14 @@
         // Reset dropdowns
         const localTypeFilter = document.getElementById('localTypeFilter');
         if (localTypeFilter) {
-            // Reset to "Lokal mieszkalny" if available, otherwise "all"
+            // Reset to "Lokal mieszkalny" if available, otherwise "Garaż", otherwise "all"
             const lokalMieszkalnyOption = Array.from(localTypeFilter.options).find(opt => opt.value === 'Lokal mieszkalny');
-            localTypeFilter.value = lokalMieszkalnyOption ? 'Lokal mieszkalny' : 'all';
+            if (lokalMieszkalnyOption) {
+                localTypeFilter.value = 'Lokal mieszkalny';
+            } else {
+                const garazOption = Array.from(localTypeFilter.options).find(opt => opt.value === 'Garaż');
+                localTypeFilter.value = garazOption ? 'Garaż' : 'all';
+            }
         }
         
         const buildingFilter = document.getElementById('buildingFilter');

@@ -38,6 +38,20 @@ class Develogic_Filter_Sort {
                 return false;
             }
             
+            // Local Type (name) - supports array or comma-separated string
+            if (!empty($filters['local_type'])) {
+                $local_type_filter = is_array($filters['local_type']) 
+                    ? $filters['local_type'] 
+                    : array_map('trim', explode(',', $filters['local_type']));
+                
+                $local_type_filter = array_map('trim', $local_type_filter);
+                $local_type = isset($local['localType']) ? trim($local['localType']) : '';
+                
+                if (!in_array($local_type, $local_type_filter)) {
+                    return false;
+                }
+            }
+            
             // Building ID
             if (!empty($filters['building_id']) && $local['buildingId'] != $filters['building_id']) {
                 return false;

@@ -107,6 +107,8 @@ class Develogic_Shortcodes {
         $atts = shortcode_atts(array(
             'investment_id' => '',
             'local_type_id' => '',
+            'local_types' => '',
+            'garage_name' => '',
             'building_id' => '',
             'building' => '',
             'title' => '',
@@ -155,6 +157,27 @@ class Develogic_Shortcodes {
         // Only apply hard filters from settings (status and building_id if explicitly set for data limiting)
         $filter_criteria = array();
         
+        // Apply local types filter if specified
+        if (!empty($atts['local_types'])) {
+            $local_types_string = $atts['local_types'];
+            $local_types_array = array_map('trim', explode(',', $local_types_string));
+            
+            // If "Garaż" is in the list, automatically add related types for server-side filtering
+            // This ensures all related types are available in the data, then JavaScript filters them
+            if (in_array('Garaż', $local_types_array)) {
+                $additional_types = array('Komórka lokatorska', 'Miejsce postojowe', 'Pomieszczenia gospodarcze');
+                // Add additional types if not already present
+                foreach ($additional_types as $additional_type) {
+                    if (!in_array($additional_type, $local_types_array)) {
+                        $local_types_array[] = $additional_type;
+                    }
+                }
+                $local_types_string = implode(',', $local_types_array);
+            }
+            
+            $filter_criteria['local_type'] = $local_types_string;
+        }
+        
         // Apply visible statuses filter (this is always a hard filter)
         if (!empty($atts['status'])) {
             // Custom status from shortcode
@@ -170,6 +193,21 @@ class Develogic_Shortcodes {
             $locals = Develogic_Filter_Sort::filter_locals($locals, $filter_criteria);
         }
         
+        // Apply garage name filter if specified and local_types is "Garaż"
+        if (!empty($atts['garage_name']) && !empty($atts['local_types'])) {
+            $local_types_array = array_map('trim', explode(',', $atts['local_types']));
+            if (in_array('Garaż', $local_types_array)) {
+                $garage_name_filter = trim($atts['garage_name']);
+                $locals = array_filter($locals, function($local) use ($garage_name_filter) {
+                    $number = isset($local['number']) ? trim($local['number']) : '';
+                    $name = isset($local['name']) ? trim($local['name']) : '';
+                    // Check if garage name appears in number or name field
+                    return stripos($number, $garage_name_filter) !== false || 
+                           stripos($name, $garage_name_filter) !== false;
+                });
+            }
+        }
+        
         // Note: Other parameters (building, rooms, floor, area, price) are only used
         // for setting default UI values in the template, not for filtering data
         
@@ -178,6 +216,21 @@ class Develogic_Shortcodes {
         
         // Count by status
         $status_counts = Develogic_Filter_Sort::count_by_status($locals);
+        
+        // Check if floor filter should be hidden (e.g., for "Garaż" type)
+        $hide_floor_filter = false;
+        $default_local_type = null;
+        if (!empty($atts['local_types'])) {
+            $local_types_array = array_map('trim', explode(',', $atts['local_types']));
+            // Hide floor filter if only "Garaż" is selected
+            if (count($local_types_array) === 1 && in_array('Garaż', $local_types_array)) {
+                $hide_floor_filter = true;
+                $default_local_type = 'Garaż';
+            } elseif (count($local_types_array) === 1) {
+                // If only one type is specified, use it as default
+                $default_local_type = $local_types_array[0];
+            }
+        }
         
         // Generate unique ID for this instance
         $instance_id = 'develogic-apartments-list-' . uniqid();
@@ -190,6 +243,8 @@ class Develogic_Shortcodes {
             'locals' => $locals,
             'buildings' => $buildings,
             'status_counts' => $status_counts,
+            'hide_floor_filter' => $hide_floor_filter,
+            'default_local_type' => $default_local_type,
         ));
         return ob_get_clean();
     }
