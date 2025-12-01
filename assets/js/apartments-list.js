@@ -472,11 +472,23 @@
             floorFilter.appendChild(allOpt);
         }
         
-        // If "all" buildings selected, show all floors
+        // If "all" buildings selected, show all unique floors from all buildings
         if (selectedBuilding === 'all' || !selectedBuilding) {
-            // Show all standard floors
-            const allFloors = ['-1', '0', '1', '2', '3', '4'];
-            allFloors.forEach(floor => {
+            // Collect all unique floors from all buildings
+            const allUniqueFloors = new Set();
+            Object.values(buildingFloorsMap).forEach(floors => {
+                floors.forEach(floor => allUniqueFloors.add(String(floor)));
+            });
+            
+            // Convert to array and sort numerically
+            const sortedFloors = Array.from(allUniqueFloors).sort((a, b) => {
+                const aInt = parseInt(a);
+                const bInt = parseInt(b);
+                return aInt - bInt;
+            });
+            
+            // Add floor options
+            sortedFloors.forEach(floor => {
                 const option = document.createElement('option');
                 option.value = floor;
                 option.textContent = formatFloor(floor);
@@ -579,8 +591,16 @@
             
             // Floor filter
             if (selectedFloor !== 'all') {
-                const itemFloor = parseInt(item.getAttribute('data-floor-number')) || 0;
-                shouldShow = shouldShow && itemFloor === parseInt(selectedFloor);
+                const itemFloorAttr = item.getAttribute('data-floor-number');
+                const itemFloorNum = parseFloorToNumber(itemFloorAttr);
+                const selectedFloorNum = parseFloorToNumber(selectedFloor);
+                
+                // Compare both as numbers, handling null/empty values
+                if (itemFloorNum === null || selectedFloorNum === null) {
+                    shouldShow = false;
+                } else {
+                    shouldShow = shouldShow && itemFloorNum === selectedFloorNum;
+                }
             }
             
             // Area filter
@@ -1498,6 +1518,52 @@
     function formatArea(area) {
         if (!area) return '0,00 m²';
         return parseFloat(area).toLocaleString('pl-PL', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²';
+    }
+    
+    /**
+     * Parse floor value to number, handling various formats:
+     * - Numbers: 6, "6", -1, 0
+     * - Roman numerals: "VI", "VI piętro", "Piętro VI"
+     * - Text with numbers: "6 piętro", "Piętro 6"
+     */
+    function parseFloorToNumber(floor) {
+        if (floor === '' || floor === null || floor === undefined) return null;
+        
+        const floorStr = String(floor).trim();
+        
+        // Handle special cases
+        if (floorStr === '0' || floorStr === 'Parter' || floorStr.toLowerCase() === 'parter') return 0;
+        if (floorStr === '-1' || floorStr === 'Piwnica' || floorStr.toLowerCase() === 'piwnica') return -1;
+        
+        // Try direct parseInt first
+        const directParse = parseInt(floorStr);
+        if (!isNaN(directParse)) {
+            return directParse;
+        }
+        
+        // Try to extract number from text like "VI piętro", "Piętro VI", "6 piętro"
+        // Check Roman numerals in descending order (longer first) to avoid partial matches
+        const romanNumerals = [
+            ['VIII', 8], ['VII', 7], ['III', 3], ['VI', 6], ['IV', 4], ['IX', 9],
+            ['II', 2], ['X', 10], ['V', 5], ['I', 1]
+        ];
+        
+        // Check for Roman numerals in the string (only if no Arabic digits)
+        if (!floorStr.match(/\d/)) {
+            for (const [roman, num] of romanNumerals) {
+                if (floorStr.includes(roman)) {
+                    return num;
+                }
+            }
+        }
+        
+        // Try to extract Arabic number from text
+        const numberMatch = floorStr.match(/\d+/);
+        if (numberMatch) {
+            return parseInt(numberMatch[0]);
+        }
+        
+        return null;
     }
     
     function formatFloor(floor) {
