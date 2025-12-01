@@ -378,7 +378,10 @@
         // Building filter
         const buildingFilter = document.getElementById('buildingFilter');
         if (buildingFilter) {
-            buildingFilter.addEventListener('change', applyFilters);
+            buildingFilter.addEventListener('change', function() {
+                updateFloorOptions();
+                applyFilters();
+            });
         }
         
         // Floor filter
@@ -386,6 +389,9 @@
         if (floorFilter) {
             floorFilter.addEventListener('change', applyFilters);
         }
+        
+        // Initialize dynamic floor filtering if enabled
+        updateFloorOptions();
         
         // Area range filters
         const areaMin = document.getElementById('areaMin');
@@ -411,6 +417,108 @@
         const resetBtn = document.getElementById('resetFilters');
         if (resetBtn) {
             resetBtn.addEventListener('click', resetFilters);
+        }
+    }
+    
+    /**
+     * Update floor filter options based on selected building
+     * Only works for "Lokal mieszkalny" type
+     */
+    function updateFloorOptions() {
+        const container = document.querySelector('.develogic-apartments-container');
+        const floorFilter = document.getElementById('floorFilter');
+        const buildingFilter = document.getElementById('buildingFilter');
+        
+        if (!container || !floorFilter || !buildingFilter) {
+            return;
+        }
+        
+        // Check if dynamic floor filtering is enabled
+        const enableDynamicFloors = container.getAttribute('data-enable-dynamic-floors') === 'true';
+        if (!enableDynamicFloors) {
+            return;
+        }
+        
+        // Get building -> floors map
+        const buildingFloorsMapStr = container.getAttribute('data-building-floors-map');
+        if (!buildingFloorsMapStr) {
+            return;
+        }
+        
+        let buildingFloorsMap;
+        try {
+            buildingFloorsMap = JSON.parse(buildingFloorsMapStr);
+        } catch (e) {
+            console.error('Error parsing building floors map:', e);
+            return;
+        }
+        
+        // Get selected building
+        const selectedBuilding = buildingFilter.value;
+        
+        // Save current floor selection
+        const currentFloor = floorFilter.value;
+        
+        // Clear existing options (except "all")
+        const allOption = floorFilter.querySelector('option[value="all"]');
+        floorFilter.innerHTML = '';
+        if (allOption) {
+            floorFilter.appendChild(allOption);
+        } else {
+            // Create "all" option if it doesn't exist
+            const allOpt = document.createElement('option');
+            allOpt.value = 'all';
+            allOpt.textContent = 'Wszystkie piętra';
+            floorFilter.appendChild(allOpt);
+        }
+        
+        // If "all" buildings selected, show all floors
+        if (selectedBuilding === 'all' || !selectedBuilding) {
+            // Show all standard floors
+            const allFloors = ['-1', '0', '1', '2', '3', '4'];
+            allFloors.forEach(floor => {
+                const option = document.createElement('option');
+                option.value = floor;
+                option.textContent = formatFloor(floor);
+                floorFilter.appendChild(option);
+            });
+        } else {
+            // Get floors for selected building
+            const buildingFloors = buildingFloorsMap[selectedBuilding];
+            if (buildingFloors && Array.isArray(buildingFloors) && buildingFloors.length > 0) {
+                // Sort floors numerically
+                const sortedFloors = [...buildingFloors].sort((a, b) => {
+                    const aInt = parseInt(a);
+                    const bInt = parseInt(b);
+                    return aInt - bInt;
+                });
+                
+                // Add floor options
+                sortedFloors.forEach(floor => {
+                    const option = document.createElement('option');
+                    option.value = floor;
+                    option.textContent = formatFloor(floor);
+                    floorFilter.appendChild(option);
+                });
+            } else {
+                // If no floors found for building, show all standard floors as fallback
+                const allFloors = ['-1', '0', '1', '2', '3', '4'];
+                allFloors.forEach(floor => {
+                    const option = document.createElement('option');
+                    option.value = floor;
+                    option.textContent = formatFloor(floor);
+                    floorFilter.appendChild(option);
+                });
+            }
+        }
+        
+        // Restore previous selection if it's still available
+        const availableFloors = Array.from(floorFilter.options).map(opt => opt.value);
+        if (availableFloors.includes(currentFloor)) {
+            floorFilter.value = currentFloor;
+        } else {
+            // If previous selection is not available, select "all"
+            floorFilter.value = 'all';
         }
     }
     
@@ -1394,8 +1502,10 @@
     
     function formatFloor(floor) {
         if (floor === '' || floor === null || floor === undefined) return '';
-        if (floor === 0 || floor === '0') return 'Parter';
-        if (floor == -1 || floor === '-1') return 'Piwnica';
+        // Convert to string for consistent comparison
+        const floorStr = String(floor);
+        if (floorStr === '0') return 'Parter';
+        if (floorStr === '-1') return 'Piwnica';
         const floorNum = parseInt(floor);
         if (floorNum > 0) {
             // Format as "Piętro I", "Piętro II", etc.
@@ -1405,7 +1515,7 @@
             }
             return 'Piętro ' + floorNum;
         }
-        return floor;
+        return floorStr;
     }
     
     function formatDate(dateString) {

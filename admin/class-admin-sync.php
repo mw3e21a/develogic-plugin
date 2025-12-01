@@ -134,6 +134,50 @@ class Develogic_Admin_Sync {
                 </div>
             <?php endif; ?>
             
+            <!-- Investments Table Section -->
+            <?php if ($has_investments): ?>
+            <div class="card">
+                <h2><?php _e('Lista inwestycji', 'develogic'); ?></h2>
+                <p class="description"><?php _e('Poniżej znajduje się lista wszystkich dostępnych inwestycji z ich ID. Możesz użyć tych ID w shortcode\'ach (parametr investment_id).', 'develogic'); ?></p>
+                
+                <div style="overflow-x: auto; margin-top: 15px;">
+                    <table class="widefat striped">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;"><?php _e('ID', 'develogic'); ?></th>
+                                <th><?php _e('Nazwa inwestycji', 'develogic'); ?></th>
+                                <th style="width: 120px;"><?php _e('Status', 'develogic'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($investments as $investment): ?>
+                                <?php 
+                                $investment_id = !empty($investment['ID']) ? absint($investment['ID']) : 0;
+                                $is_selected = in_array($investment_id, $selected_investments);
+                                ?>
+                                <tr>
+                                    <td><strong><?php echo esc_html($investment_id); ?></strong></td>
+                                    <td><?php echo esc_html($investment['Name']); ?></td>
+                                    <td>
+                                        <?php if ($is_selected): ?>
+                                            <span style="color: #28a745; font-weight: bold;">✓ <?php _e('Wybrana', 'develogic'); ?></span>
+                                        <?php else: ?>
+                                            <span style="color: #6c757d;"><?php _e('Niewybrana', 'develogic'); ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <p style="margin-top: 15px; padding: 10px; background: #f0f0f1; border-left: 4px solid #2271b1;">
+                    <strong><?php _e('Przykład użycia w shortcode:', 'develogic'); ?></strong><br>
+                    <code>[develogic_apartments_list investment_id="123"]</code> lub <code>[develogic_apartments_list investment="Nazwa Inwestycji"]</code>
+                </p>
+            </div>
+            <?php endif; ?>
+            
             <!-- Status Section -->
             <div class="card">
                 <h2><?php _e('Status synchronizacji', 'develogic'); ?></h2>

@@ -17,7 +17,11 @@ if (!defined('ABSPATH')) {
 }
 ?>
 
-<div class="develogic-apartments-container">
+<div class="develogic-apartments-container" 
+     <?php if ($is_residential_local && !empty($building_floors_map)): ?>
+     data-building-floors-map="<?php echo esc_attr(json_encode($building_floors_map)); ?>"
+     data-enable-dynamic-floors="true"
+     <?php endif; ?>>
     <!-- Loading Spinner -->
     <div class="develogic-loading-overlay">
         <div class="develogic-spinner">

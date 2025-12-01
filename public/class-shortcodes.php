@@ -36,6 +36,7 @@ class Develogic_Shortcodes {
     public function render_offers_a1($atts) {
         $atts = shortcode_atts(array(
             'investment_id' => '',
+            'investment' => '',
             'local_type_id' => '',
             'buildings_panel' => 'true',
             'building_id' => '',
@@ -54,9 +55,19 @@ class Develogic_Shortcodes {
         
         // Get data from CPT
         $filters = array();
+        
+        // Handle investment filter - by ID or by name
         if (!empty($atts['investment_id'])) {
             $filters['investmentId'] = absint($atts['investment_id']);
+        } elseif (!empty($atts['investment'])) {
+            // Find investment by name
+            $investment_name = trim($atts['investment']);
+            $term = get_term_by('name', $investment_name, 'develogic_investment');
+            if ($term && !is_wp_error($term)) {
+                $filters['investmentId'] = $term->term_id;
+            }
         }
+        
         if (!empty($atts['local_type_id'])) {
             $filters['localTypeId'] = absint($atts['local_type_id']);
         }
@@ -106,6 +117,7 @@ class Develogic_Shortcodes {
     public function render_apartments_list($atts) {
         $atts = shortcode_atts(array(
             'investment_id' => '',
+            'investment' => '',
             'local_type_id' => '',
             'local_types' => '',
             'garage_name' => '',
@@ -137,9 +149,19 @@ class Develogic_Shortcodes {
         
         // Get data from CPT
         $filters = array();
+        
+        // Handle investment filter - by ID or by name
         if (!empty($atts['investment_id'])) {
             $filters['investmentId'] = absint($atts['investment_id']);
+        } elseif (!empty($atts['investment'])) {
+            // Find investment by name
+            $investment_name = trim($atts['investment']);
+            $term = get_term_by('name', $investment_name, 'develogic_investment');
+            if ($term && !is_wp_error($term)) {
+                $filters['investmentId'] = $term->term_id;
+            }
         }
+        
         if (!empty($atts['local_type_id'])) {
             $filters['localTypeId'] = absint($atts['local_type_id']);
         }
@@ -336,6 +358,7 @@ class Develogic_Shortcodes {
         $hide_floor_filter = false;
         $hide_building_filter = false;
         $default_local_type = null;
+        $is_residential_local = false;
         if (!empty($atts['local_types'])) {
             $local_types_array = array_map('trim', explode(',', $atts['local_types']));
             // Hide floor filter if only "Garaż" is selected
@@ -346,6 +369,43 @@ class Develogic_Shortcodes {
             } elseif (count($local_types_array) === 1) {
                 // If only one type is specified, use it as default
                 $default_local_type = $local_types_array[0];
+            }
+            // Check if "Lokal mieszkalny" is in the list
+            if (in_array('Lokal mieszkalny', $local_types_array)) {
+                $is_residential_local = true;
+            }
+        }
+        
+        // Build building -> floors mapping for residential locals
+        $building_floors_map = array();
+        if ($is_residential_local) {
+            foreach ($locals as $local) {
+                $local_type = isset($local['localType']) ? trim($local['localType']) : '';
+                // Only process residential locals
+                if ($local_type === 'Lokal mieszkalny' && !empty($local['building'])) {
+                    $building = $local['building'];
+                    $floor = isset($local['floor']) ? $local['floor'] : '';
+                    
+                    if ($floor !== '' && $floor !== null) {
+                        if (!isset($building_floors_map[$building])) {
+                            $building_floors_map[$building] = array();
+                        }
+                        // Convert floor to string for consistency
+                        $floor_str = (string) $floor;
+                        if (!in_array($floor_str, $building_floors_map[$building])) {
+                            $building_floors_map[$building][] = $floor_str;
+                        }
+                    }
+                }
+            }
+            // Sort floors for each building
+            foreach ($building_floors_map as $building => $floors) {
+                // Sort numerically, handling -1 (piwnica) and 0 (parter)
+                usort($building_floors_map[$building], function($a, $b) {
+                    $a_int = intval($a);
+                    $b_int = intval($b);
+                    return $a_int <=> $b_int;
+                });
             }
         }
         
@@ -363,6 +423,8 @@ class Develogic_Shortcodes {
             'hide_floor_filter' => $hide_floor_filter,
             'hide_building_filter' => $hide_building_filter,
             'default_local_type' => $default_local_type,
+            'building_floors_map' => $building_floors_map,
+            'is_residential_local' => $is_residential_local,
         ));
         return ob_get_clean();
     }
