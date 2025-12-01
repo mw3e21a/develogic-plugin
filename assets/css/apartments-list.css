@@ -655,8 +655,8 @@
 }
 
 .apartment-actions {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 15px;
 }
 
@@ -1606,7 +1606,7 @@
     }
 
     .apartment-actions {
-        flex-direction: row;
+        grid-template-columns: 1fr;
     }
 }
 
