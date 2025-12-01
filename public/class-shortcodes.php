@@ -109,6 +109,8 @@ class Develogic_Shortcodes {
             'local_type_id' => '',
             'local_types' => '',
             'garage_name' => '',
+            'kl_from' => '',
+            'kl_to' => '',
             'building_id' => '',
             'building' => '',
             'title' => '',
@@ -211,17 +213,82 @@ class Develogic_Shortcodes {
         }
         
         // Apply garage name filter if specified and local_types is "Garaż"
+        // Note: This filter applies only to garages, not to "Komórka lokatorska"
         if (!empty($atts['garage_name']) && !empty($atts['local_types'])) {
             $local_types_array = array_map('trim', explode(',', $atts['local_types']));
             if (in_array('Garaż', $local_types_array)) {
                 $garage_name_filter = trim($atts['garage_name']);
                 $locals = array_filter($locals, function($local) use ($garage_name_filter) {
+                    $local_type = isset($local['localType']) ? trim($local['localType']) : '';
+                    // Skip garage_name filter for "Komórka lokatorska" - they are filtered by KL range
+                    if ($local_type === 'Komórka lokatorska') {
+                        return true; // Keep all KL cells, they will be filtered by KL range if specified
+                    }
+                    
                     $number = isset($local['number']) ? trim($local['number']) : '';
                     $name = isset($local['name']) ? trim($local['name']) : '';
                     // Check if garage name appears in number or name field
                     return stripos($number, $garage_name_filter) !== false || 
                            stripos($name, $garage_name_filter) !== false;
                 });
+            }
+        }
+        
+        // Handle KL (Komórka lokatorska) filtering
+        // If local_types includes "Garaż", handle KL cells based on whether KL parameters are provided
+        if (!empty($atts['local_types'])) {
+            $local_types_array = array_map('trim', explode(',', $atts['local_types']));
+            if (in_array('Garaż', $local_types_array)) {
+                $has_kl_params = !empty($atts['kl_from']) || !empty($atts['kl_to']);
+                
+                if ($has_kl_params) {
+                    // Filter KL cells by range if parameters are provided
+                    $kl_from = !empty($atts['kl_from']) ? absint($atts['kl_from']) : null;
+                    $kl_to = !empty($atts['kl_to']) ? absint($atts['kl_to']) : null;
+                    
+                    $locals = array_filter($locals, function($local) use ($kl_from, $kl_to) {
+                        // Only filter "Komórka lokatorska" type
+                        $local_type = isset($local['localType']) ? trim($local['localType']) : '';
+                        if ($local_type !== 'Komórka lokatorska') {
+                            return true; // Keep non-KL locals
+                        }
+                        
+                        // Extract number from KL format (e.g., "KL123" -> 123)
+                        $number = isset($local['number']) ? trim($local['number']) : '';
+                        if (empty($number)) {
+                            return false; // No number, exclude
+                        }
+                        
+                        // Check if number starts with "KL" (case insensitive)
+                        if (stripos($number, 'KL') !== 0) {
+                            return true; // Not a KL number, keep it
+                        }
+                        
+                        // Extract numeric part after "KL"
+                        $numeric_part = substr($number, 2);
+                        if (!is_numeric($numeric_part)) {
+                            return true; // Invalid format, keep it
+                        }
+                        
+                        $kl_number = intval($numeric_part);
+                        
+                        // Check range (inclusive)
+                        if ($kl_from !== null && $kl_number < $kl_from) {
+                            return false;
+                        }
+                        if ($kl_to !== null && $kl_number > $kl_to) {
+                            return false;
+                        }
+                        
+                        return true;
+                    });
+                } else {
+                    // If no KL parameters are provided, exclude all KL cells
+                    $locals = array_filter($locals, function($local) {
+                        $local_type = isset($local['localType']) ? trim($local['localType']) : '';
+                        return $local_type !== 'Komórka lokatorska';
+                    });
+                }
             }
         }
         
