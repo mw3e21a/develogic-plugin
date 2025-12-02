@@ -140,6 +140,7 @@ class Develogic_Shortcodes {
             'min_price_gross' => '',
             'max_price_gross' => '',
             'status' => '',
+            'hide_floor_filter' => 'false',
         ), $atts, 'develogic_apartments_list');
         
         // Enqueue assets
@@ -342,20 +343,15 @@ class Develogic_Shortcodes {
         // Count by status
         $status_counts = Develogic_Filter_Sort::count_by_status($locals);
         
-        // Check if floor filter should be hidden (e.g., for "Garaż" type)
-        $hide_floor_filter = false;
+        // Check if floor filter should be hidden - only via shortcode attribute
+        $hide_floor_filter = ($atts['hide_floor_filter'] === 'true' || $atts['hide_floor_filter'] === true);
         $hide_building_filter = false;
         $default_local_type = null;
         $is_residential_local = false;
         if (!empty($atts['local_types'])) {
             $local_types_array = array_map('trim', explode(',', $atts['local_types']));
-            // Hide floor filter if only "Garaż" is selected
-            if (count($local_types_array) === 1 && in_array('Garaż', $local_types_array)) {
-                $hide_floor_filter = true;
-                $hide_building_filter = true;
-                $default_local_type = 'Garaż';
-            } elseif (count($local_types_array) === 1) {
-                // If only one type is specified, use it as default
+            // If only one type is specified, use it as default
+            if (count($local_types_array) === 1) {
                 $default_local_type = $local_types_array[0];
             }
             // Check if "Lokal mieszkalny" is in the list
