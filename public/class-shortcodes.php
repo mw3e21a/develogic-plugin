@@ -198,19 +198,7 @@ class Develogic_Shortcodes {
             $local_types_string = $atts['local_types'];
             $local_types_array = array_map('trim', explode(',', $local_types_string));
             
-            // If "Garaż" is in the list, automatically add related types for server-side filtering
-            // This ensures all related types are available in the data, then JavaScript filters them
-            if (in_array('Garaż', $local_types_array)) {
-                $additional_types = array('Komórka lokatorska', 'Miejsce postojowe', 'Pomieszczenie gospodarcze');
-                // Add additional types if not already present
-                foreach ($additional_types as $additional_type) {
-                    if (!in_array($additional_type, $local_types_array)) {
-                        $local_types_array[] = $additional_type;
-                    }
-                }
-                $local_types_string = implode(',', $local_types_array);
-            }
-            
+            // No automatic grouping - use only the types specified in shortcode
             $filter_criteria['local_type'] = $local_types_string;
         }
         

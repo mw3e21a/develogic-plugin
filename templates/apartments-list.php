@@ -94,35 +94,44 @@ if (!defined('ABSPATH')) {
                     <label class="filter-label">Typ lokalu:</label>
                     <select class="filter-select" id="localTypeFilter">
                         <?php
-                        // Only show "Lokal mieszkalny" and "Garaż" in the filter
+                        // Show all available local types in the filter
                         $available_types = array();
                         foreach ($locals as $local) {
                             if (!empty($local['localType'])) {
                                 $type = $local['localType'];
-                                // Check if it's "Lokal mieszkalny" or "Garaż"
-                                if ($type === 'Lokal mieszkalny' || $type === 'Garaż') {
-                                    if (!in_array($type, $available_types)) {
-                                        $available_types[] = $type;
-                                    }
+                                if (!in_array($type, $available_types)) {
+                                    $available_types[] = $type;
                                 }
+                            }
+                        }
+                        
+                        // Define display order for types
+                        $type_order = array('Lokal mieszkalny', 'Garaż', 'Komórka lokatorska', 'Pomieszczenie gospodarcze', 'Miejsce postojowe');
+                        $ordered_types = array();
+                        foreach ($type_order as $ordered_type) {
+                            if (in_array($ordered_type, $available_types)) {
+                                $ordered_types[] = $ordered_type;
+                            }
+                        }
+                        // Add any other types that weren't in the order list
+                        foreach ($available_types as $type) {
+                            if (!in_array($type, $ordered_types)) {
+                                $ordered_types[] = $type;
                             }
                         }
                         
                         // Set default type
                         if (!empty($default_local_type)) {
-                            // Use default from shortcode if it's one of the main types
-                            if ($default_local_type === 'Lokal mieszkalny' || $default_local_type === 'Garaż') {
+                            // Use default from shortcode if it exists in available types
+                            if (in_array($default_local_type, $available_types)) {
                                 $default_type = $default_local_type;
                             } else {
-                                // If default is "Garaż" from shortcode, use "Garaż"
-                                $default_type = 'Lokal mieszkalny';
+                                // Fallback to first available type
+                                $default_type = !empty($ordered_types) ? $ordered_types[0] : 'all';
                             }
-                        } elseif (in_array('Lokal mieszkalny', $available_types)) {
-                            // Fallback to "Lokal mieszkalny" if it exists
-                            $default_type = 'Lokal mieszkalny';
-                        } elseif (in_array('Garaż', $available_types)) {
-                            // Fallback to "Garaż" if it exists
-                            $default_type = 'Garaż';
+                        } elseif (!empty($ordered_types)) {
+                            // Fallback to first available type
+                            $default_type = $ordered_types[0];
                         } else {
                             // Otherwise use "all"
                             $default_type = 'all';
@@ -130,14 +139,10 @@ if (!defined('ABSPATH')) {
                         
                         echo '<option value="all"' . ($default_type === 'all' ? ' selected' : '') . '>Wszystkie typy</option>';
                         
-                        // Show only "Lokal mieszkalny" and "Garaż"
-                        if (in_array('Lokal mieszkalny', $available_types)) {
-                            $is_selected = ($default_type === 'Lokal mieszkalny') ? ' selected' : '';
-                            echo '<option value="Lokal mieszkalny"' . $is_selected . '>Lokal mieszkalny</option>';
-                        }
-                        if (in_array('Garaż', $available_types)) {
-                            $is_selected = ($default_type === 'Garaż') ? ' selected' : '';
-                            echo '<option value="Garaż"' . $is_selected . '>Garaż</option>';
+                        // Show all available types in defined order
+                        foreach ($ordered_types as $type) {
+                            $is_selected = ($default_type === $type) ? ' selected' : '';
+                            echo '<option value="' . esc_attr($type) . '"' . $is_selected . '>' . esc_html($type) . '</option>';
                         }
                         ?>
                     </select>

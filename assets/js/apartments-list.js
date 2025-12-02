@@ -112,216 +112,6 @@
     // Image Map Pro Artboard Logging
     // ===========================
     function setupImageMapProArtboardLogging() {
-        /**
-         * Parse artboard name to floor filter value
-         * @param {string} artboardName - Name of the artboard
-         * @returns {string|null} Floor filter value ('all', 'parter', 'I piętro', 'II piętro', etc.) or null
-         */
-        function parseArtboardNameToFloor(artboardName) {
-            if (!artboardName || typeof artboardName !== 'string') {
-                return null;
-            }
-            
-            const name = artboardName.trim();
-            const nameLower = name.toLowerCase();
-            
-            // Check if it's "Budynek X" - show all floors
-            if (nameLower.includes('budynek')) {
-                return 'all';
-            }
-            
-            // Check for "PARTER" (case-insensitive)
-            if (nameLower === 'parter') {
-                return 'parter';
-            }
-            
-            // Try to extract floor from "PIĘTRO I", "PIĘTRO II", "PIĘTRO VI", etc.
-            // Match patterns like: "PIĘTRO I", "PIĘTRO II", "PIĘTRO VI", "PIETRO I", etc.
-            const pietroMatch = name.match(/pi[ęe]tro\s+([ivxlcdm]+|\d+)/i);
-            if (pietroMatch) {
-                const floorValue = pietroMatch[1].toUpperCase();
-                
-                // Map Roman numerals to filter values
-                const romanToFilter = {
-                    'I': 'I piętro',
-                    'II': 'II piętro',
-                    'III': 'III piętro',
-                    'IV': 'IV piętro',
-                    'V': 'V piętro',
-                    'VI': 'VI piętro',
-                    'VII': 'VII piętro',
-                    'VIII': 'VIII piętro',
-                    'IX': 'IX piętro',
-                    'X': 'X piętro'
-                };
-                
-                // Check if it's a Roman numeral
-                if (romanToFilter[floorValue]) {
-                    return romanToFilter[floorValue];
-                }
-                
-                // Check if it's a number
-                const floorNum = parseInt(floorValue);
-                if (!isNaN(floorNum) && floorNum > 0) {
-                    // Convert number to Roman numeral for filter value
-                    const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
-                    if (floorNum <= 10 && romanNumerals[floorNum]) {
-                        return romanNumerals[floorNum] + ' piętro';
-                    }
-                    // For numbers > 10, use Arabic number
-                    return floorNum + ' piętro';
-                }
-            }
-            
-            // Try to match "I piętro", "II piętro", etc. (without "PIĘTRO" prefix)
-            const directPietroMatch = name.match(/^([ivxlcdm]+|\d+)\s+pi[ęe]tro$/i);
-            if (directPietroMatch) {
-                const floorValue = directPietroMatch[1].toUpperCase();
-                
-                // Map Roman numerals
-                const romanToFilter = {
-                    'I': 'I piętro',
-                    'II': 'II piętro',
-                    'III': 'III piętro',
-                    'IV': 'IV piętro',
-                    'V': 'V piętro',
-                    'VI': 'VI piętro',
-                    'VII': 'VII piętro',
-                    'VIII': 'VIII piętro',
-                    'IX': 'IX piętro',
-                    'X': 'X piętro'
-                };
-                
-                if (romanToFilter[floorValue]) {
-                    return romanToFilter[floorValue];
-                }
-                
-                // Check if it's a number
-                const floorNum = parseInt(floorValue);
-                if (!isNaN(floorNum) && floorNum > 0) {
-                    const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
-                    if (floorNum <= 10 && romanNumerals[floorNum]) {
-                        return romanNumerals[floorNum] + ' piętro';
-                    }
-                    return floorNum + ' piętro';
-                }
-            }
-            
-            // Try to parse as floor number and convert to filter format
-            const floorNum = parseFloorToNumber(name);
-            if (floorNum !== null) {
-                if (floorNum === 0) {
-                    return 'parter';
-                }
-                if (floorNum > 0) {
-                    const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
-                    if (floorNum <= 10 && romanNumerals[floorNum]) {
-                        return romanNumerals[floorNum] + ' piętro';
-                    }
-                    return floorNum + ' piętro';
-                }
-            }
-            
-            return null;
-        }
-        
-        /**
-         * Update floor filter based on artboard name
-         * @param {string} artboardName - Name of the artboard
-         */
-        function updateFloorFilterFromArtboard(artboardName) {
-            // Check if it's default-id or unknown - set to "all"
-            if (!artboardName || artboardName === 'unknown' || artboardName.toLowerCase() === 'default-id') {
-                console.log('Image Map Pro - Artboard changed:', artboardName, '(setting to all floors)');
-                setFloorFilterToAll();
-                return;
-            }
-            
-            const floorValue = parseArtboardNameToFloor(artboardName);
-            
-            // If couldn't map to floor, set to "all"
-            if (floorValue === null) {
-                console.log('Image Map Pro - Artboard changed:', artboardName, '(could not map to floor, setting to all)');
-                setFloorFilterToAll();
-                return;
-            }
-            
-            console.log('Image Map Pro - Artboard changed:', artboardName, '-> Floor filter:', floorValue);
-            
-            // Update floor filter
-            const floorFilter = document.getElementById('floorFilter');
-            if (floorFilter) {
-                // Get all available floor options
-                const availableFloors = Array.from(floorFilter.options).map(opt => opt.value);
-                
-                // Try exact match first
-                if (availableFloors.includes(floorValue)) {
-                    floorFilter.value = floorValue;
-                    applyFilters();
-                    return;
-                }
-                
-                // Try case-insensitive match
-                const floorValueLower = floorValue.toLowerCase();
-                const matchingOption = Array.from(floorFilter.options).find(opt => 
-                    opt.value.toLowerCase() === floorValueLower
-                );
-                
-                if (matchingOption) {
-                    floorFilter.value = matchingOption.value;
-                    applyFilters();
-                    return;
-                }
-                
-                // Try partial match (e.g., "II piętro" matches "II piętro")
-                const matchingPartial = Array.from(floorFilter.options).find(opt => {
-                    const optValueLower = opt.value.toLowerCase();
-                    return optValueLower.includes(floorValueLower) || floorValueLower.includes(optValueLower);
-                });
-                
-                if (matchingPartial) {
-                    floorFilter.value = matchingPartial.value;
-                    applyFilters();
-                    return;
-                }
-                
-                // If value not available in filter options, set to "all"
-                console.log('Image Map Pro - Floor value', floorValue, 'not available in filter options. Setting to all floors.');
-                setFloorFilterToAll();
-            } else {
-                // If filter doesn't exist, try to update via URL
-                if (typeof window.develogicUpdateFilters === 'function') {
-                    window.develogicUpdateFilters({ pietro: floorValue });
-                }
-            }
-        }
-        
-        /**
-         * Set floor filter to "all" (Wszystkie piętra)
-         */
-        function setFloorFilterToAll() {
-            const floorFilter = document.getElementById('floorFilter');
-            if (floorFilter) {
-                // Check if "all" option exists
-                const allOption = floorFilter.querySelector('option[value="all"]');
-                if (allOption) {
-                    floorFilter.value = 'all';
-                    applyFilters();
-                } else {
-                    // If "all" doesn't exist, try to set first option
-                    if (floorFilter.options.length > 0) {
-                        floorFilter.selectedIndex = 0;
-                        applyFilters();
-                    }
-                }
-            } else {
-                // If filter doesn't exist, try to update via URL
-                if (typeof window.develogicUpdateFilters === 'function') {
-                    window.develogicUpdateFilters({ pietro: 'all' });
-                }
-            }
-        }
-        
         // Wait for Image Map Pro API to be available
         function initImageMapProLogging() {
             if (typeof ImageMapPro !== 'undefined' && ImageMapPro.subscribe) {
@@ -329,7 +119,7 @@
                 ImageMapPro.subscribe(function(action) {
                     if (action.type === 'artboardChange') {
                         const artboardName = action.payload && action.payload.artboard ? action.payload.artboard : 'unknown';
-                        updateFloorFilterFromArtboard(artboardName);
+                        console.log('Image Map Pro - Artboard changed:', artboardName);
                     }
                 });
             } else {
@@ -801,25 +591,16 @@
                 }
             }
             
-            // Local type filter
+            // Local type filter - each type shows only itself (no grouping)
             if (selectedLocalType !== 'all') {
                 const itemLocalType = item.getAttribute('data-local-type') || '';
-                
-                if (selectedLocalType === 'Garaż') {
-                    // If "Garaż" is selected, show also related types
-                    const garageRelatedTypes = ['Garaż', 'Komórka lokatorska', 'Miejsce postojowe', 'Pomieszczenie gospodarcze'];
-                    shouldShow = shouldShow && garageRelatedTypes.includes(itemLocalType);
-                } else if (selectedLocalType === 'Lokal mieszkalny') {
-                    // If "Lokal mieszkalny" is selected, show only that type
-                    shouldShow = shouldShow && itemLocalType === selectedLocalType;
-                } else {
-                    // For other types (legacy support), exact match
-                    shouldShow = shouldShow && itemLocalType === selectedLocalType;
-                }
+                // Exact match - no grouping, each type is independent
+                shouldShow = shouldShow && itemLocalType === selectedLocalType;
             }
             
-            // Building filter (skip for garage listings)
-            if (selectedBuilding !== 'all' && selectedLocalType !== 'Garaż') {
+            // Building filter (skip for garage-related types that don't have buildings)
+            const nonBuildingTypes = ['Garaż', 'Komórka lokatorska', 'Pomieszczenie gospodarcze', 'Miejsce postojowe'];
+            if (selectedBuilding !== 'all' && !nonBuildingTypes.includes(selectedLocalType)) {
                 const itemBuilding = item.getAttribute('data-building') || '';
                 shouldShow = shouldShow && itemBuilding === selectedBuilding;
             }
