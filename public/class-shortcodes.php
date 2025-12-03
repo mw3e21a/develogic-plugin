@@ -269,6 +269,7 @@ class Develogic_Shortcodes {
         
         // Handle KL (Komórka lokatorska) and PG (Pomieszczenie gospodarcze) filtering
         // If local_types includes "Garaż", handle KL and PG cells based on whether parameters are provided
+        // Supports flexible KL patterns: "KL1"-"KL10", "KL-1-1"-"KL-1-30", "KL-2-2"-"KL-2-32", etc.
         if (!empty($atts['local_types'])) {
             $local_types_array = array_map('trim', explode(',', $atts['local_types']));
             if (in_array('Garaż', $local_types_array)) {
@@ -277,17 +278,77 @@ class Develogic_Shortcodes {
                 
                 if ($has_kl_params) {
                     // Filter KL cells by range if parameters are provided
-                    $kl_from = !empty($atts['kl_from']) ? absint($atts['kl_from']) : null;
-                    $kl_to = !empty($atts['kl_to']) ? absint($atts['kl_to']) : null;
+                    // Support flexible patterns: "KL1", "KL10", "KL-1-1", "KL-1-30", "KL-2-2", etc.
+                    $kl_from_str = !empty($atts['kl_from']) ? trim($atts['kl_from']) : null;
+                    $kl_to_str = !empty($atts['kl_to']) ? trim($atts['kl_to']) : null;
                     
-                    $locals = array_filter($locals, function($local) use ($kl_from, $kl_to) {
+                    // Helper function to extract numeric value from KL pattern
+                    $extract_kl_number = function($kl_string) {
+                        if (empty($kl_string)) {
+                            return null;
+                        }
+                        
+                        // Remove "KL" prefix (case insensitive)
+                        $kl_string = preg_replace('/^KL/i', '', $kl_string);
+                        
+                        // Handle patterns like "KL-1-1" or "KL-2-32"
+                        // Extract the last numeric part after the last dash
+                        if (preg_match('/-(\d+)$/', $kl_string, $matches)) {
+                            return intval($matches[1]);
+                        }
+                        
+                        // Handle patterns like "KL1" or "KL10" (number directly after KL)
+                        if (preg_match('/^(\d+)/', $kl_string, $matches)) {
+                            return intval($matches[1]);
+                        }
+                        
+                        return null;
+                    };
+                    
+                    // Extract numeric values from from/to strings
+                    $kl_from = $kl_from_str ? $extract_kl_number($kl_from_str) : null;
+                    $kl_to = $kl_to_str ? $extract_kl_number($kl_to_str) : null;
+                    
+                    // Extract prefix pattern for matching (e.g., "KL-1-" from "KL-1-1", "KL1-" from "KL1-1")
+                    $extract_prefix = function($kl_string) {
+                        if (empty($kl_string)) {
+                            return null;
+                        }
+                        
+                        // For patterns like "KL-1-1", extract "KL-1-"
+                        if (preg_match('/^(KL-\d+-)/i', $kl_string, $matches)) {
+                            return $matches[1];
+                        }
+                        
+                        // For patterns like "KL1-1" or "KL2-32", extract "KL1-" or "KL2-"
+                        if (preg_match('/^(KL\d+-)/i', $kl_string, $matches)) {
+                            return $matches[1];
+                        }
+                        
+                        // For patterns like "KL1", extract "KL"
+                        if (preg_match('/^(KL)/i', $kl_string, $matches)) {
+                            return $matches[1];
+                        }
+                        
+                        return null;
+                    };
+                    
+                    $kl_from_prefix = $kl_from_str ? $extract_prefix($kl_from_str) : null;
+                    $kl_to_prefix = $kl_to_str ? $extract_prefix($kl_to_str) : null;
+                    
+                    // Use the prefix from "from" if both are provided and match, otherwise null
+                    $kl_prefix = ($kl_from_prefix && $kl_to_prefix && $kl_from_prefix === $kl_to_prefix) 
+                        ? $kl_from_prefix 
+                        : null;
+                    
+                    $locals = array_filter($locals, function($local) use ($kl_from, $kl_to, $kl_prefix, $extract_kl_number) {
                         // Only filter "Komórka lokatorska" type
                         $local_type = isset($local['localType']) ? trim($local['localType']) : '';
                         if ($local_type !== 'Komórka lokatorska') {
                             return true; // Keep non-KL locals
                         }
                         
-                        // Extract number from KL format (e.g., "KL123" -> 123)
+                        // Extract number from KL format
                         $number = isset($local['number']) ? trim($local['number']) : '';
                         if (empty($number)) {
                             return false; // No number, exclude
@@ -298,13 +359,19 @@ class Develogic_Shortcodes {
                             return true; // Not a KL number, keep it
                         }
                         
-                        // Extract numeric part after "KL"
-                        $numeric_part = substr($number, 2);
-                        if (!is_numeric($numeric_part)) {
-                            return true; // Invalid format, keep it
+                        // If prefix is specified (e.g., "KL-1-"), check if number matches the prefix
+                        if ($kl_prefix !== null) {
+                            if (stripos($number, $kl_prefix) !== 0) {
+                                return false; // Doesn't match the prefix pattern
+                            }
                         }
                         
-                        $kl_number = intval($numeric_part);
+                        // Extract numeric value from the local's number
+                        $kl_number = $extract_kl_number($number);
+                        
+                        if ($kl_number === null) {
+                            return true; // Invalid format, keep it
+                        }
                         
                         // Check range (inclusive)
                         if ($kl_from !== null && $kl_number < $kl_from) {
@@ -374,10 +441,10 @@ class Develogic_Shortcodes {
                         if (!isset($building_floors_map[$building])) {
                             $building_floors_map[$building] = array();
                         }
-                        // Convert floor to string for consistency
-                        $floor_str = (string) $floor;
-                        if (!in_array($floor_str, $building_floors_map[$building])) {
-                            $building_floors_map[$building][] = $floor_str;
+                        // Normalize floor value to numeric string (handles "parter" -> "0", "I piętro" -> "1", etc.)
+                        $floor_normalized = self::normalize_floor_value($floor);
+                        if ($floor_normalized !== null && !in_array($floor_normalized, $building_floors_map[$building])) {
+                            $building_floors_map[$building][] = $floor_normalized;
                         }
                     }
                 }
@@ -668,6 +735,56 @@ class Develogic_Shortcodes {
         
         // Fallback error
         echo $this->render_error(sprintf(__('Szablon "%s" nie został znaleziony', 'develogic'), $template_name));
+    }
+    
+    /**
+     * Normalize floor value to numeric string
+     * Handles various formats: "parter" -> "0", "I piętro" -> "1", "1" -> "1", etc.
+     *
+     * @param mixed $floor Floor value (string, int, or other)
+     * @return string|null Normalized floor value as string, or null if invalid
+     */
+    private static function normalize_floor_value($floor) {
+        if ($floor === '' || $floor === null) {
+            return null;
+        }
+        
+        $floor_str = trim((string) $floor);
+        
+        // Handle special cases: parter and piwnica
+        if (strtolower($floor_str) === 'parter' || $floor_str === '0') {
+            return '0';
+        }
+        if (strtolower($floor_str) === 'piwnica' || $floor_str === '-1') {
+            return '-1';
+        }
+        
+        // Try direct numeric conversion
+        if (is_numeric($floor_str)) {
+            return (string) intval($floor_str);
+        }
+        
+        // Try to extract Roman numerals (I, II, III, IV, V, VI, VII, VIII, IX, X)
+        $roman_map = array(
+            'I' => 1, 'II' => 2, 'III' => 3, 'IV' => 4, 'V' => 5,
+            'VI' => 6, 'VII' => 7, 'VIII' => 8, 'IX' => 9, 'X' => 10
+        );
+        
+        // Check for Roman numerals in the string (case insensitive)
+        foreach ($roman_map as $roman => $num) {
+            // Match whole word or at start/end of string
+            if (preg_match('/\b' . preg_quote($roman, '/') . '\b/i', $floor_str)) {
+                return (string) $num;
+            }
+        }
+        
+        // Try to extract Arabic number from text
+        if (preg_match('/\d+/', $floor_str, $matches)) {
+            return (string) intval($matches[0]);
+        }
+        
+        // If we can't parse it, return null
+        return null;
     }
     
     /**

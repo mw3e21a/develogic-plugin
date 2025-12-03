@@ -120,6 +120,30 @@
                     if (action.type === 'artboardChange') {
                         const artboardName = action.payload && action.payload.artboard ? action.payload.artboard : 'unknown';
                         console.log('Image Map Pro - Artboard changed:', artboardName);
+                        
+                        // Try to extract floor value from artboard name and update filter
+                        const floorFilter = document.getElementById('floorFilter');
+                        if (floorFilter && artboardName !== 'unknown') {
+                            // Extract floor value from artboard name (e.g., "PIĘTRO I" -> "I piętro" or "1")
+                            // Try to normalize the artboard name to a floor value
+                            const normalizedFloor = parseFloorToNumber(artboardName);
+                            
+                            if (normalizedFloor !== null) {
+                                const normalizedValue = String(normalizedFloor);
+                                const option = floorFilter.querySelector(`option[value="${normalizedValue}"]`);
+                                
+                                if (option) {
+                                    floorFilter.value = normalizedValue;
+                                    // Trigger filter update
+                                    applyFilters();
+                                    console.log('Image Map Pro - Artboard changed:', artboardName, '-> Floor filter:', normalizedValue);
+                                } else {
+                                    console.log('Image Map Pro - Floor value', normalizedValue, 'not available in filter options. Setting to all floors.');
+                                    floorFilter.value = 'all';
+                                    applyFilters();
+                                }
+                            }
+                        }
                     }
                 });
             } else {
@@ -294,7 +318,36 @@
             const floor = urlParams.get('pietro');
             const floorFilter = document.getElementById('floorFilter');
             if (floorFilter) {
-                floorFilter.value = floor;
+                // Normalize floor value (handles "I piętro" -> "1", "parter" -> "0", etc.)
+                const normalizedFloor = parseFloorToNumber(floor);
+                
+                if (normalizedFloor !== null) {
+                    // Try to find option with normalized numeric value
+                    const normalizedValue = String(normalizedFloor);
+                    const option = floorFilter.querySelector(`option[value="${normalizedValue}"]`);
+                    
+                    if (option) {
+                        floorFilter.value = normalizedValue;
+                    } else {
+                        // If normalized value not found, try original value
+                        const originalOption = floorFilter.querySelector(`option[value="${floor}"]`);
+                        if (originalOption) {
+                            floorFilter.value = floor;
+                        } else {
+                            console.log('Image Map Pro - Floor value', floor, 'not available in filter options. Setting to all floors.');
+                            floorFilter.value = 'all';
+                        }
+                    }
+                } else {
+                    // If can't parse, try original value
+                    const originalOption = floorFilter.querySelector(`option[value="${floor}"]`);
+                    if (originalOption) {
+                        floorFilter.value = floor;
+                    } else {
+                        console.log('Image Map Pro - Floor value', floor, 'not available in filter options. Setting to all floors.');
+                        floorFilter.value = 'all';
+                    }
+                }
             }
         }
         
@@ -505,10 +558,10 @@
                 floors.forEach(floor => allUniqueFloors.add(String(floor)));
             });
             
-            // Convert to array and sort numerically
+            // Convert to array and sort numerically using parseFloorToNumber for proper handling
             const sortedFloors = Array.from(allUniqueFloors).sort((a, b) => {
-                const aInt = parseInt(a);
-                const bInt = parseInt(b);
+                const aInt = parseFloorToNumber(a) ?? 999;
+                const bInt = parseFloorToNumber(b) ?? 999;
                 return aInt - bInt;
             });
             
@@ -523,10 +576,10 @@
             // Get floors for selected building
             const buildingFloors = buildingFloorsMap[selectedBuilding];
             if (buildingFloors && Array.isArray(buildingFloors) && buildingFloors.length > 0) {
-                // Sort floors numerically
+                // Sort floors numerically using parseFloorToNumber for proper handling
                 const sortedFloors = [...buildingFloors].sort((a, b) => {
-                    const aInt = parseInt(a);
-                    const bInt = parseInt(b);
+                    const aInt = parseFloorToNumber(a) ?? 999;
+                    const bInt = parseFloorToNumber(b) ?? 999;
                     return aInt - bInt;
                 });
                 
