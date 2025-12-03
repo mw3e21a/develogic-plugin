@@ -237,6 +237,7 @@ class Develogic_Admin_ImageMapPro {
             'Miękka rezerwacja' => 'FFA500',
             'Przeniesiona własność' => 'ee1c24',
             'Niedostępny' => 'cccccc',
+            'Wyłączony ze sprzedaży' => 'cccccc',
         );
         
         // Merge with saved colors

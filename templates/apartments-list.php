@@ -122,8 +122,11 @@ if (!defined('ABSPATH')) {
                         
                         // Set default type
                         if (!empty($default_local_type)) {
-                            // Use default from shortcode if it exists in available types
-                            if (in_array($default_local_type, $available_types)) {
+                            // Check if "all" is explicitly set
+                            if ($default_local_type === 'all') {
+                                $default_type = 'all';
+                            } elseif (in_array($default_local_type, $available_types)) {
+                                // Use default from shortcode if it exists in available types
                                 $default_type = $default_local_type;
                             } else {
                                 // Fallback to first available type

@@ -30,6 +30,7 @@ class Develogic_ImageMapPro_Integration {
         'Miękka rezerwacja' => 'FFA500',  // Orange - soft reservation (same as regular reservation)
         'Przeniesiona własność' => 'ee1c24',  // Red - transferred ownership (same as sold)
         'Niedostępny' => 'cccccc',  // Gray - unavailable
+        'Wyłączony ze sprzedaży' => 'cccccc',  // Gray - unavailable (same as Niedostępny)
     );
     
     /**
@@ -532,6 +533,17 @@ class Develogic_ImageMapPro_Integration {
         
         $this->log(sprintf('Updating tooltip for shape "%s" (localType: %s)', $shape_title, $local_type ? $local_type : 'empty'), 'info');
         
+        // Get status and normalize it
+        $status = isset($local['status']) ? trim($local['status']) : '';
+        // Normalize "Miękka rezerwacja" to "Rezerwacja" for consistency
+        if ($status === 'Miękka rezerwacja') {
+            $status = 'Rezerwacja';
+        }
+        // Change "Wolny" to "Dostępny" for tooltip display
+        if ($status === 'Wolny') {
+            $status = 'Dostępny';
+        }
+        
         // Check if it's an apartment (mieszkanie)
         $is_apartment = false;
         if (!empty($local_type)) {
@@ -544,6 +556,11 @@ class Develogic_ImageMapPro_Integration {
         
         // Build tooltip content HTML
         $tooltip_html_parts = array();
+        
+        // Add status at the top of tooltip
+        if (!empty($status)) {
+            $tooltip_html_parts[] = '<div>' . esc_html($status) . '</div>';
+        }
         
         if ($is_apartment) {
             // For apartments: show number, area, and balcony (if exists)
@@ -674,17 +691,18 @@ class Develogic_ImageMapPro_Integration {
             );
         } else {
             // OLD structure: array with objects containing type, text, heading, style, etc.
-            // Preserve existing properties if they exist, otherwise use defaults
+            // Use consistent formatting for all tooltips (garages, cells, storage rooms, apartments)
             $existing_tooltip = null;
             if (is_array($old_tooltip) && !empty($old_tooltip) && isset($old_tooltip[0])) {
                 $existing_tooltip = $old_tooltip[0];
             }
             
-            // Build tooltip element preserving existing properties
+            // Build tooltip element with consistent formatting
+            // Always use Heading type with h3 for uniform appearance
             $tooltip_element = array(
-                'type' => isset($existing_tooltip['type']) ? $existing_tooltip['type'] : 'Heading',
+                'type' => 'Heading',
                 'text' => $tooltip_html, // Always update text with dynamic data
-                'heading' => isset($existing_tooltip['heading']) ? $existing_tooltip['heading'] : 'h3',
+                'heading' => 'h3',
             );
             
             // Preserve 'other' if exists
@@ -698,18 +716,15 @@ class Develogic_ImageMapPro_Integration {
                 );
             }
             
-            // Preserve 'style' if exists, otherwise use defaults
-            if (isset($existing_tooltip['style'])) {
-                $tooltip_element['style'] = $existing_tooltip['style'];
-            } else {
-                $tooltip_element['style'] = array(
-                    'fontFamily' => 'sans-serif',
-                    'fontSize' => 13.8,
-                    'lineHeight' => '18',
-                    'color' => '#ffffff',
-                    'textAlign' => 'left'
-                );
-            }
+            // Use consistent style for all tooltips (bold, uniform font size)
+            $tooltip_element['style'] = array(
+                'fontFamily' => 'sans-serif',
+                'fontSize' => 14,
+                'lineHeight' => '22',
+                'fontWeight' => 'bold',
+                'color' => '#ffffff',
+                'textAlign' => 'left'
+            );
             
             // Preserve 'boxModel' if exists, otherwise use defaults
             if (isset($existing_tooltip['boxModel'])) {

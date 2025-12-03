@@ -141,6 +141,7 @@ class Develogic_Shortcodes {
             'max_price_gross' => '',
             'status' => '',
             'hide_floor_filter' => 'false',
+            'default_local_type' => '',
         ), $atts, 'develogic_apartments_list');
         
         // Enqueue assets
@@ -415,13 +416,25 @@ class Develogic_Shortcodes {
         $hide_building_filter = false;
         $default_local_type = null;
         $is_residential_local = false;
-        if (!empty($atts['local_types'])) {
+        
+        // Check if default_local_type parameter is explicitly set (overrides automatic behavior)
+        if (!empty($atts['default_local_type'])) {
+            $default_local_type = trim($atts['default_local_type']);
+            // Allow "all" to be set explicitly
+            if (strtolower($default_local_type) === 'all') {
+                $default_local_type = 'all';
+            }
+        } elseif (!empty($atts['local_types'])) {
             $local_types_array = array_map('trim', explode(',', $atts['local_types']));
             // If only one type is specified, use it as default
             if (count($local_types_array) === 1) {
                 $default_local_type = $local_types_array[0];
             }
-            // Check if "Lokal mieszkalny" is in the list
+        }
+        
+        // Check if "Lokal mieszkalny" is in the list (for building floors mapping)
+        if (!empty($atts['local_types'])) {
+            $local_types_array = array_map('trim', explode(',', $atts['local_types']));
             if (in_array('Lokal mieszkalny', $local_types_array)) {
                 $is_residential_local = true;
             }
