@@ -228,6 +228,15 @@ class Develogic_Admin_Settings {
             array('field' => 'pdf_pattern', 'placeholder' => 'https://example.com/pdf/{localId}', 'description' => __('Użyj {localId} lub {number} jako placeholdera', 'develogic'))
         );
         
+        add_settings_field(
+            'contact_email',
+            __('Email kontaktowy (zapytaj o mieszkanie)', 'develogic'),
+            array($this, 'render_text_field'),
+            'develogic',
+            'develogic_a1_section',
+            array('field' => 'contact_email', 'placeholder' => get_option('admin_email'), 'description' => __('Adres email na który będą wysyłane zapytania o mieszkanie. Jeśli nie ustawiono, używany jest email administratora.', 'develogic'))
+        );
+        
         // Appearance Settings Section
         add_settings_section(
             'develogic_appearance_section',
@@ -294,6 +303,9 @@ class Develogic_Admin_Settings {
         
         $output['pdf_source'] = isset($input['pdf_source']) ? sanitize_key($input['pdf_source']) : 'off';
         $output['pdf_pattern'] = isset($input['pdf_pattern']) ? esc_url_raw($input['pdf_pattern']) : '';
+        
+        // Contact email - sanitize email
+        $output['contact_email'] = isset($input['contact_email']) ? sanitize_email(trim($input['contact_email'])) : '';
         
         // Primary color - sanitize hex color
         if (isset($input['primary_color'])) {

@@ -222,7 +222,7 @@ if (!defined('ABSPATH')) {
             </div>
             
             <div class="filter-group">
-                <label class="filter-label">Cena (zł):</label>
+                <label class="filter-label">Cena za lokal (zł):</label>
                 <div class="filter-range">
                     <input type="number" class="filter-input" id="priceMin" placeholder="od" step="10000" min="0" value="<?php echo !empty($atts['min_price_gross']) ? esc_attr($atts['min_price_gross']) : ''; ?>">
                     <span class="filter-separator">-</span>
