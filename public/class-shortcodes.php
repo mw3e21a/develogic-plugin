@@ -141,6 +141,7 @@ class Develogic_Shortcodes {
             'max_price_gross' => '',
             'status' => '',
             'hide_floor_filter' => 'false',
+            'hide_extras' => 'false',
             'default_local_type' => '',
         ), $atts, 'develogic_apartments_list');
         
@@ -414,6 +415,7 @@ class Develogic_Shortcodes {
         // Check if floor filter should be hidden - only via shortcode attribute
         $hide_floor_filter = ($atts['hide_floor_filter'] === 'true' || $atts['hide_floor_filter'] === true);
         $hide_building_filter = false;
+        $hide_extras = ($atts['hide_extras'] === 'true' || $atts['hide_extras'] === true);
         $default_local_type = null;
         $is_residential_local = false;
         
@@ -486,6 +488,7 @@ class Develogic_Shortcodes {
             'status_counts' => $status_counts,
             'hide_floor_filter' => $hide_floor_filter,
             'hide_building_filter' => $hide_building_filter,
+            'hide_extras' => $hide_extras,
             'default_local_type' => $default_local_type,
             'building_floors_map' => $building_floors_map,
             'is_residential_local' => $is_residential_local,

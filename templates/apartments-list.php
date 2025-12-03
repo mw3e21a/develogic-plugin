@@ -230,6 +230,7 @@ if (!defined('ABSPATH')) {
                 </div>
             </div>
             
+            <?php if (empty($hide_extras)): ?>
             <div class="filter-group filter-extras">
                 <label class="filter-label">Opcje dodatkowe:</label>
                 <div class="filter-checkboxes">
@@ -259,7 +260,24 @@ if (!defined('ABSPATH')) {
                     Resetuj filtry
                 </button>
             </div>
+            <?php endif; ?>
         </div>
+        
+        <?php if (!empty($hide_extras)): ?>
+        <div class="filter-row">
+            <div class="filter-group filter-actions">
+                <button class="filter-reset-btn" id="resetFilters">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M3 21v-5h5"/>
+                    </svg>
+                    Resetuj filtry
+                </button>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 
     <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
