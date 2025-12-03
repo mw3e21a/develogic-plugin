@@ -560,13 +560,8 @@ if (!defined('ABSPATH')) {
                     // If stage is a URL, use it
                     $tour_3d_url = $local['stage'];
                 } else {
-                    // Otherwise, use displayUrl from projections
-                    foreach ($projections as $proj) {
-                        if (!empty($proj['displayUrl'])) {
-                            $tour_3d_url = $proj['displayUrl'];
-                            break; // Use the first displayUrl found
-                        }
-                    }
+                    // Otherwise, use default from settings
+                    $tour_3d_url = develogic()->get_setting('tour_360_url', '');
                 }
                 $modal_data['tour3dUrl'] = $tour_3d_url;
                 

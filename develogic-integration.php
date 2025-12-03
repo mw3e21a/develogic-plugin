@@ -195,6 +195,7 @@ final class Develogic_Integration {
             'pdf_source' => 'off',
             'pdf_pattern' => '',
             'contact_email' => get_option('admin_email'), // Default to admin email
+            'tour_360_url' => '', // Default 360° tour URL
             'enable_cron_sync' => false, // Disabled by default
             'primary_color' => '#0066cc', // Default primary color
         );

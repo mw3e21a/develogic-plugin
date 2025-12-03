@@ -237,6 +237,15 @@ class Develogic_Admin_Settings {
             array('field' => 'contact_email', 'placeholder' => get_option('admin_email'), 'description' => __('Adres email na który będą wysyłane zapytania o mieszkanie. Jeśli nie ustawiono, używany jest email administratora.', 'develogic'))
         );
         
+        add_settings_field(
+            'tour_360_url',
+            __('Domyślny link 360°', 'develogic'),
+            array($this, 'render_text_field'),
+            'develogic',
+            'develogic_a1_section',
+            array('field' => 'tour_360_url', 'placeholder' => 'https://example.com/360-tour', 'description' => __('Domyślny URL do spaceru 360° używany gdy lokal nie ma własnego linku w polu "stage" ani w projekcjach.', 'develogic'))
+        );
+        
         // Appearance Settings Section
         add_settings_section(
             'develogic_appearance_section',
@@ -306,6 +315,9 @@ class Develogic_Admin_Settings {
         
         // Contact email - sanitize email
         $output['contact_email'] = isset($input['contact_email']) ? sanitize_email(trim($input['contact_email'])) : '';
+        
+        // Tour 360 URL - sanitize URL
+        $output['tour_360_url'] = isset($input['tour_360_url']) ? esc_url_raw(trim($input['tour_360_url'])) : '';
         
         // Primary color - sanitize hex color
         if (isset($input['primary_color'])) {
