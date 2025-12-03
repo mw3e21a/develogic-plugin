@@ -2068,17 +2068,19 @@
     }
     
     .filter-section {
-        padding: 16px;
+        padding: 12px;
     }
     
     .filter-row {
         flex-direction: column;
-        gap: 16px;
+        gap: 10px;
+        margin-bottom: 10px;
     }
     
     .filter-group {
         width: 100%;
         min-width: 100%;
+        gap: 4px;
     }
     
     .filter-group.filter-extras {
@@ -2087,7 +2089,7 @@
     
     .filter-selects-wrapper {
         flex-direction: column;
-        gap: 16px;
+        gap: 10px;
         width: 100%;
     }
     
@@ -2101,8 +2103,9 @@
     }
     
     .filter-checkboxes {
-        flex-direction: column;
-        gap: 12px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
     }
     
     .filter-reset-btn {
@@ -2145,16 +2148,26 @@
     
     .filter-label {
         font-size: 12px;
+        margin-bottom: 2px;
     }
     
     .filter-select {
         font-size: 13px;
-        padding: 9px 12px;
+        padding: 8px 10px;
     }
     
     .filter-chip {
         font-size: 13px;
-        padding: 7px 14px;
+        padding: 6px 12px;
+    }
+    
+    .filter-checkbox {
+        font-size: 13px;
+    }
+    
+    .filter-reset-btn {
+        padding: 8px 14px;
+        font-size: 13px;
     }
     
     .favorites-toggle-btn {
