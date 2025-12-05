@@ -230,24 +230,50 @@ if (!defined('ABSPATH')) {
                 </div>
             </div>
             
-            <?php if (empty($hide_extras)): ?>
+            <?php if (empty($hide_extras)): 
+                // Get additional options from settings
+                $settings = get_option('develogic_settings', array());
+                $additional_options = isset($settings['additional_options']) && is_array($settings['additional_options']) 
+                    ? $settings['additional_options'] 
+                    : array('promo', '2bath', 'wardrobe', 'lake_view');
+                
+                // Map option keys to labels and filter IDs
+                $option_labels = array(
+                    'promo' => __('W promocji', 'develogic'),
+                    '2bath' => __('2 łazienki', 'develogic'),
+                    'wardrobe' => __('Z garderobą', 'develogic'),
+                    'lake_view' => __('Widok na jezioro', 'develogic'),
+                    'balcony' => __('Balkon', 'develogic'),
+                    '2balconies' => __('2 balkony', 'develogic'),
+                    'terrace' => __('Taras', 'develogic'),
+                    'garden' => __('Ogród', 'develogic'),
+                    'kitchen_annex' => __('Aneks kuchenny', 'develogic'),
+                    'bright_kitchen' => __('Jasna kuchnia', 'develogic'),
+                    'elevator' => __('Winda', 'develogic'),
+                    'separate_wc' => __('Osobne WC', 'develogic'),
+                    'storage' => __('Pom. gospodarcze', 'develogic'),
+                    'cellar' => __('Komórka lokatorska', 'develogic'),
+                    'air_conditioning' => __('Klimatyzacja', 'develogic'),
+                    'parking' => __('Parking', 'develogic'),
+                    'parking_space' => __('Miejsce postojowe', 'develogic'),
+                    'playground' => __('Plac zabaw', 'develogic')
+                );
+                
+                if (!empty($additional_options)): ?>
             <div class="filter-group filter-extras">
                 <label class="filter-label">Opcje dodatkowe:</label>
                 <div class="filter-checkboxes">
+                    <?php foreach ($additional_options as $option_key): 
+                        if (isset($option_labels[$option_key])): ?>
                     <label class="filter-checkbox">
-                        <input type="checkbox" id="promoFilter" value="promo">
-                        <span>W promocji</span>
+                        <input type="checkbox" id="<?php echo esc_attr($option_key); ?>Filter" value="<?php echo esc_attr($option_key); ?>" data-option-key="<?php echo esc_attr($option_key); ?>">
+                        <span><?php echo esc_html($option_labels[$option_key]); ?></span>
                     </label>
-                    <label class="filter-checkbox">
-                        <input type="checkbox" id="bathFilter" value="2bath">
-                        <span>2 łazienki</span>
-                    </label>
-                    <label class="filter-checkbox">
-                        <input type="checkbox" id="wardrobeFilter" value="wardrobe">
-                        <span>Z garderobą</span>
-                    </label>
+                        <?php endif; 
+                    endforeach; ?>
                 </div>
             </div>
+                <?php endif; ?>
             
             <div class="filter-group filter-actions">
                 <button class="filter-reset-btn" id="resetFilters">
@@ -488,8 +514,44 @@ if (!defined('ABSPATH')) {
                         }
                     }
                     
-                    // Filter for display using whitelist
-                    $tag_whitelist = apply_filters('develogic_attribute_whitelist', array(
+                    // Get enabled additional options from settings
+                    $settings = get_option('develogic_settings', array());
+                    $additional_options = isset($settings['additional_options']) && is_array($settings['additional_options']) 
+                        ? $settings['additional_options'] 
+                        : array('promo', '2bath', 'wardrobe', 'lake_view');
+                    
+                    // Map option keys to attribute name patterns that should be whitelisted
+                    $option_to_attributes = array(
+                        'promo' => array('promocja'),
+                        '2bath' => array('2 lazienki', 'dwie lazienki', '2 lazienk'),
+                        'wardrobe' => array('garderoba'),
+                        'lake_view' => array('widok na jezioro', 'widok na jezior', 'jezioro'),
+                        'balcony' => array('balkon'),
+                        '2balconies' => array('2 balkony', 'dwa balkony', '2 balkon'),
+                        'terrace' => array('taras'),
+                        'garden' => array('ogród', 'ogrodek'),
+                        'kitchen_annex' => array('aneks kuchenny', 'aneks'),
+                        'bright_kitchen' => array('jasna kuchnia'),
+                        'elevator' => array('winda'),
+                        'separate_wc' => array('osobne wc', 'osobne WC'),
+                        'storage' => array('pom. gospodarcze', 'pomieszczenie gospodarcze'),
+                        'cellar' => array('komórka lokatorska', 'komorka lokatorska'),
+                        'air_conditioning' => array('klimatyzacja'),
+                        'parking' => array('parking'),
+                        'parking_space' => array('miejsce postojowe'),
+                        'playground' => array('plac zabaw')
+                    );
+                    
+                    // Build whitelist from enabled options
+                    $tag_whitelist = array();
+                    foreach ($additional_options as $option_key) {
+                        if (isset($option_to_attributes[$option_key])) {
+                            $tag_whitelist = array_merge($tag_whitelist, $option_to_attributes[$option_key]);
+                        }
+                    }
+                    
+                    // Apply default whitelist filter (for backward compatibility)
+                    $default_whitelist = apply_filters('develogic_attribute_whitelist', array(
                         'aneks kuchenny',
                         'balkon',
                         '2 balkony',
@@ -508,9 +570,28 @@ if (!defined('ABSPATH')) {
                         'miejsce postojowe'
                     ));
                     
+                    // Merge with default whitelist and remove duplicates
+                    $tag_whitelist = array_unique(array_merge($tag_whitelist, $default_whitelist));
+                    
+                    // Filter attributes for display using whitelist
                     foreach ($local['attributes'] as $attr) {
-                        if (isset($attr['name']) && in_array(strtolower($attr['name']), array_map('strtolower', $tag_whitelist))) {
-                            $tags[] = $attr['name'];
+                        if (isset($attr['name'])) {
+                            $attr_name_lower = strtolower(trim($attr['name']));
+                            // Check if attribute matches any pattern in whitelist
+                            $matches = false;
+                            foreach ($tag_whitelist as $whitelist_item) {
+                                $whitelist_lower = strtolower(trim($whitelist_item));
+                                // Exact match or attribute contains the whitelist pattern
+                                if ($attr_name_lower === $whitelist_lower || 
+                                    strpos($attr_name_lower, $whitelist_lower) !== false ||
+                                    strpos($whitelist_lower, $attr_name_lower) !== false) {
+                                    $matches = true;
+                                    break;
+                                }
+                            }
+                            if ($matches) {
+                                $tags[] = $attr['name'];
+                            }
                         }
                     }
                 }

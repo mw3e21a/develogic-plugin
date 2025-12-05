@@ -405,30 +405,37 @@
             }
         }
         
-        // Promo filter (promocja)
-        if (urlParams.has('promocja')) {
-            const promoValue = urlParams.get('promocja');
-            const promoFilter = document.getElementById('promoFilter');
-            if (promoFilter && (promoValue === '1' || promoValue === 'true')) {
-                promoFilter.checked = true;
-            }
-        }
+        // Additional options from URL - dynamic based on available filters
+        // Map URL parameter names to option keys
+        const urlParamToOptionKey = {
+            'promocja': 'promo',
+            '2_lazienki': '2bath',
+            'garderoba': 'wardrobe',
+            'widok_na_jezioro': 'lake_view',
+            'balkon': 'balcony',
+            '2_balkony': '2balconies',
+            'taras': 'terrace',
+            'ogrod': 'garden',
+            'aneks_kuchenny': 'kitchen_annex',
+            'jasna_kuchnia': 'bright_kitchen',
+            'winda': 'elevator',
+            'osobne_wc': 'separate_wc',
+            'pom_gospodarcze': 'storage',
+            'komorka_lokatorska': 'cellar',
+            'klimatyzacja': 'air_conditioning',
+            'parking': 'parking',
+            'miejsce_postojowe': 'parking_space',
+            'plac_zabaw': 'playground'
+        };
         
-        // Bathroom filter (2_lazienki)
-        if (urlParams.has('2_lazienki')) {
-            const bathValue = urlParams.get('2_lazienki');
-            const bathFilter = document.getElementById('bathFilter');
-            if (bathFilter && (bathValue === '1' || bathValue === 'true')) {
-                bathFilter.checked = true;
-            }
-        }
-        
-        // Wardrobe filter (garderoba)
-        if (urlParams.has('garderoba')) {
-            const wardrobeValue = urlParams.get('garderoba');
-            const wardrobeFilter = document.getElementById('wardrobeFilter');
-            if (wardrobeFilter && (wardrobeValue === '1' || wardrobeValue === 'true')) {
-                wardrobeFilter.checked = true;
+        // Apply URL parameters to additional options filters
+        for (const [urlParam, optionKey] of Object.entries(urlParamToOptionKey)) {
+            if (urlParams.has(urlParam)) {
+                const paramValue = urlParams.get(urlParam);
+                const filter = document.querySelector(`.filter-extras input[data-option-key="${optionKey}"]`);
+                if (filter && (paramValue === '1' || paramValue === 'true')) {
+                    filter.checked = true;
+                }
             }
         }
     }
@@ -483,13 +490,11 @@
         if (priceMin) priceMin.addEventListener('input', debounce(applyFilters, 500));
         if (priceMax) priceMax.addEventListener('input', debounce(applyFilters, 500));
         
-        // Additional options checkboxes
-        const promoFilter = document.getElementById('promoFilter');
-        const bathFilter = document.getElementById('bathFilter');
-        const wardrobeFilter = document.getElementById('wardrobeFilter');
-        if (promoFilter) promoFilter.addEventListener('change', applyFilters);
-        if (bathFilter) bathFilter.addEventListener('change', applyFilters);
-        if (wardrobeFilter) wardrobeFilter.addEventListener('change', applyFilters);
+        // Additional options checkboxes - dynamic based on settings
+        const additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-option-key]');
+        additionalOptionFilters.forEach(filter => {
+            filter.addEventListener('change', applyFilters);
+        });
         
         // Reset button
         const resetBtn = document.getElementById('resetFilters');
@@ -624,9 +629,15 @@
         const areaMax = parseFloat(document.getElementById('areaMax')?.value) || Infinity;
         const priceMin = parseFloat(document.getElementById('priceMin')?.value) || 0;
         const priceMax = parseFloat(document.getElementById('priceMax')?.value) || Infinity;
-        const promoOnly = document.getElementById('promoFilter')?.checked || false;
-        const bathOnly = document.getElementById('bathFilter')?.checked || false;
-        const wardrobeOnly = document.getElementById('wardrobeFilter')?.checked || false;
+        // Get all checked additional options dynamically
+        const checkedAdditionalOptions = {};
+        const additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-option-key]');
+        additionalOptionFilters.forEach(filter => {
+            const optionKey = filter.getAttribute('data-option-key');
+            if (optionKey && filter.checked) {
+                checkedAdditionalOptions[optionKey] = true;
+            }
+        });
         
         let visibleCount = 0;
         
@@ -680,44 +691,101 @@
             const itemPrice = parseFloat(item.getAttribute('data-price-value')) || 0;
             shouldShow = shouldShow && itemPrice >= priceMin && itemPrice <= priceMax;
             
-            // Promo filter - check both maxDiscountPercent and attributes
-            if (promoOnly) {
-                const hasPromoDiscount = item.getAttribute('data-has-promo') === 'true';
-                const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
-                const hasPromoAttribute = attributes.some(attr => {
-                    // Handle both string and object formats
-                    const attrName = typeof attr === 'string' ? attr : (attr.name || '');
-                    const attrLower = attrName.toLowerCase().trim();
-                    return attrLower === 'promocja' || attrLower.includes('promocja');
-                });
-                shouldShow = shouldShow && (hasPromoDiscount || hasPromoAttribute);
-            }
+            // Additional options filters - dynamic based on settings
+            const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
             
-            // Bathroom filter (2 lazienki) - based on attributes
-            if (bathOnly) {
-                const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
-                const hasTwoBaths = attributes.some(attr => {
-                    // Handle both string and object formats
-                    const attrName = typeof attr === 'string' ? attr : (attr.name || '');
-                    const attrLower = attrName.toLowerCase().trim();
-                    const matches = attrLower === '2 lazienki' || 
-                           attrLower === 'dwie lazienki' ||
-                           attrLower.includes('2 lazienk');
-                    return matches;
-                });
-                shouldShow = shouldShow && hasTwoBaths;
-            }
+            // Map option keys to attribute matching patterns
+            const optionAttributePatterns = {
+                'promo': {
+                    checkPromo: true, // Special handling for promo
+                    patterns: ['promocja']
+                },
+                '2bath': {
+                    patterns: ['2 lazienki', 'dwie lazienki', '2 lazienk']
+                },
+                'wardrobe': {
+                    patterns: ['garderoba']
+                },
+                'lake_view': {
+                    patterns: ['widok na jezioro', 'widok na jezior', 'jezioro']
+                },
+                'balcony': {
+                    patterns: ['balkon']
+                },
+                '2balconies': {
+                    patterns: ['2 balkony', 'dwa balkony', '2 balkon']
+                },
+                'terrace': {
+                    patterns: ['taras']
+                },
+                'garden': {
+                    patterns: ['ogród', 'ogrodek']
+                },
+                'kitchen_annex': {
+                    patterns: ['aneks kuchenny', 'aneks']
+                },
+                'bright_kitchen': {
+                    patterns: ['jasna kuchnia']
+                },
+                'elevator': {
+                    patterns: ['winda']
+                },
+                'separate_wc': {
+                    patterns: ['osobne wc', 'osobne WC']
+                },
+                'storage': {
+                    patterns: ['pom. gospodarcze', 'pomieszczenie gospodarcze']
+                },
+                'cellar': {
+                    patterns: ['komórka lokatorska', 'komorka lokatorska']
+                },
+                'air_conditioning': {
+                    patterns: ['klimatyzacja']
+                },
+                'parking': {
+                    patterns: ['parking']
+                },
+                'parking_space': {
+                    patterns: ['miejsce postojowe']
+                },
+                'playground': {
+                    patterns: ['plac zabaw']
+                }
+            };
             
-            // Wardrobe filter (garderoba) - based on attributes
-            if (wardrobeOnly) {
-                const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
-                const hasWardrobe = attributes.some(attr => {
-                    // Handle both string and object formats
-                    const attrName = typeof attr === 'string' ? attr : (attr.name || '');
-                    const attrLower = attrName.toLowerCase().trim();
-                    return attrLower === 'garderoba' || attrLower.includes('garderoba');
-                });
-                shouldShow = shouldShow && hasWardrobe;
+            // Check each selected additional option
+            for (const optionKey in checkedAdditionalOptions) {
+                if (checkedAdditionalOptions[optionKey]) {
+                    const optionConfig = optionAttributePatterns[optionKey];
+                    if (!optionConfig) continue;
+                    
+                    let hasMatch = false;
+                    
+                    // Special handling for promo
+                    if (optionKey === 'promo' && optionConfig.checkPromo) {
+                        const hasPromoDiscount = item.getAttribute('data-has-promo') === 'true';
+                        const hasPromoAttribute = attributes.some(attr => {
+                            const attrName = typeof attr === 'string' ? attr : (attr.name || '');
+                            const attrLower = attrName.toLowerCase().trim();
+                            return attrLower === 'promocja' || attrLower.includes('promocja');
+                        });
+                        hasMatch = hasPromoDiscount || hasPromoAttribute;
+                    } else {
+                        // Check attributes against patterns
+                        hasMatch = attributes.some(attr => {
+                            const attrName = typeof attr === 'string' ? attr : (attr.name || '');
+                            const attrLower = attrName.toLowerCase().trim();
+                            return optionConfig.patterns.some(pattern => {
+                                return attrLower === pattern || attrLower.includes(pattern);
+                            });
+                        });
+                    }
+                    
+                    if (!hasMatch) {
+                        shouldShow = false;
+                        break;
+                    }
+                }
             }
             
             // Apply visibility
@@ -769,13 +837,11 @@
         if (priceMin) priceMin.value = '';
         if (priceMax) priceMax.value = '';
         
-        // Reset checkboxes
-        const promoFilter = document.getElementById('promoFilter');
-        const bathFilter = document.getElementById('bathFilter');
-        const wardrobeFilter = document.getElementById('wardrobeFilter');
-        if (promoFilter) promoFilter.checked = false;
-        if (bathFilter) bathFilter.checked = false;
-        if (wardrobeFilter) wardrobeFilter.checked = false;
+        // Reset additional options checkboxes - dynamic
+        const additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-option-key]');
+        additionalOptionFilters.forEach(filter => {
+            filter.checked = false;
+        });
         
         // Apply filters (showing all)
         applyFilters();
