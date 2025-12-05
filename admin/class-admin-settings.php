@@ -229,12 +229,12 @@ class Develogic_Admin_Settings {
         );
         
         add_settings_field(
-            'contact_email',
-            __('Email kontaktowy (zapytaj o mieszkanie)', 'develogic'),
+            'contact_link',
+            __('Link kontaktowy (zapytaj o mieszkanie)', 'develogic'),
             array($this, 'render_text_field'),
             'develogic',
             'develogic_a1_section',
-            array('field' => 'contact_email', 'placeholder' => get_option('admin_email'), 'description' => __('Adres email na który będą wysyłane zapytania o mieszkanie. Jeśli nie ustawiono, używany jest email administratora.', 'develogic'))
+            array('field' => 'contact_link', 'placeholder' => 'mailto:' . get_option('admin_email') . ' lub https://example.com/kontakt', 'description' => __('Link do kontaktu (mailto:email@example.com lub zwykły URL). Jeśli nie ustawiono, używany jest mailto z emailem administratora.', 'develogic'))
         );
         
         add_settings_field(
@@ -330,8 +330,32 @@ class Develogic_Admin_Settings {
         $output['pdf_source'] = isset($input['pdf_source']) ? sanitize_key($input['pdf_source']) : 'off';
         $output['pdf_pattern'] = isset($input['pdf_pattern']) ? esc_url_raw($input['pdf_pattern']) : '';
         
-        // Contact email - sanitize email
-        $output['contact_email'] = isset($input['contact_email']) ? sanitize_email(trim($input['contact_email'])) : '';
+        // Contact link - sanitize mailto: or URL
+        if (isset($input['contact_link']) && !empty(trim($input['contact_link']))) {
+            $contact_link = trim($input['contact_link']);
+            // If it starts with mailto:, validate email part
+            if (strpos($contact_link, 'mailto:') === 0) {
+                $email_part = substr($contact_link, 7);
+                // Extract email before ? if there are query params
+                $email_part = strpos($email_part, '?') !== false ? substr($email_part, 0, strpos($email_part, '?')) : $email_part;
+                if (is_email($email_part)) {
+                    $output['contact_link'] = esc_url_raw($contact_link);
+                } else {
+                    $output['contact_link'] = 'mailto:' . sanitize_email($email_part);
+                }
+            } elseif (strpos($contact_link, 'http://') === 0 || strpos($contact_link, 'https://') === 0) {
+                // Regular URL starting with http:// or https://
+                $output['contact_link'] = esc_url_raw($contact_link);
+            } elseif (is_email($contact_link)) {
+                // Just an email address without mailto: prefix - add it automatically
+                $output['contact_link'] = 'mailto:' . sanitize_email($contact_link);
+            } else {
+                // Try to treat as URL (might be missing protocol)
+                $output['contact_link'] = esc_url_raw($contact_link);
+            }
+        } else {
+            $output['contact_link'] = '';
+        }
         
         // Tour 360 URL - sanitize URL
         $output['tour_360_url'] = isset($input['tour_360_url']) ? esc_url_raw(trim($input['tour_360_url'])) : '';

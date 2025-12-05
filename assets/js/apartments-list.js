@@ -1015,12 +1015,24 @@
     
     function handleEmail(apartmentNumber) {
         const developerName = window.develogicApartmentsData?.developer_name || '';
-        const contactEmail = window.develogicApartmentsData?.contact_email || '';
+        const contactLink = window.develogicApartmentsData?.contact_link || '';
         
-        const subject = encodeURIComponent('Mieszkanie ' + apartmentNumber + ' – ' + developerName);
-        const body = encodeURIComponent('\n---\n' + window.location.href);
+        if (!contactLink) {
+            return;
+        }
         
-        window.location.href = 'mailto:' + contactEmail + '?Subject=' + subject + '&body=' + body;
+        // If it's a mailto: link, append subject and body
+        if (contactLink.startsWith('mailto:')) {
+            const subject = encodeURIComponent('Mieszkanie ' + apartmentNumber + ' – ' + developerName);
+            const body = encodeURIComponent('\n---\n' + window.location.href);
+            
+            // Check if mailto already has query params
+            const separator = contactLink.indexOf('?') !== -1 ? '&' : '?';
+            window.location.href = contactLink + separator + 'Subject=' + subject + '&body=' + body;
+        } else {
+            // Regular URL - open in new tab
+            window.open(contactLink, '_blank');
+        }
     }
     
     // ===========================

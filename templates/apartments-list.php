@@ -806,7 +806,7 @@ if (!defined('ABSPATH')) {
                         </svg>
                     </a>
                     <?php endif; ?>
-                    <button class="icon-btn" data-action="email" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o mieszkanie (otwiera klienta email)">
+                    <button class="icon-btn" data-action="email" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o nieruchomość">
                         <svg viewBox="0 0 24 24">
                             <rect x="3" y="5" width="18" height="14" rx="2"/>
                             <path d="M3 7l9 6 9-6"/>
@@ -844,7 +844,7 @@ if (!defined('ABSPATH')) {
         <div class="modal-header">
             <h2 class="modal-title"></h2>
             <div class="action-buttons">
-                <button class="icon-btn" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>">
+                <button class="icon-btn" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o nieruchomość">
                     <svg viewBox="0 0 24 24">
                         <rect x="3" y="5" width="18" height="14" rx="2"/>
                         <path d="M3 7l9 6 9-6"/>
