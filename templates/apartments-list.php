@@ -24,6 +24,9 @@ if (!defined('ABSPATH')) {
      <?php endif; ?>
      <?php if (!empty($kl_pg_floors)): ?>
      data-kl-pg-floors="<?php echo esc_attr(json_encode($kl_pg_floors)); ?>"
+     <?php endif; ?>
+     <?php if (isset($atts['floor']) && $atts['floor'] !== ''): ?>
+     data-default-floor="<?php echo esc_attr($atts['floor']); ?>"
      <?php endif; ?>>
     <!-- Loading Spinner -->
     <div class="develogic-loading-overlay">

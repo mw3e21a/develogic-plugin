@@ -528,11 +528,24 @@
         // Types that should have auto-selected floor
         const typesWithAutoFloor = ['Komórka lokatorska', 'Pomieszczenie gospodarcze', 'Garaż'];
         
+        // Check if floor filter has a default value from shortcode
+        const hasDefaultFloor = container.getAttribute('data-default-floor');
+        
+        // If user selects "Lokal mieszkalny" or "all", reset to "Wszystkie piętra"
+        // But only if there's no default floor from shortcode (in which case we preserve it)
+        if (!typesWithAutoFloor.includes(selectedLocalType) && !hasDefaultFloor) {
+            floorFilter.value = 'all';
+            return;
+        }
+        
+        // Remember the current floor value (could be from shortcode or previous selection)
+        const currentFloorValue = floorFilter.value;
+        
         // Get KL/PG floors
         const klPgFloorsStr = container.getAttribute('data-kl-pg-floors');
         if (!klPgFloorsStr) {
-            // If no KL/PG floors data, just reset to all if not a KL/PG type
-            if (selectedLocalType === 'all' || !typesWithAutoFloor.includes(selectedLocalType)) {
+            // If no KL/PG floors data, reset to "all" for non-KL/PG types
+            if (!typesWithAutoFloor.includes(selectedLocalType) && !hasDefaultFloor) {
                 floorFilter.value = 'all';
             }
             return;
@@ -578,29 +591,33 @@
                 return aInt - bInt;
             });
             
-            // Rebuild select with sorted options
+            // Rebuild select with sorted options, preserving current selection
+            const savedValue = floorFilter.value;
             floorFilter.innerHTML = '';
             if (allOption) {
                 floorFilter.appendChild(allOption);
             }
             otherOptions.forEach(opt => floorFilter.appendChild(opt));
-        }
-        
-        // Now handle selection based on current local type
-        // If "all" or other type selected, reset to "Wszystkie piętra"
-        if (selectedLocalType === 'all' || !typesWithAutoFloor.includes(selectedLocalType)) {
-            floorFilter.value = 'all';
-            return;
-        }
-        
-        // If only one floor exists for KL/PG/Garaż, auto-select it
-        if (klPgFloors.length === 1) {
-            const targetFloor = String(klPgFloors[0]);
             
-            // Check if this floor option exists in the select (it should now)
-            const floorOption = Array.from(floorFilter.options).find(opt => opt.value === targetFloor);
-            if (floorOption) {
-                floorFilter.value = targetFloor;
+            // Restore selection if it's still available
+            const availableValues = Array.from(floorFilter.options).map(opt => opt.value);
+            if (availableValues.includes(savedValue)) {
+                floorFilter.value = savedValue;
+            }
+        }
+        
+        // Only auto-select floor if current value is "all" AND we have KL/PG/Garaż type selected
+        // This way we don't override explicit floor selections from shortcode
+        if (currentFloorValue === 'all' && typesWithAutoFloor.includes(selectedLocalType)) {
+            // If only one floor exists for KL/PG/Garaż, auto-select it
+            if (klPgFloors.length === 1) {
+                const targetFloor = String(klPgFloors[0]);
+                
+                // Check if this floor option exists in the select (it should now)
+                const floorOption = Array.from(floorFilter.options).find(opt => opt.value === targetFloor);
+                if (floorOption) {
+                    floorFilter.value = targetFloor;
+                }
             }
         }
     }
@@ -748,12 +765,25 @@
     
     function applyFilters() {
         const apartmentItems = document.querySelectorAll('.apartment-item');
+        const container = document.querySelector('.develogic-apartments-container');
         
         // Get filter values
         const selectedRooms = document.querySelector('#roomsFilter .filter-chip.active')?.getAttribute('data-value') || 'all';
         const selectedLocalType = document.getElementById('localTypeFilter')?.value || 'all';
         const selectedBuilding = document.getElementById('buildingFilter')?.value || 'all';
-        const selectedFloor = document.getElementById('floorFilter')?.value || 'all';
+        
+        // Floor filter - use data-default-floor if filter is hidden
+        let selectedFloor = 'all';
+        const floorFilter = document.getElementById('floorFilter');
+        if (floorFilter) {
+            selectedFloor = floorFilter.value;
+        } else if (container) {
+            // If floor filter is hidden, use data-default-floor from container
+            const defaultFloor = container.getAttribute('data-default-floor');
+            if (defaultFloor) {
+                selectedFloor = defaultFloor;
+            }
+        }
         const areaMin = parseFloat(document.getElementById('areaMin')?.value) || 0;
         const areaMax = parseFloat(document.getElementById('areaMax')?.value) || Infinity;
         const priceMin = parseFloat(document.getElementById('priceMin')?.value) || 0;
@@ -791,11 +821,13 @@
                 shouldShow = shouldShow && itemLocalType === selectedLocalType;
             }
             
-            // Building filter (skip for garage-related types that don't have buildings)
-            const nonBuildingTypes = ['Garaż', 'Komórka lokatorska', 'Pomieszczenie gospodarcze', 'Miejsce postojowe'];
-            if (selectedBuilding !== 'all' && !nonBuildingTypes.includes(selectedLocalType)) {
+            // Building filter - apply to all types that have building data
+            if (selectedBuilding !== 'all') {
                 const itemBuilding = item.getAttribute('data-building') || '';
-                shouldShow = shouldShow && itemBuilding === selectedBuilding;
+                // Only filter if item has building data
+                if (itemBuilding) {
+                    shouldShow = shouldShow && itemBuilding === selectedBuilding;
+                }
             }
             
             // Floor filter
