@@ -481,6 +481,9 @@
         // Initialize dynamic floor filtering if enabled
         updateFloorOptions();
         
+        // Ensure floor options are available for KL/PG/Garaż on initial load
+        autoSelectFloorForKLPG();
+        
         // Area range filters
         const areaMin = document.getElementById('areaMin');
         const areaMax = document.getElementById('areaMax');
@@ -509,6 +512,7 @@
     /**
      * Auto-select floor when KL/PG/Garaż is selected and only one floor exists
      * Reset to "all" for other local types
+     * Ensures floor options are available in the select
      */
     function autoSelectFloorForKLPG() {
         const container = document.querySelector('.develogic-apartments-container');
@@ -524,15 +528,13 @@
         // Types that should have auto-selected floor
         const typesWithAutoFloor = ['Komórka lokatorska', 'Pomieszczenie gospodarcze', 'Garaż'];
         
-        // If "all" or other type selected, reset to "Wszystkie piętra"
-        if (selectedLocalType === 'all' || !typesWithAutoFloor.includes(selectedLocalType)) {
-            floorFilter.value = 'all';
-            return;
-        }
-        
         // Get KL/PG floors
         const klPgFloorsStr = container.getAttribute('data-kl-pg-floors');
         if (!klPgFloorsStr) {
+            // If no KL/PG floors data, just reset to all if not a KL/PG type
+            if (selectedLocalType === 'all' || !typesWithAutoFloor.includes(selectedLocalType)) {
+                floorFilter.value = 'all';
+            }
             return;
         }
         
@@ -543,11 +545,59 @@
             return;
         }
         
+        if (!klPgFloors || !Array.isArray(klPgFloors) || klPgFloors.length === 0) {
+            return;
+        }
+        
+        // Always ensure KL/PG floor options exist in the select
+        // This is crucial when dynamic floor filtering is disabled
+        const existingFloorValues = Array.from(floorFilter.options).map(opt => opt.value);
+        let optionsAdded = false;
+        
+        klPgFloors.forEach(floor => {
+            const floorStr = String(floor);
+            if (!existingFloorValues.includes(floorStr)) {
+                const option = document.createElement('option');
+                option.value = floorStr;
+                option.textContent = formatFloor(floorStr);
+                floorFilter.appendChild(option);
+                existingFloorValues.push(floorStr);
+                optionsAdded = true;
+            }
+        });
+        
+        // Sort options if we added new ones
+        if (optionsAdded) {
+            const allOption = floorFilter.querySelector('option[value="all"]');
+            const otherOptions = Array.from(floorFilter.options).filter(opt => opt.value !== 'all');
+            
+            // Sort by floor number
+            otherOptions.sort((a, b) => {
+                const aInt = parseFloorToNumber(a.value) ?? 999;
+                const bInt = parseFloorToNumber(b.value) ?? 999;
+                return aInt - bInt;
+            });
+            
+            // Rebuild select with sorted options
+            floorFilter.innerHTML = '';
+            if (allOption) {
+                floorFilter.appendChild(allOption);
+            }
+            otherOptions.forEach(opt => floorFilter.appendChild(opt));
+        }
+        
+        // Now handle selection based on current local type
+        // If "all" or other type selected, reset to "Wszystkie piętra"
+        if (selectedLocalType === 'all' || !typesWithAutoFloor.includes(selectedLocalType)) {
+            floorFilter.value = 'all';
+            return;
+        }
+        
         // If only one floor exists for KL/PG/Garaż, auto-select it
-        if (klPgFloors && Array.isArray(klPgFloors) && klPgFloors.length === 1) {
+        if (klPgFloors.length === 1) {
             const targetFloor = String(klPgFloors[0]);
             
-            // Check if this floor option exists in the select
+            // Check if this floor option exists in the select (it should now)
             const floorOption = Array.from(floorFilter.options).find(opt => opt.value === targetFloor);
             if (floorOption) {
                 floorFilter.value = targetFloor;
