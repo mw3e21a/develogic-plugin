@@ -723,6 +723,17 @@
     color: var(--develogic-primary-color);
 }
 
+/* Mobile-only button - hidden on desktop */
+.mobile-only {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-only {
+        display: flex;
+    }
+}
+
 /* Tooltips for icon buttons */
 .icon-btn[title],
 .icon-btn-3d[title] {

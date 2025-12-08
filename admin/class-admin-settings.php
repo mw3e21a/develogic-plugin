@@ -247,6 +247,15 @@ class Develogic_Admin_Settings {
         );
         
         add_settings_field(
+            'contact_phone',
+            __('Numer telefonu kontaktowy', 'develogic'),
+            array($this, 'render_text_field'),
+            'develogic',
+            'develogic_a1_section',
+            array('field' => 'contact_phone', 'placeholder' => '+48 123 456 789', 'description' => __('Numer telefonu do kontaktu. Wyświetlany tylko na urządzeniach mobilnych jako przycisk do dzwonienia.', 'develogic'))
+        );
+        
+        add_settings_field(
             'tour_360_url',
             __('Domyślny link 360°', 'develogic'),
             array($this, 'render_text_field'),
@@ -377,6 +386,16 @@ class Develogic_Admin_Settings {
             }
         } else {
             $output['contact_link_mobile'] = '';
+        }
+        
+        // Contact phone - sanitize phone number
+        if (isset($input['contact_phone']) && !empty(trim($input['contact_phone']))) {
+            $phone = trim($input['contact_phone']);
+            // Remove all non-digit characters except +, spaces, hyphens, and parentheses
+            $phone = preg_replace('/[^\d\+\s\-\(\)]/', '', $phone);
+            $output['contact_phone'] = sanitize_text_field($phone);
+        } else {
+            $output['contact_phone'] = '';
         }
         
         // Tour 360 URL - sanitize URL
