@@ -457,7 +457,10 @@
         // Local type filter
         const localTypeFilter = document.getElementById('localTypeFilter');
         if (localTypeFilter) {
-            localTypeFilter.addEventListener('change', applyFilters);
+            localTypeFilter.addEventListener('change', function() {
+                autoSelectFloorForKLPG();
+                applyFilters();
+            });
         }
         
         // Building filter
@@ -504,6 +507,55 @@
     }
     
     /**
+     * Auto-select floor when KL/PG/Garaż is selected and only one floor exists
+     * Reset to "all" for other local types
+     */
+    function autoSelectFloorForKLPG() {
+        const container = document.querySelector('.develogic-apartments-container');
+        const localTypeFilter = document.getElementById('localTypeFilter');
+        const floorFilter = document.getElementById('floorFilter');
+        
+        if (!container || !localTypeFilter || !floorFilter) {
+            return;
+        }
+        
+        const selectedLocalType = localTypeFilter.value;
+        
+        // Types that should have auto-selected floor
+        const typesWithAutoFloor = ['Komórka lokatorska', 'Pomieszczenie gospodarcze', 'Garaż'];
+        
+        // If "all" or other type selected, reset to "Wszystkie piętra"
+        if (selectedLocalType === 'all' || !typesWithAutoFloor.includes(selectedLocalType)) {
+            floorFilter.value = 'all';
+            return;
+        }
+        
+        // Get KL/PG floors
+        const klPgFloorsStr = container.getAttribute('data-kl-pg-floors');
+        if (!klPgFloorsStr) {
+            return;
+        }
+        
+        let klPgFloors = [];
+        try {
+            klPgFloors = JSON.parse(klPgFloorsStr);
+        } catch (e) {
+            return;
+        }
+        
+        // If only one floor exists for KL/PG/Garaż, auto-select it
+        if (klPgFloors && Array.isArray(klPgFloors) && klPgFloors.length === 1) {
+            const targetFloor = String(klPgFloors[0]);
+            
+            // Check if this floor option exists in the select
+            const floorOption = Array.from(floorFilter.options).find(opt => opt.value === targetFloor);
+            if (floorOption) {
+                floorFilter.value = targetFloor;
+            }
+        }
+    }
+    
+    /**
      * Update floor filter options based on selected building
      * Only works for "Lokal mieszkalny" type
      */
@@ -536,6 +588,17 @@
             return;
         }
         
+        // Get KL/PG floors if available
+        let klPgFloors = [];
+        const klPgFloorsStr = container.getAttribute('data-kl-pg-floors');
+        if (klPgFloorsStr) {
+            try {
+                klPgFloors = JSON.parse(klPgFloorsStr);
+            } catch (e) {
+                console.error('Error parsing kl_pg_floors:', e);
+            }
+        }
+        
         // Get selected building
         const selectedBuilding = buildingFilter.value;
         
@@ -562,6 +625,11 @@
             Object.values(buildingFloorsMap).forEach(floors => {
                 floors.forEach(floor => allUniqueFloors.add(String(floor)));
             });
+            
+            // Add KL/PG floors to the set
+            if (klPgFloors && Array.isArray(klPgFloors)) {
+                klPgFloors.forEach(floor => allUniqueFloors.add(String(floor)));
+            }
             
             // Convert to array and sort numerically using parseFloorToNumber for proper handling
             const sortedFloors = Array.from(allUniqueFloors).sort((a, b) => {
@@ -597,7 +665,18 @@
                 });
             } else {
                 // If no floors found for building, show all standard floors as fallback
-                const allFloors = ['-1', '0', '1', '2', '3', '4'];
+                // Also include KL/PG floors if available
+                const allFloorsSet = new Set(['-1', '0', '1', '2', '3', '4']);
+                if (klPgFloors && Array.isArray(klPgFloors)) {
+                    klPgFloors.forEach(floor => allFloorsSet.add(String(floor)));
+                }
+                
+                const allFloors = Array.from(allFloorsSet).sort((a, b) => {
+                    const aInt = parseFloorToNumber(a) ?? 999;
+                    const bInt = parseFloorToNumber(b) ?? 999;
+                    return aInt - bInt;
+                });
+                
                 allFloors.forEach(floor => {
                     const option = document.createElement('option');
                     option.value = floor;

@@ -21,6 +21,9 @@ if (!defined('ABSPATH')) {
      <?php if ($is_residential_local && !empty($building_floors_map)): ?>
      data-building-floors-map="<?php echo esc_attr(json_encode($building_floors_map)); ?>"
      data-enable-dynamic-floors="true"
+     <?php endif; ?>
+     <?php if (!empty($kl_pg_floors)): ?>
+     data-kl-pg-floors="<?php echo esc_attr(json_encode($kl_pg_floors)); ?>"
      <?php endif; ?>>
     <!-- Loading Spinner -->
     <div class="develogic-loading-overlay">
@@ -223,13 +226,48 @@ if (!defined('ABSPATH')) {
                 <div class="filter-group filter-group-floor">
                     <label class="filter-label">Piętro:</label>
                     <select class="filter-select" id="floorFilter">
-                        <?php $default_floor = isset($atts['floor']) && $atts['floor'] !== '' ? $atts['floor'] : 'all'; ?>
+                        <?php 
+                        $default_floor = isset($atts['floor']) && $atts['floor'] !== '' ? $atts['floor'] : 'all';
+                        
+                        // Get all available floors from KL/PG if they exist
+                        $available_floors = array('0', '1', '2', '3', '4'); // Default floors
+                        
+                        // Check if kl_pg_floors is defined and not empty
+                        if (isset($kl_pg_floors) && !empty($kl_pg_floors) && is_array($kl_pg_floors)) {
+                            // Add KL/PG floors to available floors
+                            foreach ($kl_pg_floors as $floor) {
+                                // Ensure floor is a string for comparison
+                                $floor_str = (string) $floor;
+                                if (!in_array($floor_str, $available_floors)) {
+                                    $available_floors[] = $floor_str;
+                                }
+                            }
+                            // Sort floors numerically
+                            usort($available_floors, function($a, $b) {
+                                return intval($a) <=> intval($b);
+                            });
+                        }
+                        
+                        // Floor labels mapping
+                        $floor_labels = array(
+                            '-1' => 'Piwnica',
+                            '0' => 'Parter',
+                            '1' => 'Piętro I',
+                            '2' => 'Piętro II',
+                            '3' => 'Piętro III',
+                            '4' => 'Piętro IV',
+                            '5' => 'Piętro V',
+                            '6' => 'Piętro VI',
+                        );
+                        ?>
                         <option value="all" <?php echo ($default_floor === 'all') ? 'selected' : ''; ?>>Wszystkie piętra</option>
-                        <option value="0" <?php echo ($default_floor === '0') ? 'selected' : ''; ?>>Parter</option>
-                        <option value="1" <?php echo ($default_floor === '1') ? 'selected' : ''; ?>>Piętro I</option>
-                        <option value="2" <?php echo ($default_floor === '2') ? 'selected' : ''; ?>>Piętro II</option>
-                        <option value="3" <?php echo ($default_floor === '3') ? 'selected' : ''; ?>>Piętro III</option>
-                        <option value="4" <?php echo ($default_floor === '4') ? 'selected' : ''; ?>>Piętro IV</option>
+                        <?php
+                        foreach ($available_floors as $floor) {
+                            $floor_label = isset($floor_labels[$floor]) ? $floor_labels[$floor] : 'Piętro ' . $floor;
+                            $is_selected = ($default_floor === $floor) ? ' selected' : '';
+                            echo '<option value="' . esc_attr($floor) . '"' . $is_selected . '>' . esc_html($floor_label) . '</option>';
+                        }
+                        ?>
                     </select>
                 </div>
                 <?php endif; ?>

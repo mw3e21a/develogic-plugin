@@ -172,6 +172,9 @@ class Develogic_Shortcodes {
         
         $locals = Develogic_Local_Query::get_locals($filters);
         
+        // Store original locals for floor collection (before filtering)
+        $original_locals_for_floors = $locals;
+        
         // Check if this is a garage listing - if so, don't filter by building
         $is_garage_listing = false;
         if (!empty($atts['local_types'])) {
@@ -443,32 +446,68 @@ class Develogic_Shortcodes {
             }
         }
         
-        // Check if "Lokal mieszkalny" is in the list (for building floors mapping)
+        // Check if types with floors are in the list (for building floors mapping)
+        $types_with_floors = array('Lokal mieszkalny', 'Komórka lokatorska', 'Pomieszczenie gospodarcze');
+        $has_types_with_floors = false;
         if (!empty($atts['local_types'])) {
             $local_types_array = array_map('trim', explode(',', $atts['local_types']));
+            foreach ($types_with_floors as $type) {
+                if (in_array($type, $local_types_array)) {
+                    $has_types_with_floors = true;
+                    break;
+                }
+            }
+            // Also check for residential local for backward compatibility
             if (in_array('Lokal mieszkalny', $local_types_array)) {
                 $is_residential_local = true;
             }
         }
         
-        // Build building -> floors mapping for residential locals
+        // Build building -> floors mapping for types that have floors
         $building_floors_map = array();
-        if ($is_residential_local) {
-            foreach ($locals as $local) {
+        $kl_pg_floors = array(); // Track floors for KL and PG (not building-specific)
+        
+        // Always initialize kl_pg_floors even if has_types_with_floors is false
+        // This ensures the variable exists in template
+        // Use original_locals_for_floors to collect floors before filtering
+        // But filter by local_types if specified
+        if ($has_types_with_floors) {
+            // Get local_types array for filtering
+            $floor_collection_types = array();
+            if (!empty($atts['local_types'])) {
+                $floor_collection_types = array_map('trim', explode(',', $atts['local_types']));
+            }
+            
+            foreach ($original_locals_for_floors as $local) {
                 $local_type = isset($local['localType']) ? trim($local['localType']) : '';
-                // Only process residential locals
-                if ($local_type === 'Lokal mieszkalny' && !empty($local['building'])) {
-                    $building = $local['building'];
-                    $floor = isset($local['floor']) ? $local['floor'] : '';
+                
+                // Only collect floors for types that are in local_types (if specified)
+                if (!empty($floor_collection_types) && !in_array($local_type, $floor_collection_types)) {
+                    continue;
+                }
+                
+                $floor = isset($local['floor']) ? $local['floor'] : '';
+                
+                if ($floor !== '' && $floor !== null) {
+                    // Normalize floor value to numeric string
+                    $floor_normalized = self::normalize_floor_value($floor);
                     
-                    if ($floor !== '' && $floor !== null) {
-                        if (!isset($building_floors_map[$building])) {
-                            $building_floors_map[$building] = array();
+                    if ($floor_normalized !== null) {
+                        // For residential locals, map by building
+                        if ($local_type === 'Lokal mieszkalny' && !empty($local['building'])) {
+                            $building = $local['building'];
+                            if (!isset($building_floors_map[$building])) {
+                                $building_floors_map[$building] = array();
+                            }
+                            if (!in_array($floor_normalized, $building_floors_map[$building])) {
+                                $building_floors_map[$building][] = $floor_normalized;
+                            }
                         }
-                        // Normalize floor value to numeric string (handles "parter" -> "0", "I piętro" -> "1", etc.)
-                        $floor_normalized = self::normalize_floor_value($floor);
-                        if ($floor_normalized !== null && !in_array($floor_normalized, $building_floors_map[$building])) {
-                            $building_floors_map[$building][] = $floor_normalized;
+                        // For KL and PG, collect all floors (they may not have buildings)
+                        elseif (in_array($local_type, array('Komórka lokatorska', 'Pomieszczenie gospodarcze'))) {
+                            if (!in_array($floor_normalized, $kl_pg_floors)) {
+                                $kl_pg_floors[] = $floor_normalized;
+                            }
                         }
                     }
                 }
@@ -482,16 +521,30 @@ class Develogic_Shortcodes {
                     return $a_int <=> $b_int;
                 });
             }
+            // Sort KL/PG floors
+            usort($kl_pg_floors, function($a, $b) {
+                $a_int = intval($a);
+                $b_int = intval($b);
+                return $a_int <=> $b_int;
+            });
         }
         
         // Generate unique ID for this instance
         $instance_id = 'develogic-apartments-list-' . uniqid();
+        
+        // Store KL/PG default floor for JavaScript (but don't set it as default in PHP)
+        $default_floor_kl_pg = null;
+        if (!empty($kl_pg_floors) && count($kl_pg_floors) === 1) {
+            $default_floor_kl_pg = $kl_pg_floors[0];
+        }
         
         // Load template
         ob_start();
         $this->load_template('apartments-list', array(
             'instance_id' => $instance_id,
             'atts' => $atts,
+            'kl_pg_floors' => $kl_pg_floors,
+            'default_floor_kl_pg' => $default_floor_kl_pg,
             'locals' => $locals,
             'buildings' => $buildings,
             'status_counts' => $status_counts,
@@ -501,6 +554,7 @@ class Develogic_Shortcodes {
             'default_local_type' => $default_local_type,
             'building_floors_map' => $building_floors_map,
             'is_residential_local' => $is_residential_local,
+            'has_types_with_floors' => $has_types_with_floors,
         ));
         return ob_get_clean();
     }
