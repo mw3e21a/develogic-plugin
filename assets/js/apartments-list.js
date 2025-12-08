@@ -1013,9 +1013,26 @@
         });
     }
     
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+               (window.innerWidth <= 768);
+    }
+    
     function handleEmail(apartmentNumber) {
         const developerName = window.develogicApartmentsData?.developer_name || '';
-        const contactLink = window.develogicApartmentsData?.contact_link || '';
+        const isMobile = isMobileDevice();
+        
+        // Get appropriate contact link based on device type
+        let contactLink = '';
+        if (isMobile) {
+            contactLink = window.develogicApartmentsData?.contact_link_mobile || '';
+        } else {
+            contactLink = window.develogicApartmentsData?.contact_link_desktop || '';
+            // Fallback to mobile link if desktop link is not set
+            if (!contactLink) {
+                contactLink = window.develogicApartmentsData?.contact_link_mobile || '';
+            }
+        }
         
         if (!contactLink) {
             return;

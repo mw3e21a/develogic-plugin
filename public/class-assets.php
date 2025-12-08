@@ -95,7 +95,8 @@ class Develogic_Assets {
                 'obserwujesz' => __('obserwujesz', 'develogic'),
             ),
             'developer_name' => develogic()->get_setting('developer_name', get_bloginfo('name')),
-            'contact_link' => develogic()->get_setting('contact_link', 'mailto:' . get_option('admin_email')),
+            'contact_link_desktop' => develogic()->get_setting('contact_link_desktop', ''),
+            'contact_link_mobile' => develogic()->get_setting('contact_link_mobile', 'mailto:' . get_option('admin_email')),
         ));
     }
     

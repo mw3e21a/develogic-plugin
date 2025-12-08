@@ -229,12 +229,21 @@ class Develogic_Admin_Settings {
         );
         
         add_settings_field(
-            'contact_link',
-            __('Link kontaktowy (zapytaj o mieszkanie)', 'develogic'),
+            'contact_link_desktop',
+            __('Link kontaktowy - Desktop/PC (zapytaj o mieszkanie)', 'develogic'),
             array($this, 'render_text_field'),
             'develogic',
             'develogic_a1_section',
-            array('field' => 'contact_link', 'placeholder' => 'mailto:' . get_option('admin_email') . ' lub https://example.com/kontakt', 'description' => __('Link do kontaktu (mailto:email@example.com lub zwykły URL). Jeśli nie ustawiono, używany jest mailto z emailem administratora.', 'develogic'))
+            array('field' => 'contact_link_desktop', 'placeholder' => 'https://example.com/kontakt', 'description' => __('Link do kontaktu dla urządzeń desktop/PC (zwykły URL).', 'develogic'))
+        );
+        
+        add_settings_field(
+            'contact_link_mobile',
+            __('Link kontaktowy - Mobile (zapytaj o mieszkanie)', 'develogic'),
+            array($this, 'render_text_field'),
+            'develogic',
+            'develogic_a1_section',
+            array('field' => 'contact_link_mobile', 'placeholder' => 'mailto:' . get_option('admin_email'), 'description' => __('Link do kontaktu dla urządzeń mobilnych (mailto:email@example.com lub zwykły URL). Jeśli nie ustawiono, używany jest mailto z emailem administratora.', 'develogic'))
         );
         
         add_settings_field(
@@ -330,31 +339,44 @@ class Develogic_Admin_Settings {
         $output['pdf_source'] = isset($input['pdf_source']) ? sanitize_key($input['pdf_source']) : 'off';
         $output['pdf_pattern'] = isset($input['pdf_pattern']) ? esc_url_raw($input['pdf_pattern']) : '';
         
-        // Contact link - sanitize mailto: or URL
-        if (isset($input['contact_link']) && !empty(trim($input['contact_link']))) {
-            $contact_link = trim($input['contact_link']);
+        // Contact link desktop - sanitize URL (typically regular URL for desktop)
+        if (isset($input['contact_link_desktop']) && !empty(trim($input['contact_link_desktop']))) {
+            $contact_link = trim($input['contact_link_desktop']);
+            if (strpos($contact_link, 'http://') === 0 || strpos($contact_link, 'https://') === 0) {
+                $output['contact_link_desktop'] = esc_url_raw($contact_link);
+            } else {
+                // Try to treat as URL (might be missing protocol)
+                $output['contact_link_desktop'] = esc_url_raw($contact_link);
+            }
+        } else {
+            $output['contact_link_desktop'] = '';
+        }
+        
+        // Contact link mobile - sanitize mailto: or URL
+        if (isset($input['contact_link_mobile']) && !empty(trim($input['contact_link_mobile']))) {
+            $contact_link = trim($input['contact_link_mobile']);
             // If it starts with mailto:, validate email part
             if (strpos($contact_link, 'mailto:') === 0) {
                 $email_part = substr($contact_link, 7);
                 // Extract email before ? if there are query params
                 $email_part = strpos($email_part, '?') !== false ? substr($email_part, 0, strpos($email_part, '?')) : $email_part;
                 if (is_email($email_part)) {
-                    $output['contact_link'] = esc_url_raw($contact_link);
+                    $output['contact_link_mobile'] = esc_url_raw($contact_link);
                 } else {
-                    $output['contact_link'] = 'mailto:' . sanitize_email($email_part);
+                    $output['contact_link_mobile'] = 'mailto:' . sanitize_email($email_part);
                 }
             } elseif (strpos($contact_link, 'http://') === 0 || strpos($contact_link, 'https://') === 0) {
                 // Regular URL starting with http:// or https://
-                $output['contact_link'] = esc_url_raw($contact_link);
+                $output['contact_link_mobile'] = esc_url_raw($contact_link);
             } elseif (is_email($contact_link)) {
                 // Just an email address without mailto: prefix - add it automatically
-                $output['contact_link'] = 'mailto:' . sanitize_email($contact_link);
+                $output['contact_link_mobile'] = 'mailto:' . sanitize_email($contact_link);
             } else {
                 // Try to treat as URL (might be missing protocol)
-                $output['contact_link'] = esc_url_raw($contact_link);
+                $output['contact_link_mobile'] = esc_url_raw($contact_link);
             }
         } else {
-            $output['contact_link'] = '';
+            $output['contact_link_mobile'] = '';
         }
         
         // Tour 360 URL - sanitize URL
