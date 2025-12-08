@@ -126,6 +126,7 @@ class Develogic_Shortcodes {
             'kl_to' => '',
             'building_id' => '',
             'building' => '',
+            'available_buildings' => '',
             'title' => '',
             'show_counters' => 'true',
             'show_print' => develogic()->get_setting('show_print', true),
@@ -278,6 +279,10 @@ class Develogic_Shortcodes {
                 $has_kl_params = !empty($atts['kl_from']) || !empty($atts['kl_to']);
                 $has_pg_params = !empty($atts['pg_name']);
                 
+                // Check if KL and PG are explicitly listed in local_types
+                $kl_explicitly_listed = in_array('Komórka lokatorska', $local_types_array);
+                $pg_explicitly_listed = in_array('Pomieszczenie gospodarcze', $local_types_array);
+                
                 if ($has_kl_params) {
                     // Filter KL cells by range if parameters are provided
                     // Support flexible patterns: "KL1", "KL10", "KL-1-1", "KL-1-30", "KL-2-2", etc.
@@ -387,14 +392,18 @@ class Develogic_Shortcodes {
                     });
                 } else {
                     // If no KL parameters are provided, exclude all KL cells
-                    $locals = array_filter($locals, function($local) {
-                        $local_type = isset($local['localType']) ? trim($local['localType']) : '';
-                        return $local_type !== 'Komórka lokatorska';
-                    });
+                    // UNLESS "Komórka lokatorska" is explicitly listed in local_types
+                    if (!$kl_explicitly_listed) {
+                        $locals = array_filter($locals, function($local) {
+                            $local_type = isset($local['localType']) ? trim($local['localType']) : '';
+                            return $local_type !== 'Komórka lokatorska';
+                        });
+                    }
                 }
                 
                 // If no PG parameters are provided, exclude all PG cells
-                if (!$has_pg_params) {
+                // UNLESS "Pomieszczenie gospodarcze" is explicitly listed in local_types
+                if (!$has_pg_params && !$pg_explicitly_listed) {
                     $locals = array_filter($locals, function($local) {
                         $local_type = isset($local['localType']) ? trim($local['localType']) : '';
                         return $local_type !== 'Pomieszczenie gospodarcze';

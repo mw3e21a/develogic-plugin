@@ -105,6 +105,17 @@ if (!defined('ABSPATH')) {
                             }
                         }
                         
+                        // If local_types is specified in shortcode, add those types to available types
+                        // This ensures types are shown in select even if no locals of that type exist in current data
+                        if (!empty($atts['local_types'])) {
+                            $shortcode_types = array_map('trim', explode(',', $atts['local_types']));
+                            foreach ($shortcode_types as $type) {
+                                if (!in_array($type, $available_types)) {
+                                    $available_types[] = $type;
+                                }
+                            }
+                        }
+                        
                         // Define display order for types
                         $type_order = array('Lokal mieszkalny', 'Garaż', 'Komórka lokatorska', 'Pomieszczenie gospodarcze', 'Miejsce postojowe');
                         $ordered_types = array();
@@ -175,16 +186,30 @@ if (!defined('ABSPATH')) {
                             }
                         }
                         ?>
-                        <option value="all" <?php echo empty($default_building) ? 'selected' : ''; ?>>Wszystkie budynki</option>
                         <?php
-                        // Get unique buildings
+                        // Get available buildings list from shortcode parameter
+                        $available_buildings_list = array();
+                        if (!empty($atts['available_buildings'])) {
+                            $available_buildings_list = array_map('trim', explode(',', $atts['available_buildings']));
+                        }
+                        
+                        // Get unique buildings from locals
                         $buildings_list = array();
                         foreach ($locals as $local) {
                             if (!empty($local['building']) && !in_array($local['building'], $buildings_list)) {
-                                $buildings_list[] = $local['building'];
+                                // If available_buildings is set, only include buildings from that list
+                                if (empty($available_buildings_list) || in_array($local['building'], $available_buildings_list)) {
+                                    $buildings_list[] = $local['building'];
+                                }
                             }
                         }
                         sort($buildings_list);
+                        
+                        // Show "Wszystkie budynki" option only if there are multiple buildings or no available_buildings filter
+                        if (empty($available_buildings_list) || count($buildings_list) > 1) {
+                            echo '<option value="all" ' . (empty($default_building) ? 'selected' : '') . '>Wszystkie budynki</option>';
+                        }
+                        
                         foreach ($buildings_list as $building) {
                             $is_selected = ($building === $default_building) ? ' selected' : '';
                             echo '<option value="' . esc_attr($building) . '"' . $is_selected . '>' . esc_html($building) . '</option>';
