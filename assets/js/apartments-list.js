@@ -1298,6 +1298,12 @@
     let imageOffsetY = 0;
     
     function setupModal() {
+        // Move modal to body to ensure it's above all containers (including sticky header)
+        const modal = document.getElementById('apartment-detail-modal');
+        if (modal && modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+        }
+        
         // Close button
         const closeBtn = document.querySelector('.apartment-detail-modal .modal-close');
         if (closeBtn) {

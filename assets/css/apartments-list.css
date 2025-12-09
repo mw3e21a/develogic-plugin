@@ -791,14 +791,15 @@
 /* ===========================
    Apartment Detail Modal
    =========================== */
+/* Apartment detail modal - high z-index to ensure it appears above sticky header */
 .apartment-detail-modal {
     display: none;
-    position: fixed;
+    position: fixed !important;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 99999;
+    z-index: 9999999 !important;
 }
 
 .modal-overlay {
@@ -826,7 +827,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    z-index: 10;
+    z-index: 10000000; /* Higher than modal to ensure close button is always visible */
     display: flex;
     align-items: center;
     justify-content: center;
