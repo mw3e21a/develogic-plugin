@@ -169,7 +169,7 @@ if (!defined('ABSPATH')) {
                 </div>
                 
                 <?php if (empty($hide_building_filter)): ?>
-                <div class="filter-group filter-group-building">
+                <div class="filter-group filter-group-building filter-mobile-hidden">
                     <label class="filter-label">Budynek:</label>
                     <select class="filter-select" id="buildingFilter">
                         <?php
@@ -278,7 +278,7 @@ if (!defined('ABSPATH')) {
         </div>
         
         <div class="filter-row">
-            <div class="filter-group">
+            <div class="filter-group filter-mobile-hidden">
                 <label class="filter-label">Metraż (m²):</label>
                 <div class="filter-range">
                     <input type="number" class="filter-input" id="areaMin" placeholder="od" step="1" min="0" value="<?php echo !empty($atts['min_area']) ? esc_attr($atts['min_area']) : ''; ?>">
@@ -287,7 +287,7 @@ if (!defined('ABSPATH')) {
                 </div>
             </div>
             
-            <div class="filter-group">
+            <div class="filter-group filter-mobile-hidden">
                 <label class="filter-label">Cena za lokal (zł):</label>
                 <div class="filter-range">
                     <input type="number" class="filter-input" id="priceMin" placeholder="od" step="10000" min="0" value="<?php echo !empty($atts['min_price_gross']) ? esc_attr($atts['min_price_gross']) : ''; ?>">
@@ -340,6 +340,14 @@ if (!defined('ABSPATH')) {
                 </div>
             </div>
                 <?php endif; ?>
+            
+            <button type="button" class="filter-show-more-btn mobile-only" id="showMoreFilters" aria-expanded="false">
+                <span class="show-more-text">Pokaż więcej filtrów</span>
+                <span class="show-less-text" style="display: none;">Ukryj dodatkowe filtry</span>
+                <svg class="filter-arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+            </button>
             
             <div class="filter-group filter-actions">
                 <button class="filter-reset-btn" id="resetFilters">
@@ -882,14 +890,14 @@ if (!defined('ABSPATH')) {
                         </svg>
                     </a>
                     <?php endif; ?>
-                    <button class="icon-btn" data-action="email" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o nieruchomość">
+                    <button class="icon-btn gtm-email-btn" data-action="email" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o nieruchomość">
                         <svg viewBox="0 0 24 24">
                             <rect x="3" y="5" width="18" height="14" rx="2"/>
                             <path d="M3 7l9 6 9-6"/>
                         </svg>
                     </button>
                     <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
-                    <button class="icon-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>" title="Dodaj do obserwowanych">
+                    <button class="icon-btn gtm-favorite-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>" title="Dodaj do obserwowanych">
                         <svg viewBox="0 0 24 24">
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                         </svg>
@@ -932,6 +940,24 @@ if (!defined('ABSPATH')) {
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                     </svg>
                 </button>
+                <?php endif; ?>
+                <?php 
+                $contact_phone = develogic()->get_setting('contact_phone', '');
+                if (!empty($contact_phone)): 
+                    // Format phone number: remove all non-digits, then add dashes every 3 digits
+                    $phone_digits = preg_replace('/[^\d]/', '', $contact_phone);
+                    $formatted_phone = '';
+                    for ($i = 0; $i < strlen($phone_digits); $i++) {
+                        if ($i > 0 && $i % 3 == 0) {
+                            $formatted_phone .= '-';
+                        }
+                        $formatted_phone .= $phone_digits[$i];
+                    }
+                ?>
+                <div class="contact-phone-desktop desktop-only">
+                    <span class="phone-label">Tel:</span>
+                    <span class="phone-number"><?php echo esc_html($formatted_phone); ?></span>
+                </div>
                 <?php endif; ?>
             </div>
         </div>

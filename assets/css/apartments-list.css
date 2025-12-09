@@ -396,6 +396,11 @@
     color: var(--develogic-primary-color);
 }
 
+/* Show More Filters Button (hidden on desktop) */
+.mobile-only {
+    display: none;
+}
+
 /* Filter Reset Button */
 .filter-reset-btn {
     display: flex;
@@ -863,7 +868,42 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-right: 250px;
+}
+
+/* Desktop-only class - hidden on mobile */
+.desktop-only {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .desktop-only {
+        display: none !important;
+    }
+}
+
+/* Contact phone in action buttons (desktop only) */
+.contact-phone-desktop {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 18px;
+    color: #374151;
+    font-weight: 500;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    white-space: nowrap;
+    margin-right: 100px;
+}
+
+.contact-phone-desktop .phone-label {
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.contact-phone-desktop .phone-number {
+    color: #1f2937;
+    font-weight: 600;
 }
 
 .modal-body {
@@ -2139,6 +2179,63 @@
     .filter-separator {
         flex-shrink: 0;
         font-size: 13px;
+    }
+    
+    /* Hide additional filters on mobile by default */
+    .filter-mobile-hidden {
+        display: none !important;
+    }
+    
+    /* Show filters when expanded */
+    .filter-mobile-hidden.filter-mobile-visible {
+        display: flex !important;
+    }
+    
+    /* Show more filters button (mobile only) */
+    .filter-show-more-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 10px 18px;
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        margin-bottom: 10px;
+    }
+    
+    .filter-show-more-btn:hover {
+        border-color: var(--develogic-primary-color);
+        background: #f0f7ff;
+        color: var(--develogic-primary-color);
+    }
+    
+    .filter-show-more-btn .filter-arrow-icon {
+        width: 16px;
+        height: 16px;
+        transition: transform 0.3s ease;
+        flex-shrink: 0;
+    }
+    
+    .filter-show-more-btn[aria-expanded="true"] .filter-arrow-icon {
+        transform: rotate(180deg);
+    }
+    
+    /* Show button only on mobile - use flex to preserve icon-btn styles */
+    .mobile-only {
+        display: flex;
+    }
+    
+    /* Ensure icon buttons keep their flex display */
+    .icon-btn.mobile-only {
+        display: flex;
     }
 }
 

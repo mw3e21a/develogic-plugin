@@ -507,6 +507,38 @@
         if (resetBtn) {
             resetBtn.addEventListener('click', resetFilters);
         }
+        
+        // Show more filters button (mobile)
+        const showMoreBtn = document.getElementById('showMoreFilters');
+        if (showMoreBtn) {
+            showMoreBtn.addEventListener('click', function() {
+                const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                const hiddenFilters = document.querySelectorAll('.filter-mobile-hidden');
+                const showMoreText = this.querySelector('.show-more-text');
+                const showLessText = this.querySelector('.show-less-text');
+                const arrowIcon = this.querySelector('.filter-arrow-icon');
+                
+                if (isExpanded) {
+                    // Hide filters
+                    hiddenFilters.forEach(filter => {
+                        filter.classList.remove('filter-mobile-visible');
+                    });
+                    this.setAttribute('aria-expanded', 'false');
+                    if (showMoreText) showMoreText.style.display = 'inline';
+                    if (showLessText) showLessText.style.display = 'none';
+                    if (arrowIcon) arrowIcon.style.transform = 'rotate(0deg)';
+                } else {
+                    // Show filters
+                    hiddenFilters.forEach(filter => {
+                        filter.classList.add('filter-mobile-visible');
+                    });
+                    this.setAttribute('aria-expanded', 'true');
+                    if (showMoreText) showMoreText.style.display = 'none';
+                    if (showLessText) showLessText.style.display = 'inline';
+                    if (arrowIcon) arrowIcon.style.transform = 'rotate(180deg)';
+                }
+            });
+        }
     }
     
     /**
@@ -1951,11 +1983,11 @@
                     return;
                 }
                 
-                // Sort by appliesFrom ascending
-                prices.sort((a, b) => new Date(a.appliesFrom) - new Date(b.appliesFrom));
+                // Sort by appliesFrom descending (newest first)
+                prices.sort((a, b) => new Date(b.appliesFrom) - new Date(a.appliesFrom));
                 
                 // Build table rows (latest 6 entries)
-                const last = prices.slice(-6);
+                const last = prices.slice(0, 6);
                 
                 last.forEach(p => {
                     const label = formatDateShort(p.appliesFrom);
