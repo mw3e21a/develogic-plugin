@@ -543,6 +543,8 @@
     color: #1a1a1a;
     font-weight: 600;
     text-transform: capitalize;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .features {
@@ -791,15 +793,14 @@
 /* ===========================
    Apartment Detail Modal
    =========================== */
-/* Apartment detail modal - high z-index to ensure it appears above sticky header */
 .apartment-detail-modal {
     display: none;
-    position: fixed !important;
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 9999999 !important;
+    z-index: 99999;
 }
 
 .modal-overlay {
@@ -827,7 +828,7 @@
     background: transparent;
     border: none;
     cursor: pointer;
-    z-index: 10000000; /* Higher than modal to ensure close button is always visible */
+    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1661,6 +1662,12 @@
         display: flex;
         flex-direction: row;
         gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .detail-row {
+        grid-template-columns: 100px 1fr;
+        gap: 12px;
     }
 }
 
@@ -2238,6 +2245,26 @@
     .icon-btn.mobile-only {
         display: flex;
     }
+    
+    /* Fix detail-row on mobile - reduce label width and gap */
+    .detail-row {
+        grid-template-columns: 90px 1fr;
+        gap: 10px;
+        font-size: 13px;
+    }
+    
+    /* Fix apartment-actions on mobile - ensure buttons don't overflow */
+    .apartment-actions {
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .apartment-actions .icon-btn {
+        flex-shrink: 0;
+        min-width: 44px;
+        width: 44px;
+        height: 44px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -2300,5 +2327,22 @@
     
     .sort-label {
         font-size: 12px;
+    }
+    
+    /* Further reduce detail-row on very small screens */
+    .detail-row {
+        grid-template-columns: 80px 1fr;
+        gap: 8px;
+        font-size: 12px;
+    }
+    
+    .apartment-actions {
+        gap: 8px;
+    }
+    
+    .apartment-actions .icon-btn {
+        min-width: 40px;
+        width: 40px;
+        height: 40px;
     }
 }
