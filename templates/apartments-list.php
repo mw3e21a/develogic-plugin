@@ -689,6 +689,7 @@ if (!defined('ABSPATH')) {
                     'building' => $local['building'],
                     'buildingAddress' => $building_address,
                     'subdivision' => isset($local['subdivision']) ? $local['subdivision'] : '',
+                    'localType' => isset($local['localType']) ? $local['localType'] : '',
                     'status' => $display_status,
                     'statusClass' => $status_class,
                     'klatka' => $klatka,

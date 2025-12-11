@@ -112,6 +112,9 @@
     // Image Map Pro Artboard Logging
     // ===========================
     function setupImageMapProArtboardLogging() {
+        // Store original localType options for restoration
+        let originalLocalTypeOptions = null;
+        
         // Wait for Image Map Pro API to be available
         function initImageMapProLogging() {
             if (typeof ImageMapPro !== 'undefined' && ImageMapPro.subscribe) {
@@ -121,9 +124,62 @@
                         const artboardName = action.payload && action.payload.artboard ? action.payload.artboard : 'unknown';
                         console.log('Image Map Pro - Artboard changed:', artboardName);
                         
-                        // Try to extract floor value from artboard name and update filter
+                        const localTypeFilter = document.getElementById('localTypeFilter');
                         const floorFilter = document.getElementById('floorFilter');
-                        if (floorFilter && artboardName !== 'unknown') {
+                        
+                        // Store original options on first run
+                        if (localTypeFilter && !originalLocalTypeOptions) {
+                            originalLocalTypeOptions = Array.from(localTypeFilter.options).map(opt => ({
+                                value: opt.value,
+                                text: opt.text,
+                                selected: opt.selected
+                            }));
+                        }
+                        
+                        // Check if artboard is "Budynek E" (or default-id) vs specific floor
+                        const isBuildingView = artboardName === 'Budynek E' || artboardName === 'default-id';
+                        
+                        if (localTypeFilter) {
+                            if (isBuildingView) {
+                                // Restore all options when on building view
+                                if (originalLocalTypeOptions) {
+                                    const currentValue = localTypeFilter.value;
+                                    localTypeFilter.innerHTML = '';
+                                    
+                                    originalLocalTypeOptions.forEach(opt => {
+                                        const option = document.createElement('option');
+                                        option.value = opt.value;
+                                        option.textContent = opt.text;
+                                        localTypeFilter.appendChild(option);
+                                    });
+                                    
+                                    // Restore previous selection if still available
+                                    const availableValues = Array.from(localTypeFilter.options).map(opt => opt.value);
+                                    if (availableValues.includes(currentValue)) {
+                                        localTypeFilter.value = currentValue;
+                                    }
+                                }
+                            } else {
+                                // On floor view - limit to "Lokal mieszkalny" only
+                                const currentValue = localTypeFilter.value;
+                                const hasLokalMieszkalny = Array.from(localTypeFilter.options).some(opt => opt.value === 'Lokal mieszkalny');
+                                
+                                if (hasLokalMieszkalny) {
+                                    // Clear and add only "Lokal mieszkalny"
+                                    localTypeFilter.innerHTML = '';
+                                    const option = document.createElement('option');
+                                    option.value = 'Lokal mieszkalny';
+                                    option.textContent = 'Lokal mieszkalny';
+                                    option.selected = true;
+                                    localTypeFilter.appendChild(option);
+                                    
+                                    console.log('Image Map Pro - Floor view: Limited localType to "Lokal mieszkalny"');
+                                }
+                            }
+                        }
+                        
+                        // Try to extract floor value from artboard name and update filter
+                        if (floorFilter && artboardName !== 'unknown' && !isBuildingView) {
                             // Extract floor value from artboard name (e.g., "PIĘTRO I" -> "I piętro" or "1")
                             // Try to normalize the artboard name to a floor value
                             const normalizedFloor = parseFloorToNumber(artboardName);
@@ -142,6 +198,12 @@
                                     floorFilter.value = 'all';
                                     applyFilters();
                                 }
+                            }
+                        } else if (isBuildingView) {
+                            // Reset to all floors when on building view
+                            if (floorFilter) {
+                                floorFilter.value = 'all';
+                                applyFilters();
                             }
                         }
                     }
@@ -1369,9 +1431,22 @@
             headerTitle = 'Budynek ' + data.building;
         }
         if (data.number) {
-            headerTitle += (headerTitle ? ' - ' : '') + 'Mieszkanie ' + data.number;
+            // Determine the local type label
+            let localTypeLabel = 'Lokal';
+            if (data.localType) {
+                // Map local types to display names
+                const typeMap = {
+                    'Lokal mieszkalny': 'Mieszkanie',
+                    'Garaż': 'Garaż',
+                    'Komórka lokatorska': 'Komórka lokatorska',
+                    'Pomieszczenie gospodarcze': 'Pomieszczenie gospodarcze',
+                    'Miejsce postojowe': 'Miejsce postojowe'
+                };
+                localTypeLabel = typeMap[data.localType] || data.localType;
+            }
+            headerTitle += (headerTitle ? ' - ' : '') + localTypeLabel + ' ' + data.number;
         }
-        modal.querySelector('.modal-title').textContent = headerTitle || 'Szczegóły mieszkania';
+        modal.querySelector('.modal-title').textContent = headerTitle || 'Szczegóły lokalu';
         
         // Set location (Building and Subdivision in one row)
         let locationText = '';
