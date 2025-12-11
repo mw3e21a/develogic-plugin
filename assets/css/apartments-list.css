@@ -1709,11 +1709,11 @@
 
     .modal-close {
         top: 10px;
-        right: 20px;
+        right: 10px;
     }
 
     .modal-header .action-buttons {
-        margin-right: 80px;
+        margin-right: 45px;
         gap: 8px;
     }
 
