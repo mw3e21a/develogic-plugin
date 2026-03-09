@@ -900,9 +900,9 @@
             // Room filter
             if (selectedRooms !== 'all') {
                 const itemRooms = parseInt(item.getAttribute('data-rooms-value')) || 0;
-                if (selectedRooms === '5') {
-                    // 5+ rooms
-                    shouldShow = shouldShow && itemRooms >= 5;
+                if (selectedRooms === '4') {
+                    // 4+ rooms
+                    shouldShow = shouldShow && itemRooms >= 4;
                 } else {
                     shouldShow = shouldShow && itemRooms === parseInt(selectedRooms);
                 }

@@ -90,8 +90,7 @@ if (!defined('ABSPATH')) {
                     <button class="filter-chip <?php echo ($default_rooms === '1') ? 'active' : ''; ?>" data-value="1">1</button>
                     <button class="filter-chip <?php echo ($default_rooms === '2') ? 'active' : ''; ?>" data-value="2">2</button>
                     <button class="filter-chip <?php echo ($default_rooms === '3') ? 'active' : ''; ?>" data-value="3">3</button>
-                    <button class="filter-chip <?php echo ($default_rooms === '4') ? 'active' : ''; ?>" data-value="4">4</button>
-                    <button class="filter-chip <?php echo ($default_rooms === '5') ? 'active' : ''; ?>" data-value="5">5+</button>
+                    <button class="filter-chip <?php echo ($default_rooms === '4') ? 'active' : ''; ?>" data-value="4">4+</button>
                 </div>
             </div>
             
