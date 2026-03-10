@@ -29,6 +29,7 @@
     }
     
     function init() {
+        setupStickyOffset();
         setupSorting();
         setupFiltering();
         setupFavorites();
@@ -109,6 +110,52 @@
         }, 2000);
     }
     
+    // ===========================
+    // Sticky Offset for sorting bar
+    // ===========================
+    function setupStickyOffset() {
+        function updateStickyTop() {
+            // Find sticky header element - common selectors for WP themes
+            var header = document.querySelector('header[class*="sticky"], header[class*="fixed"], .site-header, #masthead, .header-main, nav.navbar');
+            var offset = 0;
+            if (header) {
+                var style = window.getComputedStyle(header);
+                if (style.position === 'sticky' || style.position === 'fixed') {
+                    offset = header.offsetHeight;
+                }
+            }
+            // Also check for WP admin bar
+            var adminBar = document.getElementById('wpadminbar');
+            if (adminBar) {
+                offset += adminBar.offsetHeight;
+            }
+            document.documentElement.style.setProperty('--develogic-sticky-top', offset + 'px');
+        }
+
+        // Fix: ensure no ancestor of the sticky element has overflow:hidden which breaks position:sticky
+        function fixStickyAncestors() {
+            var stickyEl = document.querySelector('.favorites-toggle-container');
+            if (!stickyEl) return;
+            var parent = stickyEl.parentElement;
+            while (parent && parent !== document.documentElement) {
+                var style = window.getComputedStyle(parent);
+                if (style.overflow === 'hidden' || style.overflowY === 'hidden') {
+                    parent.style.overflow = 'visible';
+                }
+                parent = parent.parentElement;
+            }
+        }
+
+        updateStickyTop();
+        fixStickyAncestors();
+        window.addEventListener('resize', updateStickyTop);
+        // Re-check after page fully loads (fonts, images may shift header height)
+        window.addEventListener('load', function() {
+            updateStickyTop();
+            fixStickyAncestors();
+        });
+    }
+
     // ===========================
     // Image Map Pro Artboard Logging
     // ===========================
@@ -547,17 +594,17 @@
         // Ensure floor options are available for KL/PG/Garaż on initial load
         autoSelectFloorForKLPG();
         
-        // Area range filters
+        // Area range filters (select dropdowns)
         const areaMin = document.getElementById('areaMin');
         const areaMax = document.getElementById('areaMax');
-        if (areaMin) areaMin.addEventListener('input', debounce(applyFilters, 500));
-        if (areaMax) areaMax.addEventListener('input', debounce(applyFilters, 500));
+        if (areaMin) areaMin.addEventListener('change', applyFilters);
+        if (areaMax) areaMax.addEventListener('change', applyFilters);
         
-        // Price range filters
+        // Price range filters (select dropdowns)
         const priceMin = document.getElementById('priceMin');
         const priceMax = document.getElementById('priceMax');
-        if (priceMin) priceMin.addEventListener('input', debounce(applyFilters, 500));
-        if (priceMax) priceMax.addEventListener('input', debounce(applyFilters, 500));
+        if (priceMin) priceMin.addEventListener('change', applyFilters);
+        if (priceMax) priceMax.addEventListener('change', applyFilters);
         
         // Additional options checkboxes - dynamic based on settings
         const additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-option-key]');
@@ -2151,7 +2198,7 @@
         toast.innerHTML = `
             <div class="toast-icon"></div>
             <div class="toast-content">
-                <div class="toast-title">Dodano do obserwowanych</div>
+                <div class="toast-title">Dodano do konfiguratora zakupu</div>
                 <span class="toast-link" id="toastFavoritesLink">Zobacz listę</span>
             </div>
         `;
@@ -2240,7 +2287,7 @@
 
         const container = document.querySelector('.favorites-toggle-container');
         const quoteEmail = container ? container.getAttribute('data-quote-email') : '';
-        const quoteSubject = container ? container.getAttribute('data-quote-subject') : 'Wycena mieszkań z listy obserwowanych';
+        const quoteSubject = container ? container.getAttribute('data-quote-subject') : 'Wycena mieszkań z konfiguratora zakupu';
 
         // Show/hide based on favorites count
         function updateQuoteBtnVisibility() {
@@ -2280,11 +2327,11 @@
             });
 
             const body = encodeURIComponent(
-                'Dzień dobry,\n\nProszę o wycenę następujących mieszkań z listy obserwowanych:\n\n' +
+                'Dzień dobry,\n\nProszę o wycenę następujących mieszkań z konfiguratora zakupu:\n\n' +
                 lines.join('\n') +
                 '\n\nPozdrawiam'
             );
-            const subject = encodeURIComponent(quoteSubject || 'Wycena mieszkań z listy obserwowanych');
+            const subject = encodeURIComponent(quoteSubject || 'Wycena mieszkań z konfiguratora zakupu');
             const mailto = 'mailto:' + (quoteEmail || '') + '?subject=' + subject + '&body=' + body;
             window.location.href = mailto;
         });
@@ -2336,7 +2383,7 @@
         const favorites = getFavorites();
         const count = favorites.length;
         
-        favoritesCount.textContent = count + ' ' + (count === 1 ? 'obserwowane' : 'obserwowanych');
+        favoritesCount.textContent = count + ' ' + (count === 1 ? 'wybrane' : 'wybranych');
     }
     
     // ===========================
@@ -2370,11 +2417,11 @@
         
         if (!shareLink) {
             // Show message that there are no favorites
-            alert('Nie masz żadnych obserwowanych mieszkań do udostępnienia.');
+            alert('Nie masz żadnych wybranych mieszkań do udostępnienia.');
             return;
         }
         
-        const title = 'Sprawdź moją listę obserwowanych mieszkań';
+        const title = 'Sprawdź moją listę wybranych mieszkań';
         
         switch (platform) {
             case 'twitter':
@@ -2387,7 +2434,7 @@
                 
             case 'email':
                 const subject = encodeURIComponent(title);
-                const body = encodeURIComponent('Sprawdź moją listę obserwowanych mieszkań:\n\n' + shareLink);
+                const body = encodeURIComponent('Sprawdź moją listę wybranych mieszkań:\n\n' + shareLink);
                 window.location.href = 'mailto:?subject=' + subject + '&body=' + body;
                 break;
         }

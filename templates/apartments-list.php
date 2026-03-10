@@ -285,30 +285,77 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     </select>
                 </div>
                 <?php endif; ?>
+
+                <?php if (empty($hide_price_filter)): ?>
+                <div class="filter-group filter-group-price filter-mobile-hidden">
+                    <label class="filter-label">Cena za lokal:</label>
+                    <div class="filter-range">
+                        <?php
+                        $price_steps = array(
+                            5000, 10000, 50000, 100000, 150000, 200000, 250000,
+                            300000, 350000, 400000, 450000, 500000, 600000, 700000,
+                            750000, 800000, 900000, 1000000, 1500000, 2000000, 3000000, 4000000
+                        );
+                        $default_price_min = !empty($atts['min_price_gross']) ? $atts['min_price_gross'] : '';
+                        $default_price_max = !empty($atts['max_price_gross']) ? $atts['max_price_gross'] : '';
+                        ?>
+                        <select class="filter-select" id="priceMin">
+                            <option value=""<?php echo $default_price_min === '' ? ' selected' : ''; ?>>od</option>
+                            <?php foreach ($price_steps as $step): ?>
+                            <option value="<?php echo $step; ?>"<?php echo ($default_price_min == $step) ? ' selected' : ''; ?>><?php echo number_format($step, 0, ',', ' '); ?> zł</option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="filter-separator">-</span>
+                        <select class="filter-select" id="priceMax">
+                            <option value=""<?php echo $default_price_max === '' ? ' selected' : ''; ?>>do</option>
+                            <?php foreach ($price_steps as $step): ?>
+                            <option value="<?php echo $step; ?>"<?php echo ($default_price_max == $step) ? ' selected' : ''; ?>><?php echo number_format($step, 0, ',', ' '); ?> zł</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <?php endif; ?>
+
+                <div class="filter-group filter-group-area filter-mobile-hidden">
+                    <label class="filter-label">Metraż (m²):</label>
+                    <div class="filter-range">
+                        <select class="filter-select" id="areaMin">
+                            <option value="">od</option>
+                            <option value="1" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '1'); ?>>1m²</option>
+                            <option value="25" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '25'); ?>>25m²</option>
+                            <option value="40" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '40'); ?>>40m²</option>
+                            <option value="50" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '50'); ?>>50m²</option>
+                            <option value="60" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '60'); ?>>60m²</option>
+                            <option value="70" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '70'); ?>>70m²</option>
+                            <option value="80" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '80'); ?>>80m²</option>
+                            <option value="100" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '100'); ?>>100m²</option>
+                            <option value="120" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '120'); ?>>120m²</option>
+                            <option value="150" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '150'); ?>>150m²</option>
+                            <option value="250" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '250'); ?>>250m²</option>
+                            <option value="400" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '400'); ?>>400m²</option>
+                        </select>
+                        <span class="filter-separator">-</span>
+                        <select class="filter-select" id="areaMax">
+                            <option value="">do</option>
+                            <option value="1" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '1'); ?>>1m²</option>
+                            <option value="25" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '25'); ?>>25m²</option>
+                            <option value="40" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '40'); ?>>40m²</option>
+                            <option value="50" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '50'); ?>>50m²</option>
+                            <option value="60" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '60'); ?>>60m²</option>
+                            <option value="70" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '70'); ?>>70m²</option>
+                            <option value="80" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '80'); ?>>80m²</option>
+                            <option value="100" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '100'); ?>>100m²</option>
+                            <option value="120" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '120'); ?>>120m²</option>
+                            <option value="150" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '150'); ?>>150m²</option>
+                            <option value="250" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '250'); ?>>250m²</option>
+                            <option value="400" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '400'); ?>>400m²</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
-        
+
         <div class="filter-row">
-            <div class="filter-group filter-mobile-hidden">
-                <label class="filter-label">Metraż (m²):</label>
-                <div class="filter-range">
-                    <input type="number" class="filter-input" id="areaMin" placeholder="od" step="1" min="0" value="<?php echo !empty($atts['min_area']) ? esc_attr($atts['min_area']) : ''; ?>">
-                    <span class="filter-separator">-</span>
-                    <input type="number" class="filter-input" id="areaMax" placeholder="do" step="1" min="0" value="<?php echo !empty($atts['max_area']) ? esc_attr($atts['max_area']) : ''; ?>">
-                </div>
-            </div>
-            
-            <?php if (empty($hide_price_filter)): ?>
-            <div class="filter-group filter-mobile-hidden filter-group-price">
-                <label class="filter-label">Cena za lokal (zł):</label>
-                <div class="filter-range">
-                    <input type="number" class="filter-input" id="priceMin" placeholder="od" step="10000" min="0" value="<?php echo !empty($atts['min_price_gross']) ? esc_attr($atts['min_price_gross']) : ''; ?>">
-                    <span class="filter-separator">-</span>
-                    <input type="number" class="filter-input" id="priceMax" placeholder="do" step="10000" min="0" value="<?php echo !empty($atts['max_price_gross']) ? esc_attr($atts['max_price_gross']) : ''; ?>">
-                </div>
-            </div>
-            <?php endif; ?>
-            
             <?php if (empty($hide_extras)): 
                 // Get additional options from settings
                 $settings = get_option('develogic_settings', array());
@@ -411,9 +458,9 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
-                Obserwowane
+                Konfigurator zakupu
             </button>
-            <span class="favorites-count" id="favoritesCount">0 obserwowanych</span>
+            <span class="favorites-count" id="favoritesCount">0 wybranych</span>
             <?php if ($show_quote_btn): ?>
             <button class="quote-cart-btn" id="quoteCartBtn" style="display: none;" title="Wyślij wycenę koszyka">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -512,8 +559,8 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
             </div>
-            <h3>Brak obserwowanych ofert</h3>
-            <p>Kliknij ikonę gwiazdki przy wybranym mieszkaniu, aby dodać je do obserwowanych</p>
+            <h3>Brak wybranych ofert</h3>
+            <p>Kliknij ikonę gwiazdki przy wybranym mieszkaniu, aby dodać je do konfiguratora zakupu</p>
         </div>
         <?php if (empty($locals)): ?>
             <div class="no-results">
@@ -927,7 +974,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     </button>
                     <?php endif; ?>
                     <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
-                    <button class="icon-btn gtm-favorite-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>" title="Dodaj do obserwowanych">
+                    <button class="icon-btn gtm-favorite-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>" title="Dodaj do konfiguratora zakupu">
                         <svg viewBox="0 0 24 24">
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                         </svg>
