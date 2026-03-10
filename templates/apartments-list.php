@@ -17,7 +17,18 @@ if (!defined('ABSPATH')) {
 }
 ?>
 
-<div class="develogic-apartments-container" 
+<?php
+// Count unique floors in the dataset for conditional floor sorting
+$unique_floors_in_data = array();
+foreach ($locals as $local) {
+    $f = isset($local['floor']) ? $local['floor'] : '';
+    if ($f !== '' && $f !== null && !in_array($f, $unique_floors_in_data)) {
+        $unique_floors_in_data[] = $f;
+    }
+}
+$has_multiple_floors = count($unique_floors_in_data) > 1;
+?>
+<div class="develogic-apartments-container"
      <?php if ($is_residential_local && !empty($building_floors_map)): ?>
      data-building-floors-map="<?php echo esc_attr(json_encode($building_floors_map)); ?>"
      data-enable-dynamic-floors="true"
@@ -27,7 +38,8 @@ if (!defined('ABSPATH')) {
      <?php endif; ?>
      <?php if (isset($atts['floor']) && $atts['floor'] !== ''): ?>
      data-default-floor="<?php echo esc_attr($atts['floor']); ?>"
-     <?php endif; ?>>
+     <?php endif; ?>
+     data-multiple-floors="<?php echo $has_multiple_floors ? 'true' : 'false'; ?>">
     <!-- Loading Spinner -->
     <div class="develogic-loading-overlay">
         <div class="develogic-spinner">
@@ -286,7 +298,8 @@ if (!defined('ABSPATH')) {
                 </div>
             </div>
             
-            <div class="filter-group filter-mobile-hidden">
+            <?php if (empty($hide_price_filter)): ?>
+            <div class="filter-group filter-mobile-hidden filter-group-price">
                 <label class="filter-label">Cena za lokal (zł):</label>
                 <div class="filter-range">
                     <input type="number" class="filter-input" id="priceMin" placeholder="od" step="10000" min="0" value="<?php echo !empty($atts['min_price_gross']) ? esc_attr($atts['min_price_gross']) : ''; ?>">
@@ -294,6 +307,7 @@ if (!defined('ABSPATH')) {
                     <input type="number" class="filter-input" id="priceMax" placeholder="do" step="10000" min="0" value="<?php echo !empty($atts['max_price_gross']) ? esc_attr($atts['max_price_gross']) : ''; ?>">
                 </div>
             </div>
+            <?php endif; ?>
             
             <?php if (empty($hide_extras)): 
                 // Get additional options from settings
@@ -380,7 +394,11 @@ if (!defined('ABSPATH')) {
     </div>
 
     <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
-    <div class="favorites-toggle-container">
+    <div class="favorites-toggle-container"
+         <?php if ($show_quote_btn): ?>
+         data-quote-email="<?php echo esc_attr($quote_email); ?>"
+         data-quote-subject="<?php echo esc_attr($quote_subject); ?>"
+         <?php endif; ?>>
         <div class="toggle-buttons-wrapper">
             <button class="favorites-toggle-btn active" data-toggle-view="all">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -396,11 +414,19 @@ if (!defined('ABSPATH')) {
                 Obserwowane
             </button>
             <span class="favorites-count" id="favoritesCount">0 obserwowanych</span>
+            <?php if ($show_quote_btn): ?>
+            <button class="quote-cart-btn" id="quoteCartBtn" style="display: none;" title="Wyślij wycenę koszyka">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-8 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
+                </svg>
+                Wyślij wycenę koszyka
+            </button>
+            <?php endif; ?>
         </div>
         
         <div class="sort-bar-right">
             <span class="sort-label">Sortuj po:</span>
-            <span class="sort-option active" data-sort="data-floor" data-direction="asc">
+            <span class="sort-option floor-sort-option active" data-sort="data-floor" data-direction="asc">
                 Piętro
                 <span class="sort-arrow">
                     <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
@@ -825,11 +851,12 @@ if (!defined('ABSPATH')) {
                         <span class="detail-label">Ilość pokoi</span>
                         <span class="detail-value"><?php echo absint($local['rooms']); ?></span>
                     </div>
-                    <?php if (!empty($tags)): ?>
+                    <?php if (!empty($tags) && $show_features): ?>
                     <div class="features"><?php echo esc_html(implode(', ', $tags)); ?></div>
                     <?php endif; ?>
                 </div>
 
+                <?php if ($show_apartment_images): ?>
                 <div class="apartment-images">
                     <div class="apartment-image">
                         <?php if ($image1_thumb): ?>
@@ -846,6 +873,7 @@ if (!defined('ABSPATH')) {
                         <?php endif; ?>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <div class="apartment-price">
                     <div class="price-label">Cena</div>
@@ -854,7 +882,7 @@ if (!defined('ABSPATH')) {
                     <?php endif; ?>
                     <div class="price-main"><?php echo number_format($display_price, 0, ',', ' '); ?> zł</div>
                     <div class="price-sqm">(<?php echo number_format($price_m2, 2, ',', ' '); ?> zł/m²)</div>
-                    <?php if ($has_package_promo && !empty($local['omnibusPriceGross']) && $local['omnibusPriceGross'] > 0): ?>
+                    <?php if ($show_omnibus_price && $has_package_promo && !empty($local['omnibusPriceGross']) && $local['omnibusPriceGross'] > 0): ?>
                         <div class="price-omnibus-label">Najniższa cena z ostatnich 30 dni</div>
                         <div class="price-omnibus-value"><?php echo number_format($local['omnibusPriceGross'], 0, ',', ' '); ?> zł</div>
                     <?php endif; ?>
@@ -864,7 +892,7 @@ if (!defined('ABSPATH')) {
                 </div>
 
                 <div class="apartment-actions">
-                    <?php if (!empty($tour_3d_url)): ?>
+                    <?php if ($show_360 && !empty($tour_3d_url)): ?>
                     <a href="<?php echo esc_url($tour_3d_url); ?>" class="icon-btn icon-btn-3d icon-btn-360" target="_blank" rel="noopener noreferrer" aria-label="<?php esc_attr_e('Zobacz spacer 3D 360°', 'develogic'); ?>" title="Zobacz spacer 3D 360° (otwiera w nowej karcie)" onclick="event.stopPropagation();">
                         <span class="text-360">360°</span>
                     </a>
@@ -890,12 +918,14 @@ if (!defined('ABSPATH')) {
                         </svg>
                     </a>
                     <?php endif; ?>
+                    <?php if ($show_email_btn): ?>
                     <button class="icon-btn gtm-email-btn" data-action="email" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o nieruchomość">
                         <svg viewBox="0 0 24 24">
                             <rect x="3" y="5" width="18" height="14" rx="2"/>
                             <path d="M3 7l9 6 9-6"/>
                         </svg>
                     </button>
+                    <?php endif; ?>
                     <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
                     <button class="icon-btn gtm-favorite-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>" title="Dodaj do obserwowanych">
                         <svg viewBox="0 0 24 24">
@@ -928,12 +958,14 @@ if (!defined('ABSPATH')) {
         <div class="modal-header">
             <h2 class="modal-title"></h2>
             <div class="action-buttons">
+                <?php if ($show_email_btn): ?>
                 <button class="icon-btn" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o nieruchomość">
                     <svg viewBox="0 0 24 24">
                         <rect x="3" y="5" width="18" height="14" rx="2"/>
                         <path d="M3 7l9 6 9-6"/>
                     </svg>
                 </button>
+                <?php endif; ?>
                 <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
                 <button class="icon-btn" data-action="favorite-modal" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>">
                     <svg viewBox="0 0 24 24">

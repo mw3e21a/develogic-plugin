@@ -36,6 +36,7 @@
         setupApartmentClicks();
         setupModal();
         setupFavoritesViewToggle();
+        setupQuoteCartButton();
         setupShareButtons();
         updateFavoritesCount();
         checkSharedFavorites();
@@ -1054,6 +1055,21 @@
         
         // Show/hide no results message
         updateNoResultsMessage(visibleCount);
+
+        // Show floor sort option only when multiple different floors are visible
+        const floorSortOption = document.querySelector('.floor-sort-option');
+        if (floorSortOption) {
+            const visibleItems = Array.from(apartmentItems).filter(item => item.style.display !== 'none');
+            const uniqueFloors = new Set(visibleItems.map(item => item.getAttribute('data-floor-number')).filter(f => f !== null && f !== ''));
+            const show = uniqueFloors.size > 1;
+            floorSortOption.style.display = show ? '' : 'none';
+            // If floor sort was active and now hidden, switch to next sort
+            if (!show && floorSortOption.classList.contains('active')) {
+                floorSortOption.classList.remove('active');
+                const nextOption = document.querySelector('.sort-option:not(.floor-sort-option)');
+                if (nextOption) nextOption.classList.add('active');
+            }
+        }
     }
     
     function resetFilters() {
@@ -1217,6 +1233,7 @@
     
     function saveFavorites(favorites) {
         localStorage.setItem('develogic_favorites', JSON.stringify(favorites));
+        document.dispatchEvent(new CustomEvent('develogic:favorites_changed'));
     }
     
     function loadFavoritesState() {
@@ -2214,6 +2231,65 @@
         });
     }
     
+    // ===========================
+    // Quote cart button
+    // ===========================
+    function setupQuoteCartButton() {
+        const quoteBtn = document.getElementById('quoteCartBtn');
+        if (!quoteBtn) return;
+
+        const container = document.querySelector('.favorites-toggle-container');
+        const quoteEmail = container ? container.getAttribute('data-quote-email') : '';
+        const quoteSubject = container ? container.getAttribute('data-quote-subject') : 'Wycena mieszkań z listy obserwowanych';
+
+        // Show/hide based on favorites count
+        function updateQuoteBtnVisibility() {
+            const favorites = getFavorites();
+            quoteBtn.style.display = favorites.length > 0 ? 'flex' : 'none';
+        }
+
+        updateQuoteBtnVisibility();
+
+        // Re-check visibility when favorites change
+        document.addEventListener('develogic:favorites_changed', updateQuoteBtnVisibility);
+
+        quoteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const favorites = getFavorites();
+            if (!favorites.length) return;
+
+            // Collect apartment data for all favorites
+            const lines = [];
+            favorites.forEach(localId => {
+                let found = null;
+                document.querySelectorAll('.apartment-item').forEach(el => {
+                    try {
+                        const data = JSON.parse(el.getAttribute('data-modal') || '{}');
+                        if (String(data.localId) === String(localId)) {
+                            found = data;
+                        }
+                    } catch(e) {}
+                });
+                if (found) {
+                    const price = found.priceGross ? Number(found.priceGross).toLocaleString('pl-PL') + ' zł' : '-';
+                    const area = found.area ? Number(found.area).toLocaleString('pl-PL', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²' : '-';
+                    lines.push('Mieszkanie ' + (found.number || localId) + ' | ' + (found.building || '') + ' | Piętro: ' + (found.floorDisplay || found.floor || '-') + ' | Pow.: ' + area + ' | Cena: ' + price);
+                } else {
+                    lines.push('ID: ' + localId);
+                }
+            });
+
+            const body = encodeURIComponent(
+                'Dzień dobry,\n\nProszę o wycenę następujących mieszkań z listy obserwowanych:\n\n' +
+                lines.join('\n') +
+                '\n\nPozdrawiam'
+            );
+            const subject = encodeURIComponent(quoteSubject || 'Wycena mieszkań z listy obserwowanych');
+            const mailto = 'mailto:' + (quoteEmail || '') + '?subject=' + subject + '&body=' + body;
+            window.location.href = mailto;
+        });
+    }
+
     function checkAndToggleNoFavoritesPlaceholder() {
         const apartmentList = document.querySelector('.apartment-list');
         if (!apartmentList) return;

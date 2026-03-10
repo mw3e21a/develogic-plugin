@@ -214,17 +214,17 @@
    =========================== */
 .filter-section {
     background: #f8f9fa;
-    padding: 24px;
-    border-radius: 12px;
-    margin: 30px 0 20px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin: 16px 0 14px;
     border: 1px solid #e5e7eb;
 }
 
 .filter-row {
     display: flex;
-    gap: 20px;
-    align-items: flex-start;
-    margin-bottom: 16px;
+    gap: 12px;
+    align-items: flex-end;
+    margin-bottom: 10px;
     flex-wrap: wrap;
 }
 
@@ -235,25 +235,26 @@
 .filter-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 5px;
     flex: 1 1 auto;
-    min-width: 200px;
+    min-width: 160px;
 }
 
 .filter-selects-wrapper {
     display: flex;
-    gap: 20px;
+    gap: 12px;
     flex: 1 1 auto;
+    align-items: flex-end;
 }
 
 .filter-selects-wrapper .filter-group {
     flex: 1 1 auto;
-    min-width: 150px;
+    min-width: 120px;
 }
 
 .filter-group.filter-extras {
     flex: 2 1 auto;
-    min-width: 400px;
+    min-width: 300px;
 }
 
 .filter-group.filter-actions {
@@ -263,30 +264,38 @@
     min-width: auto;
 }
 
+/* Compact area/price filter */
+.filter-group.filter-mobile-hidden {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
 .filter-label {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
-    color: #374151;
+    color: #6b7280;
     display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
 }
 
 /* Filter Chips */
 .filter-chips {
     display: flex;
-    gap: 8px;
+    gap: 5px;
     flex-wrap: wrap;
 }
 
 .filter-chip {
-    padding: 8px 16px;
-    border: 2px solid #e5e7eb;
+    padding: 5px 12px;
+    border: 1.5px solid #e5e7eb;
     background: white;
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 13px;
     font-weight: 500;
     color: #374151;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     outline: none;
 }
 
@@ -304,14 +313,14 @@
 
 /* Filter Select */
 .filter-select {
-    padding: 10px 14px;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    font-size: 14px;
+    padding: 6px 10px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 13px;
     color: #374151;
     background: white;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     outline: none;
     font-weight: 500;
 }
@@ -322,27 +331,29 @@
 
 .filter-select:focus {
     border-color: var(--develogic-primary-color);
-    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
 }
 
-/* Filter Range */
+/* Filter Range - compact */
 .filter-range {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
 }
 
 .filter-input {
     flex: 1;
-    padding: 10px 14px;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    font-size: 14px;
+    padding: 6px 8px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 12px;
     color: #374151;
     background: white;
     outline: none;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     font-weight: 500;
+    width: 80px;
+    min-width: 60px;
 }
 
 .filter-input:hover {
@@ -351,43 +362,45 @@
 
 .filter-input:focus {
     border-color: var(--develogic-primary-color);
-    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+    box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
 }
 
 .filter-input::placeholder {
     color: #9ca3af;
     font-weight: 400;
+    font-size: 11px;
 }
 
 .filter-separator {
     color: #9ca3af;
     font-weight: 500;
+    font-size: 12px;
 }
 
 /* Filter Checkboxes */
 .filter-checkboxes {
     display: flex;
     flex-direction: row;
-    gap: 20px;
+    gap: 12px;
     flex-wrap: wrap;
 }
 
 .filter-checkbox {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 5px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 12px;
     color: #374151;
     font-weight: 500;
     white-space: nowrap;
 }
 
 .filter-checkbox input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    border: 2px solid #e5e7eb;
-    border-radius: 4px;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 3px;
     cursor: pointer;
     accent-color: var(--develogic-primary-color);
 }
@@ -405,16 +418,16 @@
 .filter-reset-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
+    gap: 5px;
+    padding: 6px 12px;
     background: white;
-    border: 2px solid #e5e7eb;
-    border-radius: 8px;
-    font-size: 14px;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 12px;
     font-weight: 600;
     color: #374151;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     white-space: nowrap;
 }
 
@@ -425,8 +438,8 @@
 }
 
 .filter-reset-btn svg {
-    width: 16px;
-    height: 16px;
+    width: 13px;
+    height: 13px;
 }
 
 /* Active filter count indicator */
@@ -451,8 +464,8 @@
 .apartment-item {
     display: grid;
     grid-template-columns: 180px 280px 1fr 180px 100px;
-    gap: 30px;
-    padding: 30px;
+    gap: 16px;
+    padding: 2px 20px;
     background: white;
     cursor: pointer;
     transition: background 0.2s;
@@ -662,9 +675,11 @@
 }
 
 .apartment-actions {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
 }
 
 .icon-btn {
@@ -1639,8 +1654,8 @@
 @media (max-width: 1200px) {
     .apartment-item {
         grid-template-columns: 150px 250px 1fr 150px 80px;
-        gap: 20px;
-        padding: 20px;
+        gap: 12px;
+        padding: 10px 16px;
     }
 }
 
@@ -1951,6 +1966,32 @@
 .favorites-count {
     font-size: 14px;
     color: #666;
+}
+
+.quote-cart-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--develogic-primary-color, #1a1a1a);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-left: 12px;
+}
+
+.quote-cart-btn:hover {
+    opacity: 0.85;
+}
+
+.quote-cart-btn svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
 }
 
 .apartment-list.hide-favorites .apartment-item:not(.is-favorite) {

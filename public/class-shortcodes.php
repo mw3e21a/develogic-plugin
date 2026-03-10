@@ -142,8 +142,18 @@ class Develogic_Shortcodes {
             'max_price_gross' => '',
             'status' => '',
             'hide_floor_filter' => 'false',
+            'hide_price_filter' => 'false',
+            'hide_building_filter' => 'false',
             'hide_extras' => 'false',
             'default_local_type' => '',
+            'show_features' => 'true',
+            'show_apartment_images' => 'true',
+            'show_omnibus_price' => 'true',
+            'show_360' => 'true',
+            'show_email_btn' => 'true',
+            'show_quote_btn' => 'false',
+            'quote_email' => '',
+            'quote_subject' => 'Wycena mieszkań z listy obserwowanych',
         ), $atts, 'develogic_apartments_list');
         
         // Enqueue assets
@@ -193,10 +203,24 @@ class Develogic_Shortcodes {
                 });
             }
         }
-        
+
+        // Apply hard building filter from shortcode parameters (always enforced, regardless of UI filter visibility)
+        // This ensures that even when hide_building_filter=true, data is pre-filtered to the correct buildings
+        if (!empty($atts['available_buildings'])) {
+            $allowed_buildings = array_map('trim', explode(',', $atts['available_buildings']));
+            $locals = array_filter($locals, function($local) use ($allowed_buildings) {
+                return !empty($local['building']) && in_array($local['building'], $allowed_buildings);
+            });
+        } elseif (!empty($atts['building'])) {
+            $allowed_buildings = array_map('trim', explode(',', $atts['building']));
+            $locals = array_filter($locals, function($local) use ($allowed_buildings) {
+                return !empty($local['building']) && in_array($local['building'], $allowed_buildings);
+            });
+        }
+
         // Get buildings
         $buildings = Develogic_Filter_Sort::get_buildings($locals);
-        
+
         // Only apply hard filters from settings (status and building_id if explicitly set for data limiting)
         $filter_criteria = array();
         
@@ -426,8 +450,17 @@ class Develogic_Shortcodes {
         
         // Check if floor filter should be hidden - only via shortcode attribute
         $hide_floor_filter = ($atts['hide_floor_filter'] === 'true' || $atts['hide_floor_filter'] === true);
-        $hide_building_filter = false;
+        $hide_price_filter = ($atts['hide_price_filter'] === 'true' || $atts['hide_price_filter'] === true);
+        $hide_building_filter = ($atts['hide_building_filter'] === 'true' || $atts['hide_building_filter'] === true);
         $hide_extras = ($atts['hide_extras'] === 'true' || $atts['hide_extras'] === true);
+        $show_features = !($atts['show_features'] === 'false' || $atts['show_features'] === false);
+        $show_apartment_images = !($atts['show_apartment_images'] === 'false' || $atts['show_apartment_images'] === false);
+        $show_omnibus_price = !($atts['show_omnibus_price'] === 'false' || $atts['show_omnibus_price'] === false);
+        $show_360 = !($atts['show_360'] === 'false' || $atts['show_360'] === false);
+        $show_email_btn = !($atts['show_email_btn'] === 'false' || $atts['show_email_btn'] === false);
+        $show_quote_btn = ($atts['show_quote_btn'] === 'true' || $atts['show_quote_btn'] === true);
+        $quote_email = !empty($atts['quote_email']) ? $atts['quote_email'] : develogic()->get_setting('contact_email', get_option('admin_email'));
+        $quote_subject = $atts['quote_subject'];
         $default_local_type = null;
         $is_residential_local = false;
         
@@ -549,12 +582,21 @@ class Develogic_Shortcodes {
             'buildings' => $buildings,
             'status_counts' => $status_counts,
             'hide_floor_filter' => $hide_floor_filter,
+            'hide_price_filter' => $hide_price_filter,
             'hide_building_filter' => $hide_building_filter,
             'hide_extras' => $hide_extras,
             'default_local_type' => $default_local_type,
             'building_floors_map' => $building_floors_map,
             'is_residential_local' => $is_residential_local,
             'has_types_with_floors' => $has_types_with_floors,
+            'show_features' => $show_features,
+            'show_apartment_images' => $show_apartment_images,
+            'show_omnibus_price' => $show_omnibus_price,
+            'show_360' => $show_360,
+            'show_email_btn' => $show_email_btn,
+            'show_quote_btn' => $show_quote_btn,
+            'quote_email' => $quote_email,
+            'quote_subject' => $quote_subject,
         ));
         return ob_get_clean();
     }
