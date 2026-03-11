@@ -41,6 +41,7 @@
         setupShareButtons();
         updateFavoritesCount();
         checkSharedFavorites();
+        setupWizard();
         setupImageMapProArtboardLogging();
         
         // Apply URL filters first
@@ -115,8 +116,8 @@
     // ===========================
     function setupStickyOffset() {
         function updateStickyTop() {
-            // Find sticky header element - common selectors for WP themes
-            var header = document.querySelector('header[class*="sticky"], header[class*="fixed"], .site-header, #masthead, .header-main, nav.navbar');
+            // Find sticky header element - common selectors for WP themes and Elementor
+            var header = document.querySelector('.elementor-sticky, [data-elementor-type="header"], header[class*="sticky"], header[class*="fixed"], .site-header, #masthead, .header-main, nav.navbar');
             var offset = 0;
             if (header) {
                 var style = window.getComputedStyle(header);
@@ -129,7 +130,8 @@
             if (adminBar) {
                 offset += adminBar.offsetHeight;
             }
-            document.documentElement.style.setProperty('--develogic-sticky-top', offset + 'px');
+            var stickyTop = window.innerWidth <= 768 ? '59px' : '125px';
+            document.documentElement.style.setProperty('--develogic-sticky-top', stickyTop);
         }
 
         // Fix: ensure no ancestor of the sticky element has overflow:hidden which breaks position:sticky
@@ -154,6 +156,54 @@
             updateStickyTop();
             fixStickyAncestors();
         });
+
+        // Sticky sort-bar-right: detect when favorites-toggle-container is stuck
+        setupStickySortBar();
+    }
+
+    function setupStickySortBar() {
+        var container = document.querySelector('.favorites-toggle-container');
+        var sortBarRight = container ? container.querySelector('.sort-bar-right') : null;
+        if (!container || !sortBarRight) return;
+
+        // Create a sentinel element just above the container to detect when it becomes sticky
+        var sentinel = document.createElement('div');
+        sentinel.style.height = '1px';
+        sentinel.style.width = '100%';
+        sentinel.style.visibility = 'hidden';
+        sentinel.style.pointerEvents = 'none';
+        container.parentNode.insertBefore(sentinel, container);
+
+        // Create a placeholder to prevent layout jump when sort-bar becomes fixed
+        var placeholder = document.createElement('div');
+        placeholder.className = 'sort-bar-right-placeholder';
+        placeholder.style.display = 'none';
+        container.appendChild(placeholder);
+
+        var isSticky = false;
+
+        function checkSticky() {
+            var sentinelRect = sentinel.getBoundingClientRect();
+            var stickyTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--develogic-sticky-top')) || 0;
+            var shouldBeSticky = sentinelRect.top <= stickyTop;
+
+            if (shouldBeSticky && !isSticky) {
+                isSticky = true;
+                // Measure sort-bar height for placeholder
+                var sortBarHeight = sortBarRight.offsetHeight;
+                placeholder.style.height = sortBarHeight + 'px';
+                placeholder.style.display = 'block';
+                sortBarRight.classList.add('is-sticky-active');
+            } else if (!shouldBeSticky && isSticky) {
+                isSticky = false;
+                placeholder.style.display = 'none';
+                sortBarRight.classList.remove('is-sticky-active');
+            }
+        }
+
+        window.addEventListener('scroll', checkSticky, { passive: true });
+        window.addEventListener('resize', checkSticky, { passive: true });
+        checkSticky();
     }
 
     // ===========================
@@ -1270,6 +1320,8 @@
         // Show toast notification when adding to favorites
         if (isAdding) {
             showToast();
+            // Trigger wizard flow if active
+            handleWizardAfterFavoriteAdd();
         }
     }
     
@@ -1374,14 +1426,24 @@
     // ===========================
     // Apartment click to open modal
     // ===========================
+    function isMobileView() {
+        return window.innerWidth <= 992;
+    }
+
     function setupApartmentClicks() {
         document.querySelectorAll('.apartment-item').forEach(item => {
             item.addEventListener('click', function(e) {
-                // Don't open modal if clicking on buttons
-                if (e.target.closest('.icon-btn')) {
+                // Don't open modal if clicking on buttons or expandable area
+                if (e.target.closest('.icon-btn') || e.target.closest('.apartment-mobile-expand') || e.target.closest('.mobile-expand-detail-btn')) {
                     return;
                 }
-                
+
+                // On mobile, toggle expand instead of opening modal
+                if (isMobileView()) {
+                    this.classList.toggle('mobile-expanded');
+                    return;
+                }
+
                 const modalData = this.getAttribute('data-modal');
                 if (modalData) {
                     try {
@@ -1393,7 +1455,37 @@
                 }
             });
         });
-        
+
+        // Mobile expand toggle button
+        document.querySelectorAll('.mobile-expand-toggle').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var item = this.closest('.apartment-item');
+                if (item) {
+                    item.classList.toggle('mobile-expanded');
+                }
+            });
+        });
+
+        // Mobile "Zobacz szczegóły" button - opens modal
+        document.querySelectorAll('.mobile-expand-detail-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                var item = this.closest('.apartment-item');
+                if (item) {
+                    var modalData = item.getAttribute('data-modal');
+                    if (modalData) {
+                        try {
+                            var data = JSON.parse(modalData);
+                            openApartmentModal(data);
+                        } catch (err) {
+                            console.error('Error parsing modal data:', err);
+                        }
+                    }
+                }
+            });
+        });
+
         // Also handle clicks directly on apartment images
         document.querySelectorAll('.apartment-image').forEach(imgContainer => {
             imgContainer.addEventListener('click', function(e) {
@@ -1646,7 +1738,10 @@
         
         // Load price history
         loadPriceHistory(data.localId);
-        
+
+        // Update show-cart button visibility
+        updateModalCartButton();
+
         // Show modal
         modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
@@ -2247,14 +2342,25 @@
         toggleButtons.forEach(btn => {
             btn.addEventListener('click', function() {
                 const view = this.getAttribute('data-toggle-view');
-                
+
+                // Intercept: if clicking "Konfigurator zakupu" and it's empty, show wizard
+                if (view === 'favorites' && handleConfiguratorClick()) {
+                    return;
+                }
+
                 // Update button active states
                 toggleButtons.forEach(b => b.classList.toggle('active', b === this));
-                
+
                 // Toggle apartment list classes
                 if (view === 'favorites') {
                     // Reset filters to show all observed apartments
                     resetFilters();
+                    // Override localType to "all" so all favorite types (apartments, garages, storage) are visible
+                    const localTypeFilter = document.getElementById('localTypeFilter');
+                    if (localTypeFilter) {
+                        localTypeFilter.value = 'all';
+                        applyFilters();
+                    }
                     apartmentList.classList.add('hide-favorites');
                     // Check if there are any favorites
                     checkAndToggleNoFavoritesPlaceholder();
@@ -2264,6 +2370,8 @@
                     }
                     // Update URL with favorites
                     updateUrlWithFavorites();
+                    // Show configurator summary
+                    updateConfiguratorSummary();
                 } else {
                     apartmentList.classList.remove('hide-favorites');
                     apartmentList.classList.remove('has-no-favorites');
@@ -2273,6 +2381,8 @@
                     }
                     // Remove favorites from URL
                     removeFavoritesFromUrl();
+                    // Hide configurator summary
+                    updateConfiguratorSummary();
                 }
             });
         });
@@ -2287,7 +2397,7 @@
 
         const container = document.querySelector('.favorites-toggle-container');
         const quoteEmail = container ? container.getAttribute('data-quote-email') : '';
-        const quoteSubject = container ? container.getAttribute('data-quote-subject') : 'Wycena mieszkań z konfiguratora zakupu';
+        const quoteSubject = container ? container.getAttribute('data-quote-subject') : 'Szczegóły oferty z konfiguratora zakupu';
 
         // Show/hide based on favorites count
         function updateQuoteBtnVisibility() {
@@ -2320,18 +2430,19 @@
                 if (found) {
                     const price = found.priceGross ? Number(found.priceGross).toLocaleString('pl-PL') + ' zł' : '-';
                     const area = found.area ? Number(found.area).toLocaleString('pl-PL', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²' : '-';
-                    lines.push('Mieszkanie ' + (found.number || localId) + ' | ' + (found.building || '') + ' | Piętro: ' + (found.floorDisplay || found.floor || '-') + ' | Pow.: ' + area + ' | Cena: ' + price);
+                    const localType = found.localType || 'Lokal';
+                    lines.push(localType + ' ' + (found.number || localId) + ' | ' + (found.building || '') + ' | Piętro: ' + (found.floorDisplay || found.floor || '-') + ' | Pow.: ' + area + ' | Cena: ' + price);
                 } else {
                     lines.push('ID: ' + localId);
                 }
             });
 
             const body = encodeURIComponent(
-                'Dzień dobry,\n\nProszę o wycenę następujących mieszkań z konfiguratora zakupu:\n\n' +
+                'Dzień dobry,\n\nProszę o szczegóły oferty na poniższe lokale:\n\n' +
                 lines.join('\n') +
                 '\n\nPozdrawiam'
             );
-            const subject = encodeURIComponent(quoteSubject || 'Wycena mieszkań z konfiguratora zakupu');
+            const subject = encodeURIComponent(quoteSubject || 'Szczegóły oferty z konfiguratora zakupu');
             const mailto = 'mailto:' + (quoteEmail || '') + '?subject=' + subject + '&body=' + body;
             window.location.href = mailto;
         });
@@ -2385,7 +2496,116 @@
         
         favoritesCount.textContent = count + ' ' + (count === 1 ? 'wybrane' : 'wybranych');
     }
-    
+
+    // ===========================
+    // Configurator Summary
+    // ===========================
+    function updateConfiguratorSummary() {
+        var summary = document.getElementById('configuratorSummary');
+        var itemsContainer = document.getElementById('configuratorSummaryItems');
+        var totalPriceEl = document.getElementById('configuratorTotalPrice');
+        if (!summary || !itemsContainer || !totalPriceEl) return;
+
+        // Only show in favorites view
+        var apartmentList = document.querySelector('.apartment-list');
+        var isInFavoritesView = apartmentList && apartmentList.classList.contains('hide-favorites');
+
+        var favorites = getFavorites();
+
+        if (!isInFavoritesView || favorites.length === 0) {
+            summary.classList.remove('visible');
+            return;
+        }
+
+        // Collect data for each favorite
+        var items = [];
+        var totalPrice = 0;
+
+        favorites.forEach(function(localId) {
+            var found = null;
+            document.querySelectorAll('.apartment-item').forEach(function(el) {
+                try {
+                    var data = JSON.parse(el.getAttribute('data-modal') || '{}');
+                    if (String(data.localId) === String(localId)) {
+                        found = data;
+                    }
+                } catch(e) {}
+            });
+
+            if (found) {
+                var price = found.priceGross ? Number(found.priceGross) : 0;
+                var area = found.area ? Number(found.area).toLocaleString('pl-PL', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²' : '';
+                var label = (found.localType || 'Lokal') + ' ' + (found.number || localId);
+                if (area) label += ' (' + area + ')';
+
+                items.push({ label: label, price: price });
+                totalPrice += price;
+            }
+        });
+
+        // Build summary rows
+        var html = '';
+        items.forEach(function(item) {
+            html += '<div class="summary-row">';
+            html += '<span class="summary-label">' + item.label + '</span>';
+            html += '<span class="summary-value">' + (item.price > 0 ? Number(item.price).toLocaleString('pl-PL') + ' zł' : '-') + '</span>';
+            html += '</div>';
+        });
+
+        itemsContainer.innerHTML = html;
+        totalPriceEl.textContent = totalPrice > 0 ? totalPrice.toLocaleString('pl-PL') + ' zł' : '0 zł';
+        summary.classList.add('visible');
+    }
+
+    // ===========================
+    // Modal Cart Button
+    // ===========================
+    function updateModalCartButton() {
+        var btn = document.getElementById('modalShowCartBtn');
+        var countEl = document.getElementById('modalCartCount');
+        if (!btn) return;
+
+        var favorites = getFavorites();
+        if (favorites.length > 0) {
+            btn.style.display = 'flex';
+            if (countEl) {
+                countEl.textContent = favorites.length;
+            }
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+
+    // Cart button click — close modal, switch to favorites view
+    (function() {
+        var btn = document.getElementById('modalShowCartBtn');
+        if (!btn) return;
+
+        btn.addEventListener('click', function() {
+            // Close the detail modal
+            closeApartmentModal();
+
+            // Switch to favorites/configurator view
+            var favBtn = document.querySelector('.favorites-toggle-btn[data-toggle-view="favorites"]');
+            if (favBtn && !favBtn.classList.contains('active')) {
+                favBtn.click();
+            }
+
+            // Scroll to the apartment list
+            var container = document.querySelector('.develogic-apartments-container');
+            if (container) {
+                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    })();
+
+    // Listen for favorites changes to update summary and cart button
+    document.addEventListener('develogic:favorites_changed', function() {
+        updateConfiguratorSummary();
+        updateFavoritesCount();
+        updateModalCartButton();
+    });
+
     // ===========================
     // Share buttons functionality
     // ===========================
@@ -2468,7 +2688,15 @@
             const apartmentList = document.querySelector('.apartment-list');
             const shareContainer = document.getElementById('favoritesShareContainer');
             const toggleButtons = document.querySelectorAll('.favorites-toggle-btn');
-            
+
+            // Reset filters to show all types
+            resetFilters();
+            const localTypeFilter = document.getElementById('localTypeFilter');
+            if (localTypeFilter) {
+                localTypeFilter.value = 'all';
+                applyFilters();
+            }
+
             if (apartmentList) {
                 apartmentList.classList.add('hide-favorites');
             }
@@ -2511,4 +2739,225 @@
         }
     }
     
+    // ===========================
+    // Purchase Configurator Wizard
+    // ===========================
+
+    // Wizard state: null | 'finding_apartment' | 'finding_storage'
+    let wizardState = null;
+
+    function setupWizard() {
+        const wizardModal = document.getElementById('wizardModal');
+        if (!wizardModal) return;
+
+        // Close button
+        wizardModal.querySelector('.wizard-modal-close').addEventListener('click', closeWizardModal);
+
+        // Overlay click to close
+        wizardModal.querySelector('.wizard-modal-overlay').addEventListener('click', closeWizardModal);
+
+        // Step 1: Find apartment button
+        wizardModal.querySelector('[data-wizard-action="find-apartment"]').addEventListener('click', function() {
+            wizardState = 'finding_apartment';
+
+            closeWizardModal();
+
+            // Switch to "Wszystkie" view
+            switchToAllView();
+
+            // Set filter to "Lokal mieszkalny"
+            setLocalTypeFilter('Lokal mieszkalny');
+        });
+
+        // Step 2: Find garage button
+        wizardModal.querySelector('[data-wizard-action="find-garage"]').addEventListener('click', function() {
+            wizardState = 'finding_storage';
+
+            closeWizardModal();
+
+            switchToAllView();
+            setLocalTypeFilter('Garaż');
+        });
+
+        // Step 2: Find storage/cellar button
+        wizardModal.querySelector('[data-wizard-action="find-storage"]').addEventListener('click', function() {
+            wizardState = 'finding_storage';
+
+            closeWizardModal();
+
+            switchToAllView();
+
+            // Try Komórka lokatorska first, then Pomieszczenie gospodarcze
+            const localTypeFilter = document.getElementById('localTypeFilter');
+            if (localTypeFilter) {
+                const options = Array.from(localTypeFilter.options).map(o => o.value);
+                if (options.includes('Komórka lokatorska')) {
+                    setLocalTypeFilter('Komórka lokatorska');
+                } else if (options.includes('Pomieszczenie gospodarcze')) {
+                    setLocalTypeFilter('Pomieszczenie gospodarcze');
+                }
+            }
+        });
+
+        // Step 3: Send inquiry
+        wizardModal.querySelector('[data-wizard-action="send-inquiry"]').addEventListener('click', function() {
+            wizardState = null;
+            closeWizardModal();
+
+            // Switch to favorites view and trigger quote email
+            switchToFavoritesView();
+
+            setTimeout(function() {
+                const quoteBtn = document.getElementById('quoteCartBtn');
+                if (quoteBtn) {
+                    quoteBtn.click();
+                }
+            }, 300);
+        });
+
+        // Step 3: Back to list
+        wizardModal.querySelector('[data-wizard-action="back-to-list"]').addEventListener('click', function() {
+            wizardState = null;
+            closeWizardModal();
+
+            switchToAllView();
+            setLocalTypeFilter('Lokal mieszkalny');
+        });
+
+        // All steps: Go to cart buttons
+        wizardModal.querySelectorAll('[data-wizard-action="go-to-cart"]').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                wizardState = null;
+                closeWizardModal();
+                switchToFavoritesView();
+            });
+        });
+
+        // Update cart buttons on favorites change
+        document.addEventListener('develogic:favorites_changed', updateWizardCartButtons);
+    }
+
+    function updateWizardCartButtons() {
+        var favorites = getFavorites();
+        var count = favorites.length;
+        var cartBtns = document.querySelectorAll('.wizard-go-to-cart');
+
+        cartBtns.forEach(function(btn) {
+            if (count > 0) {
+                btn.style.display = 'inline-flex';
+                var countEl = btn.querySelector('.wizard-cart-count');
+                if (countEl) {
+                    countEl.textContent = count;
+                }
+            } else {
+                btn.style.display = 'none';
+            }
+        });
+    }
+
+    function showWizardStep(stepNumber) {
+        const wizardModal = document.getElementById('wizardModal');
+        if (!wizardModal) return;
+
+        // Hide all steps
+        wizardModal.querySelectorAll('.wizard-step').forEach(function(step) {
+            step.style.display = 'none';
+        });
+
+        // Show requested step
+        const targetStep = wizardModal.querySelector('[data-wizard-step="' + stepNumber + '"]');
+        if (targetStep) {
+            targetStep.style.display = 'flex';
+        }
+
+        // Update cart buttons visibility
+        updateWizardCartButtons();
+
+        // Show modal
+        wizardModal.style.display = 'flex';
+        // Force reflow for transition
+        wizardModal.offsetHeight;
+        wizardModal.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeWizardModal() {
+        const wizardModal = document.getElementById('wizardModal');
+        if (!wizardModal) return;
+
+        wizardModal.classList.remove('visible');
+        document.body.style.overflow = '';
+
+        setTimeout(function() {
+            wizardModal.style.display = 'none';
+        }, 300);
+    }
+
+    function switchToAllView() {
+        const allBtn = document.querySelector('.favorites-toggle-btn[data-toggle-view="all"]');
+        if (allBtn && !allBtn.classList.contains('active')) {
+            allBtn.click();
+        }
+    }
+
+    function switchToFavoritesView() {
+        const favBtn = document.querySelector('.favorites-toggle-btn[data-toggle-view="favorites"]');
+        if (favBtn && !favBtn.classList.contains('active')) {
+            favBtn.click();
+        }
+    }
+
+    function setLocalTypeFilter(value) {
+        const localTypeFilter = document.getElementById('localTypeFilter');
+        if (localTypeFilter) {
+            const options = Array.from(localTypeFilter.options).map(o => o.value);
+            if (options.includes(value)) {
+                localTypeFilter.value = value;
+                autoSelectFloorForKLPG();
+                applyFilters();
+            }
+        }
+    }
+
+    /**
+     * Called when user clicks on "Konfigurator zakupu" tab.
+     * If empty, show wizard step 1 instead of empty list.
+     * Returns true if wizard was shown (to prevent normal toggle behavior).
+     */
+    function handleConfiguratorClick() {
+        const favorites = getFavorites();
+        if (favorites.length === 0) {
+            showWizardStep(1);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Called after a favorite is added. Handles wizard flow transitions.
+     */
+    function handleWizardAfterFavoriteAdd() {
+        if (wizardState === 'finding_apartment') {
+            // User just added their first apartment - show step 2
+            setTimeout(function() {
+                switchToFavoritesView();
+                setTimeout(function() {
+                    showWizardStep(2);
+                }, 400);
+            }, 600);
+            return;
+        }
+
+        if (wizardState === 'finding_storage') {
+            // User just added a storage/garage - show step 3
+            setTimeout(function() {
+                switchToFavoritesView();
+                setTimeout(function() {
+                    showWizardStep(3);
+                }, 400);
+            }, 600);
+            return;
+        }
+    }
+
 })();

@@ -778,6 +778,81 @@
     }
 }
 
+/* ===========================
+   Mobile Expandable Section
+   =========================== */
+.apartment-mobile-expand {
+    display: none;
+    grid-column: 1 / -1;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px solid #e5e7eb;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.3s ease, padding 0.35s ease;
+    padding: 0;
+}
+
+.apartment-item.mobile-expanded .apartment-mobile-expand {
+    max-height: 800px;
+    opacity: 1;
+    padding: 12px 0 4px;
+}
+
+.mobile-expand-image {
+    width: 100%;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+.mobile-expand-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.mobile-expand-detail-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px 20px;
+    background: var(--develogic-primary-color, #2563eb);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.mobile-expand-detail-btn:hover {
+    filter: brightness(1.1);
+}
+
+.mobile-expand-detail-btn svg {
+    flex-shrink: 0;
+}
+
+/* Rotate chevron when expanded */
+.mobile-expand-toggle svg {
+    transition: transform 0.3s ease;
+}
+
+.apartment-item.mobile-expanded .mobile-expand-toggle svg {
+    transform: rotate(180deg);
+}
+
+@media (max-width: 992px) {
+    .apartment-mobile-expand {
+        display: flex;
+    }
+}
+
 /* Tooltips for icon buttons */
 .icon-btn[title],
 .icon-btn-3d[title] {
@@ -1940,7 +2015,7 @@
     flex-wrap: wrap;
     position: -webkit-sticky;
     position: sticky;
-    top: var(--develogic-sticky-top, 0px);
+    top: var(--develogic-sticky-top, 125px);
     z-index: 50;
     background: white;
     padding: 12px 0;
@@ -1960,6 +2035,82 @@
     font-size: 14px;
     color: #666;
     margin-left: auto;
+    transition: all 0.3s ease;
+}
+
+/* Sticky sort bar - appears when container is stuck to header */
+.sort-bar-right.is-sticky-active {
+    position: fixed;
+    top: var(--develogic-sticky-top, 125px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    margin-left: 0;
+    justify-content: center;
+    background: var(--develogic-primary-color, #2563eb);
+    color: #fff;
+    padding: 8px 20px;
+    z-index: 51;
+    gap: 16px;
+    font-size: 13px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+    animation: sortBarSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes sortBarSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-100%);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.sort-bar-right.is-sticky-active .sort-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 500;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.sort-bar-right.is-sticky-active .sort-option {
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.sort-bar-right.is-sticky-active .sort-option:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.45);
+}
+
+.sort-bar-right.is-sticky-active .sort-option.active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.5);
+    font-weight: 600;
+}
+
+.sort-bar-right.is-sticky-active .sort-option .sort-arrow svg {
+    fill: #fff;
+}
+
+.sort-bar-right.is-sticky-active .sort-option .sort-arrow {
+    opacity: 0.6;
+}
+
+.sort-bar-right.is-sticky-active .sort-option.active .sort-arrow {
+    opacity: 1;
 }
 
 .favorites-toggle-btn {
@@ -2145,14 +2296,41 @@
 @media (max-width: 768px) {
     .favorites-toggle-container {
         flex-wrap: wrap;
+        position: static;
     }
-    
+
+    .sort-bar-right.is-sticky-active {
+        padding: 6px 10px;
+        gap: 6px;
+        font-size: 11px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sort-bar-right.is-sticky-active .sort-label {
+        display: none;
+    }
+
+    .sort-bar-right.is-sticky-active .sort-option {
+        padding: 4px 8px;
+        font-size: 11px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* On mobile sticky, show only: Piętro, Metraż, Cena */
+    .sort-bar-right.is-sticky-active .sort-option[data-sort="data-rooms"],
+    .sort-bar-right.is-sticky-active .sort-option[data-sort="data-price-m2"] {
+        display: none;
+    }
+
     .toggle-buttons-wrapper {
         width: 100%;
         flex-wrap: wrap;
         gap: 10px;
     }
-    
+
     .favorites-count {
         width: 100%;
         display: block;
@@ -2160,7 +2338,7 @@
         margin-top: 8px;
         padding-left: 4px;
     }
-    
+
     .sort-bar-right {
         width: 100%;
         margin-left: 0;
@@ -2171,14 +2349,14 @@
         flex-wrap: wrap;
         gap: 12px 16px;
     }
-    
+
     .sort-label {
         width: 100%;
         font-size: 13px;
         margin-bottom: 4px;
         font-weight: 600;
     }
-    
+
     .sort-option {
         font-size: 13px;
         padding: 6px 12px;
@@ -2443,5 +2621,394 @@
         min-width: 40px;
         width: 40px;
         height: 40px;
+    }
+}
+
+/* ===========================
+   Wizard Modal (Purchase Configurator Guide)
+   =========================== */
+.wizard-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.wizard-modal.visible {
+    opacity: 1;
+}
+
+.wizard-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.wizard-modal-content {
+    position: relative;
+    background: white;
+    border-radius: 16px;
+    padding: 48px 40px;
+    max-width: 520px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+    z-index: 1;
+}
+
+.wizard-modal.visible .wizard-modal-content {
+    transform: translateY(0);
+}
+
+.wizard-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    color: #999;
+    transition: color 0.2s;
+    z-index: 2;
+}
+
+.wizard-modal-close:hover {
+    color: #333;
+}
+
+.wizard-modal-close svg {
+    width: 20px;
+    height: 20px;
+}
+
+.wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.wizard-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #f0f7ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.wizard-icon svg {
+    width: 40px;
+    height: 40px;
+    stroke: var(--develogic-primary-color, #0066cc);
+}
+
+.wizard-icon-success {
+    background: #f0fdf4;
+}
+
+.wizard-icon-success svg {
+    stroke: #22c55e;
+}
+
+.wizard-step h3 {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 12px;
+}
+
+.wizard-step p {
+    font-size: 15px;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 28px;
+    max-width: 400px;
+}
+
+.wizard-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 28px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    text-decoration: none;
+}
+
+.wizard-btn svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.wizard-btn-primary {
+    background: var(--develogic-primary-color, #0066cc);
+    color: white;
+    border-color: var(--develogic-primary-color, #0066cc);
+}
+
+.wizard-btn-primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+.wizard-btn-secondary {
+    background: white;
+    color: #374151;
+    border-color: #e5e7eb;
+}
+
+.wizard-btn-secondary:hover {
+    border-color: var(--develogic-primary-color, #0066cc);
+    color: var(--develogic-primary-color, #0066cc);
+    background: #f0f7ff;
+}
+
+.wizard-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 380px;
+}
+
+.wizard-btn-group .wizard-btn {
+    justify-content: center;
+    width: 100%;
+}
+
+.wizard-hint {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin-bottom: 24px;
+    font-size: 14px;
+    color: #374151;
+    line-height: 1.5;
+    text-align: left;
+    max-width: 400px;
+}
+
+.wizard-hint-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+}
+
+.wizard-hint-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ===========================
+   Configurator Summary (price total)
+   =========================== */
+.configurator-summary {
+    display: none;
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-top: 20px;
+}
+
+.configurator-summary.visible {
+    display: block;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 14px;
+    color: #374151;
+}
+
+.summary-row + .summary-row {
+    border-top: 1px solid #e5e7eb;
+}
+
+.summary-row .summary-label {
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.summary-row .summary-value {
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.summary-row.summary-total {
+    padding-top: 12px;
+    margin-top: 6px;
+    border-top: 2px solid #d1d5db;
+    font-size: 18px;
+}
+
+.summary-row.summary-total .summary-label {
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.summary-row.summary-total .summary-value {
+    font-weight: 700;
+    font-size: 20px;
+    color: var(--develogic-primary-color, #0066cc);
+}
+
+/* ===========================
+   Show Cart Button (in modal)
+   =========================== */
+/* Wizard Cart Button (go to favorites list) */
+.wizard-btn-cart {
+    background: #f8f9fa !important;
+    color: #374151 !important;
+    border-color: #e5e7eb !important;
+    margin-top: 8px;
+}
+
+.wizard-btn-cart:hover {
+    background: var(--develogic-primary-color, #0066cc) !important;
+    color: white !important;
+    border-color: var(--develogic-primary-color, #0066cc) !important;
+}
+
+.wizard-cart-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    background: var(--develogic-primary-color, #0066cc);
+    color: white;
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-left: 4px;
+}
+
+.wizard-btn-cart:hover .wizard-cart-count {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.show-cart-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px 20px;
+    margin-top: 16px;
+    background: var(--develogic-primary-color, #0066cc);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.show-cart-btn:hover {
+    background: var(--develogic-primary-hover, #0052a3);
+    transform: translateY(-1px);
+}
+
+.show-cart-btn:active {
+    transform: translateY(0);
+}
+
+.show-cart-btn svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.show-cart-btn-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+@media (max-width: 768px) {
+    .wizard-modal-content {
+        padding: 36px 24px;
+        max-width: 95%;
+    }
+
+    .wizard-step h3 {
+        font-size: 20px;
+    }
+
+    .wizard-step p {
+        font-size: 14px;
+    }
+
+    .wizard-btn {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+
+    .wizard-icon {
+        width: 64px;
+        height: 64px;
+    }
+
+    .wizard-icon svg {
+        width: 32px;
+        height: 32px;
+    }
+
+    .wizard-hint {
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+
+    .configurator-summary {
+        padding: 16px 18px;
+    }
+
+    .summary-row.summary-total .summary-value {
+        font-size: 18px;
     }
 }

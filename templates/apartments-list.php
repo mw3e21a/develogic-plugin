@@ -462,11 +462,11 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             </button>
             <span class="favorites-count" id="favoritesCount">0 wybranych</span>
             <?php if ($show_quote_btn): ?>
-            <button class="quote-cart-btn" id="quoteCartBtn" style="display: none;" title="Wyślij wycenę koszyka">
+            <button class="quote-cart-btn" id="quoteCartBtn" style="display: none;" title="Wyślij zapytanie o szczegóły oferty">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-8 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
                 </svg>
-                Wyślij wycenę koszyka
+                Wyślij zapytanie o szczegóły
             </button>
             <?php endif; ?>
         </div>
@@ -939,6 +939,12 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </div>
 
                 <div class="apartment-actions">
+                    <!-- Mobile expand toggle -->
+                    <button class="icon-btn mobile-expand-toggle mobile-only" data-action="expand" aria-label="<?php esc_attr_e('Pokaż szczegóły', 'develogic'); ?>" title="Pokaż szczegóły" onclick="event.stopPropagation();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
                     <?php if ($show_360 && !empty($tour_3d_url)): ?>
                     <a href="<?php echo esc_url($tour_3d_url); ?>" class="icon-btn icon-btn-3d icon-btn-360" target="_blank" rel="noopener noreferrer" aria-label="<?php esc_attr_e('Zobacz spacer 3D 360°', 'develogic'); ?>" title="Zobacz spacer 3D 360° (otwiera w nowej karcie)" onclick="event.stopPropagation();">
                         <span class="text-360">360°</span>
@@ -955,9 +961,9 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         </svg>
                     </a>
                     <?php endif; ?>
-                    <?php 
+                    <?php
                     $contact_phone = develogic()->get_setting('contact_phone', '');
-                    if (!empty($contact_phone)): 
+                    if (!empty($contact_phone)):
                     ?>
                     <a href="tel:<?php echo esc_attr(preg_replace('/[^\d\+]/', '', $contact_phone)); ?>" class="icon-btn icon-btn-phone mobile-only" aria-label="<?php esc_attr_e('Zadzwoń', 'develogic'); ?>" title="<?php echo esc_attr(sprintf(__('Zadzwoń: %s', 'develogic'), $contact_phone)); ?>" onclick="event.stopPropagation();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -981,15 +987,165 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     </button>
                     <?php endif; ?>
                 </div>
+
+                <!-- Mobile expandable section with floor plan and detail button -->
+                <div class="apartment-mobile-expand">
+                    <?php if ($image1_thumb): ?>
+                    <div class="mobile-expand-image">
+                        <img src="<?php echo esc_url($image1_url ? $image1_url : $image1_thumb); ?>" alt="<?php echo esc_attr($local['number']); ?> - Rzut lokalu" loading="lazy">
+                    </div>
+                    <?php endif; ?>
+                    <button class="mobile-expand-detail-btn" data-action="open-modal" onclick="event.stopPropagation();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        Zobacz szczegóły
+                    </button>
+                </div>
             </div>
             
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
+
+    <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
+    <!-- Configurator Summary (shown in favorites view) -->
+    <div class="configurator-summary" id="configuratorSummary">
+        <div id="configuratorSummaryItems"></div>
+        <div class="summary-row summary-total">
+            <span class="summary-label">Łączna cena</span>
+            <span class="summary-value" id="configuratorTotalPrice">0 zł</span>
+        </div>
+    </div>
+    <?php endif; ?>
+
 </div>
 
 <!-- Toast Container -->
 <div class="toast-container" id="toastContainer"></div>
+
+<?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
+<!-- Wizard Modal for Purchase Configurator -->
+<div id="wizardModal" class="wizard-modal" style="display: none;">
+    <div class="wizard-modal-overlay"></div>
+    <div class="wizard-modal-content">
+        <button class="wizard-modal-close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+
+        <!-- Step 1: Empty configurator - add first apartment -->
+        <div class="wizard-step" data-wizard-step="1">
+            <div class="wizard-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </div>
+            <h3>Dodaj pierwsze mieszkanie</h3>
+            <p>Twój konfigurator zakupu jest pusty. Zacznij od wybrania wymarzonego mieszkania z naszej oferty.</p>
+            <div class="wizard-hint">
+                <span class="wizard-hint-icon">
+                    <svg viewBox="0 0 24 24" fill="#333" stroke="none">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                </span>
+                <span>Naciśnij ikonę gwiazdki przy wybranym lokalu, aby dodać go do konfiguratora</span>
+            </div>
+            <button class="wizard-btn wizard-btn-primary" data-wizard-action="find-apartment">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                Znajdź wymarzone mieszkanie
+            </button>
+            <button class="wizard-btn wizard-btn-cart wizard-go-to-cart" data-wizard-action="go-to-cart" style="display: none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+                <span class="wizard-cart-text">Przejdź do listy wybranych lokali</span>
+                <span class="wizard-cart-count"></span>
+            </button>
+        </div>
+
+        <!-- Step 2: Congratulations - now pick garage/storage -->
+        <div class="wizard-step" data-wizard-step="2" style="display: none;">
+            <div class="wizard-icon wizard-icon-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+            </div>
+            <h3>Gratulacje!</h3>
+            <p>Świetny wybór! Teraz uzupełnij swoją ofertę o garaż, komórkę lokatorską lub pomieszczenie gospodarcze.</p>
+            <div class="wizard-btn-group">
+                <button class="wizard-btn wizard-btn-primary" data-wizard-action="find-garage">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="1" y="3" width="15" height="13"/>
+                        <polygon points="16 8 20 3 20 16 16 16 16 8"/>
+                        <circle cx="5.5" cy="18.5" r="2.5"/>
+                        <circle cx="13.5" cy="18.5" r="2.5"/>
+                    </svg>
+                    Garaż
+                </button>
+                <button class="wizard-btn wizard-btn-primary" data-wizard-action="find-storage">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    </svg>
+                    Komórka lokatorska / Pom. gospodarcze
+                </button>
+                <button class="wizard-btn wizard-btn-cart wizard-go-to-cart" data-wizard-action="go-to-cart" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    <span class="wizard-cart-text">Przejdź do listy wybranych lokali</span>
+                    <span class="wizard-cart-count"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 3: All done - send inquiry or go back -->
+        <div class="wizard-step" data-wizard-step="3" style="display: none;">
+            <div class="wizard-icon wizard-icon-success">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+            </div>
+            <h3>Czy chcesz uzyskać szczegóły oferty?</h3>
+            <p>Twoja lista jest gotowa. Wyślij zapytanie, aby uzyskać szczegóły oferty, lub wróć do listy i dodaj więcej lokali.</p>
+            <div class="wizard-btn-group">
+                <button class="wizard-btn wizard-btn-primary" data-wizard-action="send-inquiry">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="5" width="18" height="14" rx="2"/>
+                        <path d="M3 7l9 6 9-6"/>
+                    </svg>
+                    Wyślij zapytanie
+                </button>
+                <button class="wizard-btn wizard-btn-secondary" data-wizard-action="back-to-list">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="19" y1="12" x2="5" y2="12"/>
+                        <polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                    Wróć do listy i dodaj więcej
+                </button>
+                <button class="wizard-btn wizard-btn-cart wizard-go-to-cart" data-wizard-action="go-to-cart" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    <span class="wizard-cart-text">Przejdź do listy wybranych lokali</span>
+                    <span class="wizard-cart-count"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Apartment Detail Modal -->
 <div id="apartment-detail-modal" class="apartment-detail-modal">
@@ -1182,6 +1338,17 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     </div>
                 </div>
 
+                <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
+                <!-- Show Cart Button -->
+                <button class="show-cart-btn" id="modalShowCartBtn" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    <span class="show-cart-btn-text">Pokaż koszyk</span>
+                    <span class="show-cart-btn-count" id="modalCartCount"></span>
+                </button>
+                <?php endif; ?>
 
         </div>
     </div>
