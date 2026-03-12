@@ -33,6 +33,7 @@
         setupSorting();
         setupFiltering();
         setupFavorites();
+        setupWatched();
         setupEmailButtons();
         setupApartmentClicks();
         setupModal();
@@ -40,6 +41,7 @@
         setupQuoteCartButton();
         setupShareButtons();
         updateFavoritesCount();
+        updateWatchedCount();
         checkSharedFavorites();
         setupWizard();
         setupImageMapProArtboardLogging();
@@ -116,94 +118,55 @@
     // ===========================
     function setupStickyOffset() {
         function updateStickyTop() {
-            // Find sticky header element - common selectors for WP themes and Elementor
-            var header = document.querySelector('.elementor-sticky, [data-elementor-type="header"], header[class*="sticky"], header[class*="fixed"], .site-header, #masthead, .header-main, nav.navbar');
+            // Find all fixed/sticky elements at the top of the page
             var offset = 0;
-            if (header) {
-                var style = window.getComputedStyle(header);
-                if (style.position === 'sticky' || style.position === 'fixed') {
-                    offset = header.offsetHeight;
+            // Broad selector covering WP admin bar, Elementor headers (is-fixed, is-stuck, elementor-sticky),
+            // and common theme header patterns
+            var candidates = document.querySelectorAll('#wpadminbar, .elementor-sticky, .elementor-sticky--active, .is-fixed, .is-stuck, [data-elementor-type="header"], header[class*="sticky"], header[class*="fixed"], .site-header, #masthead, .header-main, nav.navbar');
+            candidates.forEach(function(el) {
+                var style = window.getComputedStyle(el);
+                var pos = style.position;
+                if (pos === 'sticky' || pos === 'fixed') {
+                    var rect = el.getBoundingClientRect();
+                    // Only count elements that are at or near the top of the viewport
+                    if (rect.top < 10 && rect.height > 0) {
+                        var bottom = rect.top + rect.height;
+                        if (bottom > offset) {
+                            offset = bottom;
+                        }
+                    }
                 }
-            }
-            // Also check for WP admin bar
-            var adminBar = document.getElementById('wpadminbar');
-            if (adminBar) {
-                offset += adminBar.offsetHeight;
-            }
-            var stickyTop = window.innerWidth <= 768 ? '59px' : '125px';
+            });
+            var stickyTop = offset > 0 ? Math.round(offset) + 'px' : '0px';
             document.documentElement.style.setProperty('--develogic-sticky-top', stickyTop);
         }
 
         // Fix: ensure no ancestor of the sticky element has overflow:hidden which breaks position:sticky
         function fixStickyAncestors() {
-            var stickyEl = document.querySelector('.favorites-toggle-container');
-            if (!stickyEl) return;
-            var parent = stickyEl.parentElement;
-            while (parent && parent !== document.documentElement) {
-                var style = window.getComputedStyle(parent);
-                if (style.overflow === 'hidden' || style.overflowY === 'hidden') {
-                    parent.style.overflow = 'visible';
+            var stickyEls = document.querySelectorAll('.apartment-list-header, .apartment-list-mobile-header');
+            stickyEls.forEach(function(stickyEl) {
+                var parent = stickyEl.parentElement;
+                while (parent && parent !== document.documentElement) {
+                    var style = window.getComputedStyle(parent);
+                    if (style.overflow === 'hidden' || style.overflowY === 'hidden') {
+                        parent.style.overflow = 'visible';
+                    }
+                    parent = parent.parentElement;
                 }
-                parent = parent.parentElement;
-            }
+            });
         }
 
         updateStickyTop();
         fixStickyAncestors();
         window.addEventListener('resize', updateStickyTop);
+        // Periodically recheck in case header height changes (announcement bars, etc.)
+        setInterval(updateStickyTop, 2000);
         // Re-check after page fully loads (fonts, images may shift header height)
         window.addEventListener('load', function() {
             updateStickyTop();
             fixStickyAncestors();
         });
 
-        // Sticky sort-bar-right: detect when favorites-toggle-container is stuck
-        setupStickySortBar();
-    }
-
-    function setupStickySortBar() {
-        var container = document.querySelector('.favorites-toggle-container');
-        var sortBarRight = container ? container.querySelector('.sort-bar-right') : null;
-        if (!container || !sortBarRight) return;
-
-        // Create a sentinel element just above the container to detect when it becomes sticky
-        var sentinel = document.createElement('div');
-        sentinel.style.height = '1px';
-        sentinel.style.width = '100%';
-        sentinel.style.visibility = 'hidden';
-        sentinel.style.pointerEvents = 'none';
-        container.parentNode.insertBefore(sentinel, container);
-
-        // Create a placeholder to prevent layout jump when sort-bar becomes fixed
-        var placeholder = document.createElement('div');
-        placeholder.className = 'sort-bar-right-placeholder';
-        placeholder.style.display = 'none';
-        container.appendChild(placeholder);
-
-        var isSticky = false;
-
-        function checkSticky() {
-            var sentinelRect = sentinel.getBoundingClientRect();
-            var stickyTop = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--develogic-sticky-top')) || 0;
-            var shouldBeSticky = sentinelRect.top <= stickyTop;
-
-            if (shouldBeSticky && !isSticky) {
-                isSticky = true;
-                // Measure sort-bar height for placeholder
-                var sortBarHeight = sortBarRight.offsetHeight;
-                placeholder.style.height = sortBarHeight + 'px';
-                placeholder.style.display = 'block';
-                sortBarRight.classList.add('is-sticky-active');
-            } else if (!shouldBeSticky && isSticky) {
-                isSticky = false;
-                placeholder.style.display = 'none';
-                sortBarRight.classList.remove('is-sticky-active');
-            }
-        }
-
-        window.addEventListener('scroll', checkSticky, { passive: true });
-        window.addEventListener('resize', checkSticky, { passive: true });
-        checkSticky();
     }
 
     // ===========================
@@ -320,14 +283,15 @@
     // Sorting functionality
     // ===========================
     function setupSorting() {
-        const sortOptions = document.querySelectorAll('.sort-option');
+        const sortOptions = document.querySelectorAll('.header-sort');
         let currentSort = 'data-floor';
         let currentDirection = 'asc';
-        
+
         sortOptions.forEach(option => {
-            option.addEventListener('click', function() {
+            option.addEventListener('click', function(e) {
+                e.stopPropagation();
                 const sortAttr = this.getAttribute('data-sort');
-                
+
                 // Toggle direction if same sort
                 if (sortAttr === currentSort) {
                     currentDirection = (currentDirection === 'asc') ? 'desc' : 'asc';
@@ -335,17 +299,17 @@
                     currentDirection = 'asc';
                     currentSort = sortAttr;
                 }
-                
+
                 // Remove active class from all options
                 sortOptions.forEach(opt => {
                     opt.classList.remove('active');
                     opt.removeAttribute('data-direction');
                 });
-                
+
                 // Add active class and direction to clicked option
                 this.classList.add('active');
                 this.setAttribute('data-direction', currentDirection);
-                
+
                 performSort(sortAttr, currentDirection);
             });
         });
@@ -358,14 +322,19 @@
         const items = Array.from(apartmentList.querySelectorAll('.apartment-item'));
         
         items.sort(function(a, b) {
-            const aVal = parseInt(a.getAttribute(sortAttr)) || 0;
-            const bVal = parseInt(b.getAttribute(sortAttr)) || 0;
-            
-            if (sortDir === 'asc') {
-                return aVal - bVal;
+            const aRaw = a.getAttribute(sortAttr) || '';
+            const bRaw = b.getAttribute(sortAttr) || '';
+            const aVal = parseInt(aRaw);
+            const bVal = parseInt(bRaw);
+
+            var result;
+            if (isNaN(aVal) || isNaN(bVal)) {
+                result = aRaw.localeCompare(bRaw, undefined, { numeric: true, sensitivity: 'base' });
             } else {
-                return bVal - aVal;
+                result = aVal - bVal;
             }
+
+            return sortDir === 'asc' ? result : -result;
         });
         
         // Re-append sorted items
@@ -1154,7 +1123,7 @@
         updateNoResultsMessage(visibleCount);
 
         // Show floor sort option only when multiple different floors are visible
-        const floorSortOption = document.querySelector('.floor-sort-option');
+        const floorSortOption = document.querySelector('.header-sort[data-sort="data-floor"]');
         if (floorSortOption) {
             const visibleItems = Array.from(apartmentItems).filter(item => item.style.display !== 'none');
             const uniqueFloors = new Set(visibleItems.map(item => item.getAttribute('data-floor-number')).filter(f => f !== null && f !== ''));
@@ -1163,7 +1132,7 @@
             // If floor sort was active and now hidden, switch to next sort
             if (!show && floorSortOption.classList.contains('active')) {
                 floorSortOption.classList.remove('active');
-                const nextOption = document.querySelector('.sort-option:not(.floor-sort-option)');
+                const nextOption = document.querySelector('.header-sort:not([data-sort="data-floor"])');
                 if (nextOption) nextOption.classList.add('active');
             }
         }
@@ -1260,6 +1229,14 @@
             });
         });
         
+        // Mobile configurator buttons
+        document.querySelectorAll('.mobile-configurator-btn[data-action="favorite"]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleFavorite(this);
+            });
+        });
+
         // Modal favorites
         document.addEventListener('click', function(e) {
             if (e.target.closest('.icon-btn[data-action="favorite-modal"]')) {
@@ -1289,8 +1266,15 @@
         saveFavorites(favorites);
         
         // Update all favorite buttons for this local
-        document.querySelectorAll('.icon-btn[data-local-id="' + localId + '"]').forEach(b => {
+        document.querySelectorAll('[data-local-id="' + localId + '"][data-action="favorite"], .icon-btn[data-local-id="' + localId + '"][data-action="favorite-modal"]').forEach(b => {
             b.classList.toggle('favorited', isAdding);
+            b.classList.toggle('is-favorite', isAdding);
+            b.setAttribute('title', isAdding ? 'Usuń z konfiguratora zakupu' : 'Dodaj do konfiguratora zakupu');
+            // Update mobile configurator button text
+            var btnText = b.querySelector('.mobile-configurator-btn-text');
+            if (btnText) {
+                btnText.textContent = isAdding ? 'Usuń z konfiguratora zakupu' : 'Dodaj do konfiguratora zakupu';
+            }
         });
         
         // Update apartment item favorite class
@@ -1339,8 +1323,14 @@
         const favorites = getFavorites();
         
         favorites.forEach(localId => {
-            document.querySelectorAll('.icon-btn[data-local-id="' + localId + '"]').forEach(btn => {
+            document.querySelectorAll('[data-local-id="' + localId + '"][data-action="favorite"], .icon-btn[data-local-id="' + localId + '"][data-action="favorite-modal"]').forEach(btn => {
                 btn.classList.add('favorited');
+                btn.classList.add('is-favorite');
+                btn.setAttribute('title', 'Usuń z konfiguratora zakupu');
+                var btnText = btn.querySelector('.mobile-configurator-btn-text');
+                if (btnText) {
+                    btnText.textContent = 'Usuń z konfiguratora zakupu';
+                }
             });
             
             // Mark apartment items as favorites
@@ -1360,6 +1350,193 @@
         });
     }
     
+    // ===========================
+    // Watched (Obserwowane) functionality
+    // ===========================
+    function setupWatched() {
+        // List watched buttons
+        document.querySelectorAll('.icon-btn[data-action="watched"]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleWatched(this);
+            });
+        });
+
+        // Mobile watched buttons
+        document.querySelectorAll('.mobile-watched-btn[data-action="watched"]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleWatched(this);
+            });
+        });
+
+        // Modal watched
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.icon-btn[data-action="watched-modal"]')) {
+                e.preventDefault();
+                toggleWatched(e.target.closest('.icon-btn'));
+            }
+        });
+
+        // Load watched state
+        loadWatchedState();
+    }
+
+    function toggleWatched(btn) {
+        const localId = btn.getAttribute('data-local-id');
+        if (!localId) return;
+
+        const watched = getWatched();
+        const index = watched.indexOf(localId);
+        const isAdding = index === -1;
+
+        if (isAdding) {
+            watched.push(localId);
+        } else {
+            watched.splice(index, 1);
+        }
+
+        saveWatched(watched);
+
+        // Update all watched buttons for this local
+        document.querySelectorAll('[data-local-id="' + localId + '"][data-action="watched"], .icon-btn[data-local-id="' + localId + '"][data-action="watched-modal"]').forEach(b => {
+            b.classList.toggle('watched', isAdding);
+            b.setAttribute('title', isAdding ? 'Usuń z obserwowanych' : 'Dodaj do obserwowanych');
+        });
+
+        // Update mobile watched button text
+        document.querySelectorAll('.mobile-watched-btn[data-local-id="' + localId + '"]').forEach(b => {
+            b.classList.toggle('is-watched', isAdding);
+            var btnText = b.querySelector('.mobile-watched-btn-text');
+            if (btnText) {
+                btnText.textContent = isAdding ? 'Usuń z obserwowanych' : 'Dodaj do obserwowanych';
+            }
+        });
+
+        // Update apartment item watched class
+        document.querySelectorAll('.apartment-item').forEach(item => {
+            const modalData = item.getAttribute('data-modal');
+            if (modalData) {
+                try {
+                    const data = JSON.parse(modalData);
+                    if (data.localId === localId) {
+                        item.classList.toggle('is-watched', isAdding);
+                    }
+                } catch (e) {}
+            }
+        });
+
+        // Update watched count
+        updateWatchedCount();
+
+        // Check placeholder visibility if in watched view
+        const apartmentList = document.querySelector('.apartment-list');
+        if (apartmentList && apartmentList.classList.contains('hide-watched')) {
+            checkAndToggleNoWatchedPlaceholder();
+        }
+
+        // Show toast notification when adding to watched
+        if (isAdding) {
+            showWatchedToast();
+        }
+    }
+
+    function getWatched() {
+        const watched = localStorage.getItem('develogic_watched');
+        return watched ? JSON.parse(watched) : [];
+    }
+
+    function saveWatched(watched) {
+        localStorage.setItem('develogic_watched', JSON.stringify(watched));
+        document.dispatchEvent(new CustomEvent('develogic:watched_changed'));
+    }
+
+    function loadWatchedState() {
+        const watched = getWatched();
+
+        watched.forEach(localId => {
+            document.querySelectorAll('[data-local-id="' + localId + '"][data-action="watched"], .icon-btn[data-local-id="' + localId + '"][data-action="watched-modal"]').forEach(btn => {
+                btn.classList.add('watched');
+                btn.setAttribute('title', 'Usuń z obserwowanych');
+            });
+
+            document.querySelectorAll('.mobile-watched-btn[data-local-id="' + localId + '"]').forEach(btn => {
+                btn.classList.add('is-watched');
+                var btnText = btn.querySelector('.mobile-watched-btn-text');
+                if (btnText) {
+                    btnText.textContent = 'Usuń z obserwowanych';
+                }
+            });
+
+            // Mark apartment items as watched
+            document.querySelectorAll('.apartment-item').forEach(item => {
+                const modalData = item.getAttribute('data-modal');
+                if (modalData) {
+                    try {
+                        const data = JSON.parse(modalData);
+                        if (data.localId === localId) {
+                            item.classList.add('is-watched');
+                        }
+                    } catch (e) {}
+                }
+            });
+        });
+    }
+
+    function updateWatchedCount() {
+        const watchedCount = document.getElementById('watchedCount');
+        if (!watchedCount) return;
+
+        const watched = getWatched();
+        const count = watched.length;
+
+        watchedCount.textContent = count + ' ' + (count === 1 ? 'obserwowane' : 'obserwowanych');
+    }
+
+    function checkAndToggleNoWatchedPlaceholder() {
+        const apartmentList = document.querySelector('.apartment-list');
+        if (!apartmentList) return;
+
+        const watched = getWatched();
+        const hasWatched = watched.length > 0;
+
+        if (hasWatched) {
+            apartmentList.classList.remove('has-no-watched');
+        } else {
+            apartmentList.classList.add('has-no-watched');
+        }
+    }
+
+    function showWatchedToast() {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `
+            <div class="toast-icon toast-icon-watched"></div>
+            <div class="toast-content">
+                <div class="toast-title">Dodano do obserwowanych</div>
+                <span class="toast-link" onclick="document.querySelector('.favorites-toggle-btn[data-toggle-view=\\'watched\\']').click()">Zobacz listę</span>
+            </div>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+
+        setTimeout(() => {
+            toast.classList.add('hide');
+            setTimeout(() => {
+                if (container.contains(toast)) {
+                    container.removeChild(toast);
+                }
+            }, 300);
+        }, 4000);
+    }
+
     // ===========================
     // Email button functionality
     // ===========================
@@ -1721,6 +1898,18 @@
             downloadCardLink.style.display = 'none';
         }
         
+        // Set watched button
+        const watchedBtn = modal.querySelector('.icon-btn[data-action="watched-modal"]');
+        if (watchedBtn) {
+            watchedBtn.setAttribute('data-local-id', data.localId);
+            const watched = getWatched();
+            if (watched.indexOf(data.localId.toString()) !== -1) {
+                watchedBtn.classList.add('watched');
+            } else {
+                watchedBtn.classList.remove('watched');
+            }
+        }
+
         // Set favorite button
         const favoriteBtn = modal.querySelector('.icon-btn[data-action="favorite-modal"]');
         if (favoriteBtn) {
@@ -2336,9 +2525,9 @@
         const toggleButtons = document.querySelectorAll('.favorites-toggle-btn');
         const apartmentList = document.querySelector('.apartment-list');
         const shareContainer = document.getElementById('favoritesShareContainer');
-        
+
         if (!toggleButtons.length || !apartmentList) return;
-        
+
         toggleButtons.forEach(btn => {
             btn.addEventListener('click', function() {
                 const view = this.getAttribute('data-toggle-view');
@@ -2351,7 +2540,12 @@
                 // Update button active states
                 toggleButtons.forEach(b => b.classList.toggle('active', b === this));
 
-                // Toggle apartment list classes
+                // Notify quote button about view change
+                document.dispatchEvent(new CustomEvent('develogic:view_changed', { detail: { view: view } }));
+
+                // Clear all view classes first
+                apartmentList.classList.remove('hide-favorites', 'has-no-favorites', 'hide-watched', 'has-no-watched');
+
                 if (view === 'favorites') {
                     // Reset filters to show all observed apartments
                     resetFilters();
@@ -2372,9 +2566,22 @@
                     updateUrlWithFavorites();
                     // Show configurator summary
                     updateConfiguratorSummary();
+                } else if (view === 'watched') {
+                    // Reset filters to show all watched apartments
+                    resetFilters();
+                    const localTypeFilter = document.getElementById('localTypeFilter');
+                    if (localTypeFilter) {
+                        localTypeFilter.value = 'all';
+                        applyFilters();
+                    }
+                    apartmentList.classList.add('hide-watched');
+                    checkAndToggleNoWatchedPlaceholder();
+                    if (shareContainer) {
+                        shareContainer.style.display = 'none';
+                    }
+                    removeFavoritesFromUrl();
+                    updateConfiguratorSummary();
                 } else {
-                    apartmentList.classList.remove('hide-favorites');
-                    apartmentList.classList.remove('has-no-favorites');
                     // Hide share buttons when in all view
                     if (shareContainer) {
                         shareContainer.style.display = 'none';
@@ -2399,16 +2606,18 @@
         const quoteEmail = container ? container.getAttribute('data-quote-email') : '';
         const quoteSubject = container ? container.getAttribute('data-quote-subject') : 'Szczegóły oferty z konfiguratora zakupu';
 
-        // Show/hide based on favorites count
+        // Show/hide based on favorites count AND being in configurator view
         function updateQuoteBtnVisibility() {
             const favorites = getFavorites();
-            quoteBtn.style.display = favorites.length > 0 ? 'flex' : 'none';
+            const isInFavoritesView = document.querySelector('.favorites-toggle-btn[data-toggle-view="favorites"].active');
+            quoteBtn.style.display = (favorites.length > 0 && isInFavoritesView) ? 'flex' : 'none';
         }
 
         updateQuoteBtnVisibility();
 
-        // Re-check visibility when favorites change
+        // Re-check visibility when favorites change or view changes
         document.addEventListener('develogic:favorites_changed', updateQuoteBtnVisibility);
+        document.addEventListener('develogic:view_changed', updateQuoteBtnVisibility);
 
         quoteBtn.addEventListener('click', function(e) {
             e.stopPropagation();

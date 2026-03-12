@@ -92,20 +92,6 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
     <!-- Filter Section -->
     <div class="filter-section">
         <div class="filter-row">
-            <div class="filter-group">
-                <label class="filter-label">Ilość pokoi:</label>
-                <div class="filter-chips" id="roomsFilter">
-                    <?php
-                    $default_rooms = !empty($atts['rooms']) ? $atts['rooms'] : 'all';
-                    ?>
-                    <button class="filter-chip <?php echo ($default_rooms === 'all') ? 'active' : ''; ?>" data-value="all">Wszystkie</button>
-                    <button class="filter-chip <?php echo ($default_rooms === '1') ? 'active' : ''; ?>" data-value="1">1</button>
-                    <button class="filter-chip <?php echo ($default_rooms === '2') ? 'active' : ''; ?>" data-value="2">2</button>
-                    <button class="filter-chip <?php echo ($default_rooms === '3') ? 'active' : ''; ?>" data-value="3">3</button>
-                    <button class="filter-chip <?php echo ($default_rooms === '4') ? 'active' : ''; ?>" data-value="4">4+</button>
-                </div>
-            </div>
-            
             <div class="filter-selects-wrapper">
                 <div class="filter-group filter-group-local-type">
                     <label class="filter-label">Typ lokalu:</label>
@@ -286,35 +272,19 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </div>
                 <?php endif; ?>
 
-                <?php if (empty($hide_price_filter)): ?>
-                <div class="filter-group filter-group-price filter-mobile-hidden">
-                    <label class="filter-label">Cena za lokal:</label>
-                    <div class="filter-range">
+                <div class="filter-group filter-mobile-hidden">
+                    <label class="filter-label">Ilość pokoi:</label>
+                    <div class="filter-chips" id="roomsFilter">
                         <?php
-                        $price_steps = array(
-                            5000, 10000, 50000, 100000, 150000, 200000, 250000,
-                            300000, 350000, 400000, 450000, 500000, 600000, 700000,
-                            750000, 800000, 900000, 1000000, 1500000, 2000000, 3000000, 4000000
-                        );
-                        $default_price_min = !empty($atts['min_price_gross']) ? $atts['min_price_gross'] : '';
-                        $default_price_max = !empty($atts['max_price_gross']) ? $atts['max_price_gross'] : '';
+                        $default_rooms = !empty($atts['rooms']) ? $atts['rooms'] : 'all';
                         ?>
-                        <select class="filter-select" id="priceMin">
-                            <option value=""<?php echo $default_price_min === '' ? ' selected' : ''; ?>>od</option>
-                            <?php foreach ($price_steps as $step): ?>
-                            <option value="<?php echo $step; ?>"<?php echo ($default_price_min == $step) ? ' selected' : ''; ?>><?php echo number_format($step, 0, ',', ' '); ?> zł</option>
-                            <?php endforeach; ?>
-                        </select>
-                        <span class="filter-separator">-</span>
-                        <select class="filter-select" id="priceMax">
-                            <option value=""<?php echo $default_price_max === '' ? ' selected' : ''; ?>>do</option>
-                            <?php foreach ($price_steps as $step): ?>
-                            <option value="<?php echo $step; ?>"<?php echo ($default_price_max == $step) ? ' selected' : ''; ?>><?php echo number_format($step, 0, ',', ' '); ?> zł</option>
-                            <?php endforeach; ?>
-                        </select>
+                        <button class="filter-chip <?php echo ($default_rooms === 'all') ? 'active' : ''; ?>" data-value="all">Wszystkie</button>
+                        <button class="filter-chip <?php echo ($default_rooms === '1') ? 'active' : ''; ?>" data-value="1">1</button>
+                        <button class="filter-chip <?php echo ($default_rooms === '2') ? 'active' : ''; ?>" data-value="2">2</button>
+                        <button class="filter-chip <?php echo ($default_rooms === '3') ? 'active' : ''; ?>" data-value="3">3</button>
+                        <button class="filter-chip <?php echo ($default_rooms === '4') ? 'active' : ''; ?>" data-value="4">4+</button>
                     </div>
                 </div>
-                <?php endif; ?>
 
                 <div class="filter-group filter-group-area filter-mobile-hidden">
                     <label class="filter-label">Metraż (m²):</label>
@@ -352,6 +322,36 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         </select>
                     </div>
                 </div>
+
+                <?php if (empty($hide_price_filter)): ?>
+                <div class="filter-group filter-group-price filter-mobile-hidden">
+                    <label class="filter-label">Cena za lokal:</label>
+                    <div class="filter-range">
+                        <?php
+                        $price_steps = array(
+                            5000, 10000, 50000, 100000, 150000, 200000, 250000,
+                            300000, 350000, 400000, 450000, 500000, 600000, 700000,
+                            750000, 800000, 900000, 1000000, 1500000, 2000000, 3000000, 4000000
+                        );
+                        $default_price_min = !empty($atts['min_price_gross']) ? $atts['min_price_gross'] : '';
+                        $default_price_max = !empty($atts['max_price_gross']) ? $atts['max_price_gross'] : '';
+                        ?>
+                        <select class="filter-select" id="priceMin">
+                            <option value=""<?php echo $default_price_min === '' ? ' selected' : ''; ?>>od</option>
+                            <?php foreach ($price_steps as $step): ?>
+                            <option value="<?php echo $step; ?>"<?php echo ($default_price_min == $step) ? ' selected' : ''; ?>><?php echo number_format($step, 0, ',', ' '); ?> zł</option>
+                            <?php endforeach; ?>
+                        </select>
+                        <span class="filter-separator">-</span>
+                        <select class="filter-select" id="priceMax">
+                            <option value=""<?php echo $default_price_max === '' ? ' selected' : ''; ?>>do</option>
+                            <?php foreach ($price_steps as $step): ?>
+                            <option value="<?php echo $step; ?>"<?php echo ($default_price_max == $step) ? ' selected' : ''; ?>><?php echo number_format($step, 0, ',', ' '); ?> zł</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -454,9 +454,17 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </svg>
                 Wszystkie
             </button>
-            <button class="favorites-toggle-btn" data-toggle-view="favorites">
+            <button class="favorites-toggle-btn" data-toggle-view="watched">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                Obserwowane
+            </button>
+            <span class="watched-count" id="watchedCount">0 obserwowanych</span>
+            <button class="favorites-toggle-btn" data-toggle-view="favorites">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                 </svg>
                 Konfigurator zakupu
             </button>
@@ -471,64 +479,6 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             <?php endif; ?>
         </div>
         
-        <div class="sort-bar-right">
-            <span class="sort-label">Sortuj po:</span>
-            <span class="sort-option floor-sort-option active" data-sort="data-floor" data-direction="asc">
-                Piętro
-                <span class="sort-arrow">
-                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
-                        <path d="M6 0L0 8h12L6 0z"/>
-                    </svg>
-                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor">
-                        <path d="M6 8L0 0h12L6 8z"/>
-                    </svg>
-                </span>
-            </span>
-            <span class="sort-option" data-sort="data-area" data-direction="asc">
-                Metraż
-                <span class="sort-arrow">
-                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
-                        <path d="M6 0L0 8h12L6 0z"/>
-                    </svg>
-                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor">
-                        <path d="M6 8L0 0h12L6 8z"/>
-                    </svg>
-                </span>
-            </span>
-            <span class="sort-option" data-sort="data-rooms" data-direction="asc">
-                Pokoje
-                <span class="sort-arrow">
-                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
-                        <path d="M6 0L0 8h12L6 0z"/>
-                    </svg>
-                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor">
-                        <path d="M6 8L0 0h12L6 8z"/>
-                    </svg>
-                </span>
-            </span>
-            <span class="sort-option" data-sort="data-price" data-direction="asc">
-                Cena
-                <span class="sort-arrow">
-                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
-                        <path d="M6 0L0 8h12L6 0z"/>
-                    </svg>
-                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor">
-                        <path d="M6 8L0 0h12L6 8z"/>
-                    </svg>
-                </span>
-            </span>
-            <span class="sort-option" data-sort="data-price-m2" data-direction="asc">
-                Cena m²
-                <span class="sort-arrow">
-                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor">
-                        <path d="M6 0L0 8h12L6 0z"/>
-                    </svg>
-                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor">
-                        <path d="M6 8L0 0h12L6 8z"/>
-                    </svg>
-                </span>
-            </span>
-        </div>
         
         <div class="favorites-share-container" id="favoritesShareContainer" style="display: none;">
             <span class="share-label">Udostępnij listę na:</span>
@@ -552,15 +502,116 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
     </div>
     <?php endif; ?>
 
+    <div class="apartment-list-mobile-header">
+        <div class="mh-nr">
+            <span class="header-sort" data-sort="data-number">
+                Nr
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
+                </span>
+            </span>
+        </div>
+        <div class="mh-area">
+            <span class="header-sort" data-sort="data-area">
+                Pow.
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
+                </span>
+            </span>
+        </div>
+        <div class="mh-price">
+            <span class="header-sort" data-sort="data-price">
+                Cena
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
+                </span>
+            </span>
+        </div>
+        <div class="mh-actions"></div>
+    </div>
+
+    <div class="apartment-list-header">
+        <div class="header-cell header-nr">
+            <span class="header-sort" data-sort="data-number">
+                Nr
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
+                </span>
+            </span>
+        </div>
+        <div class="header-cell header-floor">
+            <span class="header-sort" data-sort="data-floor">
+                Piętro
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
+                </span>
+            </span>
+        </div>
+        <div class="header-cell header-area">
+            <span class="header-sort" data-sort="data-area">
+                Powierzchnia
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
+                </span>
+            </span>
+        </div>
+        <div class="header-cell header-local-type">Typ</div>
+        <div class="header-cell header-rooms">
+            <span class="header-sort" data-sort="data-rooms">
+                Pokoje
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
+                </span>
+            </span>
+        </div>
+        <div class="header-cell header-price-m2">
+            <span class="header-sort" data-sort="data-price-m2">
+                Cena m²
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
+                </span>
+            </span>
+        </div>
+        <div class="header-cell header-status">Status</div>
+        <div class="header-cell header-price">
+            <span class="header-sort" data-sort="data-price">
+                Cena
+                <span class="sort-arrow">
+                    <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
+                    <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
+                </span>
+            </span>
+        </div>
+        <div class="header-cell header-actions"></div>
+    </div>
+
     <div class="apartment-list">
-        <div class="no-favorites-placeholder" style="display: none;">
+        <div class="no-watched-placeholder" style="display: none;">
             <div class="placeholder-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
             </div>
+            <h3>Brak obserwowanych ofert</h3>
+            <p>Kliknij ikonę gwiazdki przy wybranym mieszkaniu, aby dodać je do obserwowanych</p>
+        </div>
+        <div class="no-favorites-placeholder" style="display: none;">
+            <div class="placeholder-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                </svg>
+            </div>
             <h3>Brak wybranych ofert</h3>
-            <p>Kliknij ikonę gwiazdki przy wybranym mieszkaniu, aby dodać je do konfiguratora zakupu</p>
+            <p>Kliknij ikonę koszyka przy wybranym mieszkaniu, aby dodać je do konfiguratora zakupu</p>
         </div>
         <?php if (empty($locals)): ?>
             <div class="no-results">
@@ -844,7 +895,8 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 
             ?>
             
-            <div class="apartment-item" 
+            <div class="apartment-item"
+                 data-number="<?php echo esc_attr($local['number']); ?>"
                  data-rooms="<?php echo esc_attr($rooms_padded); ?>"
                  data-floor="<?php echo esc_attr($floor_padded); ?>"
                  data-price="<?php echo esc_attr($price_padded); ?>"
@@ -862,73 +914,52 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 <div class="apartment-info">
                     <div class="building-name"><?php echo esc_html($local['building']); ?></div>
                     <div class="apartment-number"><?php echo esc_html($local['number']); ?></div>
-                    <div class="status-badge <?php 
+                </div>
+
+                <div class="apartment-floor">
+                    <span class="cell-value"><?php echo esc_html($floor_display); ?></span>
+                </div>
+
+                <div class="apartment-area">
+                    <span class="cell-value"><?php echo number_format($local['area'], 2, ',', ' '); ?> m²</span>
+                </div>
+
+                <div class="apartment-local-type">
+                    <span class="cell-value"><?php echo esc_html(isset($local['localType']) ? $local['localType'] : ''); ?></span>
+                </div>
+
+                <div class="apartment-rooms">
+                    <span class="cell-value"><?php echo absint($local['rooms']); ?></span>
+                </div>
+
+
+                <div class="apartment-price-m2">
+                    <span class="price-m2-value"><?php echo number_format($price_m2, 2, ',', ' '); ?> zł/m²</span>
+                </div>
+
+                <div class="apartment-status">
+                    <span class="status-badge <?php
                         if ($status_class === 'reserved') {
                             echo 'reserved';
                         } elseif ($status_class === 'sold') {
                             echo 'sold';
                         }
                     ?>">
-                        <?php 
+                        <?php
                         if ($status_class === 'available') {
                             echo 'Dostępne';
                         } else {
                             echo esc_html($display_status);
                         }
                         ?>
-                    </div>
+                    </span>
                 </div>
-
-                <div class="apartment-details">
-                    <?php if (!empty($klatka)): ?>
-                    <div class="detail-row">
-                        <span class="detail-label">Klatka</span>
-                        <span class="detail-value"><?php echo esc_html($klatka); ?></span>
-                    </div>
-                    <?php endif; ?>
-                    <div class="detail-row">
-                        <span class="detail-label">Kondygnacja</span>
-                        <span class="detail-value"><?php echo esc_html($floor_display); ?></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Powierzchnia</span>
-                        <span class="detail-value"><?php echo number_format($local['area'], 2, ',', ' '); ?> m²</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Ilość pokoi</span>
-                        <span class="detail-value"><?php echo absint($local['rooms']); ?></span>
-                    </div>
-                    <?php if (!empty($tags) && $show_features): ?>
-                    <div class="features"><?php echo esc_html(implode(', ', $tags)); ?></div>
-                    <?php endif; ?>
-                </div>
-
-                <?php if ($show_apartment_images): ?>
-                <div class="apartment-images">
-                    <div class="apartment-image">
-                        <?php if ($image1_thumb): ?>
-                            <img src="<?php echo esc_url($image1_thumb); ?>" alt="<?php echo esc_attr($local['number']); ?>">
-                        <?php else: ?>
-                            <div class="no-image-placeholder">Brak zdjęcia</div>
-                        <?php endif; ?>
-                    </div>
-                    <div class="apartment-image">
-                        <?php if ($image2_thumb): ?>
-                            <img src="<?php echo esc_url($image2_thumb); ?>" alt="<?php echo esc_attr($local['number']); ?> - Plan">
-                        <?php else: ?>
-                            <div class="no-image-placeholder">Brak planu</div>
-                        <?php endif; ?>
-                    </div>
-                </div>
-                <?php endif; ?>
 
                 <div class="apartment-price">
-                    <div class="price-label">Cena</div>
                     <?php if ($has_package_promo && $old_price): ?>
                         <div class="price-old"><?php echo number_format($old_price, 0, ',', ' '); ?> zł</div>
                     <?php endif; ?>
                     <div class="price-main"><?php echo number_format($display_price, 0, ',', ' '); ?> zł</div>
-                    <div class="price-sqm">(<?php echo number_format($price_m2, 2, ',', ' '); ?> zł/m²)</div>
                     <?php if ($show_omnibus_price && $has_package_promo && !empty($local['omnibusPriceGross']) && $local['omnibusPriceGross'] > 0): ?>
                         <div class="price-omnibus-label">Najniższa cena z ostatnich 30 dni</div>
                         <div class="price-omnibus-value"><?php echo number_format($local['omnibusPriceGross'], 0, ',', ' '); ?> zł</div>
@@ -980,9 +1011,15 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     </button>
                     <?php endif; ?>
                     <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
-                    <button class="icon-btn gtm-favorite-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>" title="Dodaj do konfiguratora zakupu">
+                    <button class="icon-btn gtm-watched-btn" data-action="watched" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Obserwuj', 'develogic'); ?>" title="Dodaj do obserwowanych">
                         <svg viewBox="0 0 24 24">
                             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn gtm-favorite-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do konfiguratora zakupu', 'develogic'); ?>" title="Dodaj do konfiguratora zakupu">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                         </svg>
                     </button>
                     <?php endif; ?>
@@ -990,6 +1027,49 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
 
                 <!-- Mobile expandable section with floor plan and detail button -->
                 <div class="apartment-mobile-expand">
+                    <div class="mobile-expand-details">
+                        <div class="mobile-detail-item">
+                            <span class="mobile-detail-label">Powierzchnia</span>
+                            <span class="mobile-detail-value"><?php echo number_format($local['area'], 2, ',', ' '); ?> m²</span>
+                        </div>
+                        <div class="mobile-detail-item">
+                            <span class="mobile-detail-label">Piętro</span>
+                            <span class="mobile-detail-value"><?php echo esc_html($floor_display); ?></span>
+                        </div>
+                        <div class="mobile-detail-item">
+                            <span class="mobile-detail-label">Pokoje</span>
+                            <span class="mobile-detail-value"><?php echo absint($local['rooms']); ?></span>
+                        </div>
+                        <div class="mobile-detail-item">
+                            <span class="mobile-detail-label">Cena mieszkania</span>
+                            <span class="mobile-detail-value"><?php echo number_format($display_price, 0, ',', ' '); ?> zł</span>
+                        </div>
+                        <div class="mobile-detail-item">
+                            <span class="mobile-detail-label">Status</span>
+                            <span class="mobile-detail-value"><?php
+                                if ($status_class === 'available') {
+                                    echo 'Dostępne';
+                                } else {
+                                    echo esc_html($display_status);
+                                }
+                            ?></span>
+                        </div>
+                    </div>
+                    <?php if ($status_class === 'available' && ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true)): ?>
+                    <button class="mobile-watched-btn" data-action="watched" data-local-id="<?php echo esc_attr($local['localId']); ?>" onclick="event.stopPropagation();">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                        <span class="mobile-watched-btn-text">Dodaj do obserwowanych</span>
+                    </button>
+                    <button class="mobile-configurator-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" onclick="event.stopPropagation();">
+                        <svg viewBox="0 0 24 24" width="18" height="18">
+                            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        </svg>
+                        <span class="mobile-configurator-btn-text">Dodaj do konfiguratora zakupu</span>
+                    </button>
+                    <?php endif; ?>
                     <?php if ($image1_thumb): ?>
                     <div class="mobile-expand-image">
                         <img src="<?php echo esc_url($image1_url ? $image1_url : $image1_thumb); ?>" alt="<?php echo esc_attr($local['number']); ?> - Rzut lokalu" loading="lazy">
@@ -1049,11 +1129,12 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             <p>Twój konfigurator zakupu jest pusty. Zacznij od wybrania wymarzonego mieszkania z naszej oferty.</p>
             <div class="wizard-hint">
                 <span class="wizard-hint-icon">
-                    <svg viewBox="0 0 24 24" fill="#333" stroke="none">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                     </svg>
                 </span>
-                <span>Naciśnij ikonę gwiazdki przy wybranym lokalu, aby dodać go do konfiguratora</span>
+                <span>Naciśnij ikonę koszyka przy wybranym lokalu, aby dodać go do konfiguratora</span>
             </div>
             <button class="wizard-btn wizard-btn-primary" data-wizard-action="find-apartment">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1170,9 +1251,15 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </button>
                 <?php endif; ?>
                 <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
-                <button class="icon-btn" data-action="favorite-modal" aria-label="<?php esc_attr_e('Dodaj do ulubionych', 'develogic'); ?>">
+                <button class="icon-btn" data-action="watched-modal" aria-label="<?php esc_attr_e('Obserwuj', 'develogic'); ?>" title="Dodaj do obserwowanych">
                     <svg viewBox="0 0 24 24">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" data-action="favorite-modal" aria-label="<?php esc_attr_e('Dodaj do konfiguratora zakupu', 'develogic'); ?>" title="Dodaj do konfiguratora zakupu">
+                    <svg viewBox="0 0 24 24">
+                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                     </svg>
                 </button>
                 <?php endif; ?>
