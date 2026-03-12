@@ -1283,7 +1283,7 @@
             if (modalData) {
                 try {
                     const data = JSON.parse(modalData);
-                    if (data.localId === localId) {
+                    if (String(data.localId) === String(localId)) {
                         item.classList.toggle('is-favorite', isAdding);
                     }
                 } catch (e) {
@@ -1310,12 +1310,12 @@
     }
     
     function getFavorites() {
-        const favorites = localStorage.getItem('develogic_favorites');
+        const favorites = localStorage.getItem('develogic_fav_v2');
         return favorites ? JSON.parse(favorites) : [];
     }
     
     function saveFavorites(favorites) {
-        localStorage.setItem('develogic_favorites', JSON.stringify(favorites));
+        localStorage.setItem('develogic_fav_v2', JSON.stringify(favorites));
         document.dispatchEvent(new CustomEvent('develogic:favorites_changed'));
     }
     
@@ -1339,7 +1339,7 @@
                 if (modalData) {
                     try {
                         const data = JSON.parse(modalData);
-                        if (data.localId === localId) {
+                        if (String(data.localId) === String(localId)) {
                             item.classList.add('is-favorite');
                         }
                     } catch (e) {
@@ -1419,7 +1419,7 @@
             if (modalData) {
                 try {
                     const data = JSON.parse(modalData);
-                    if (data.localId === localId) {
+                    if (String(data.localId) === String(localId)) {
                         item.classList.toggle('is-watched', isAdding);
                     }
                 } catch (e) {}
@@ -1442,12 +1442,12 @@
     }
 
     function getWatched() {
-        const watched = localStorage.getItem('develogic_watched');
+        const watched = localStorage.getItem('develogic_watch_v2');
         return watched ? JSON.parse(watched) : [];
     }
 
     function saveWatched(watched) {
-        localStorage.setItem('develogic_watched', JSON.stringify(watched));
+        localStorage.setItem('develogic_watch_v2', JSON.stringify(watched));
         document.dispatchEvent(new CustomEvent('develogic:watched_changed'));
     }
 
@@ -1474,7 +1474,7 @@
                 if (modalData) {
                     try {
                         const data = JSON.parse(modalData);
-                        if (data.localId === localId) {
+                        if (String(data.localId) === String(localId)) {
                             item.classList.add('is-watched');
                         }
                     } catch (e) {}

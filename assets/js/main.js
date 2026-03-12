@@ -8,7 +8,7 @@
     
     // Favorites management (localStorage)
     var Favorites = {
-        key: 'develogic_favorites',
+        key: 'develogic_fav_v2',
         
         get: function() {
             var favorites = localStorage.getItem(this.key);
