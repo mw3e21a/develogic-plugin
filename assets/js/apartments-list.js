@@ -114,13 +114,12 @@
     }
     
     // ===========================
-    // Sticky Offset for sorting bar
+    // Sticky: fix overflow:hidden on ancestors (breaks position:sticky)
+    // Must be module-level so modal close handlers can call it
     // ===========================
-    // Fix: ensure no ancestor of the sticky element has overflow:hidden which breaks position:sticky
     function fixStickyAncestors() {
-        var stickyEls = document.querySelectorAll('.apartment-list-header, .apartment-list-mobile-header');
-        stickyEls.forEach(function(stickyEl) {
-            var parent = stickyEl.parentElement;
+        document.querySelectorAll('.apartment-list-header, .apartment-list-mobile-header').forEach(function(el) {
+            var parent = el.parentElement;
             while (parent && parent !== document.documentElement) {
                 var style = window.getComputedStyle(parent);
                 if (style.overflow === 'hidden' || style.overflowY === 'hidden') {
@@ -131,42 +130,56 @@
         });
     }
 
+    // ===========================
+    // Sticky Offset for sorting bar
+    // ===========================
     function setupStickyOffset() {
-        function updateStickyTop() {
-            // Find all fixed/sticky elements at the top of the page
-            var offset = 0;
-            // Broad selector covering WP admin bar, Elementor headers (is-fixed, is-stuck, elementor-sticky),
-            // and common theme header patterns
-            var candidates = document.querySelectorAll('#wpadminbar, .elementor-sticky, .elementor-sticky--active, .is-fixed, .is-stuck, [data-elementor-type="header"], header[class*="sticky"], header[class*="fixed"], .site-header, #masthead, .header-main, nav.navbar');
-            candidates.forEach(function(el) {
-                var style = window.getComputedStyle(el);
-                var pos = style.position;
-                if (pos === 'sticky' || pos === 'fixed') {
-                    var rect = el.getBoundingClientRect();
-                    // Only count elements that are at or near the top of the viewport
-                    if (rect.top < 10 && rect.height > 0) {
-                        var bottom = rect.top + rect.height;
-                        if (bottom > offset) {
-                            offset = bottom;
-                        }
+        function getStickyHeaderHeight() {
+            var height = 0;
+
+            // WP admin bar
+            var adminBar = document.getElementById('wpadminbar');
+            if (adminBar) {
+                height += adminBar.offsetHeight;
+            }
+
+            // Site header: pick whichever is visible (desktop hidden on mobile and vice versa)
+            var headerDesktop = document.querySelector('.header-desktop');
+            var headerMobile = document.querySelector('.header-mobile');
+            var siteHeader = (headerDesktop && headerDesktop.offsetHeight > 0) ? headerDesktop
+                           : (headerMobile && headerMobile.offsetHeight > 0) ? headerMobile
+                           : null;
+            if (siteHeader) {
+                height += siteHeader.offsetHeight;
+            } else {
+                // Fallback: scan for sticky/fixed elements near top
+                var candidates = document.querySelectorAll(
+                    '.is-fixed, .is-stuck, [data-elementor-type="header"], .site-header, #masthead'
+                );
+                var maxBottom = 0;
+                candidates.forEach(function(el) {
+                    if (el.offsetHeight > 0) {
+                        maxBottom = Math.max(maxBottom, el.offsetTop + el.offsetHeight);
                     }
-                }
-            });
-            var stickyTop = offset > 0 ? Math.round(offset) + 'px' : '0px';
-            document.documentElement.style.setProperty('--develogic-sticky-top', stickyTop);
+                });
+                height = Math.max(height, maxBottom);
+            }
+
+            return height;
+        }
+
+        function updateStickyTop() {
+            var h = getStickyHeaderHeight();
+            document.documentElement.style.setProperty('--develogic-sticky-top', h + 'px');
         }
 
         updateStickyTop();
         fixStickyAncestors();
         window.addEventListener('resize', updateStickyTop);
-        // Periodically recheck in case header height changes (announcement bars, etc.)
-        setInterval(updateStickyTop, 2000);
-        // Re-check after page fully loads (fonts, images may shift header height)
         window.addEventListener('load', function() {
             updateStickyTop();
             fixStickyAncestors();
         });
-
     }
 
     // ===========================
@@ -3090,6 +3103,11 @@
             targetStep.style.display = 'flex';
         }
 
+        // Update step 2 buttons based on what's already in favorites
+        if (stepNumber === 2) {
+            updateWizardStep2();
+        }
+
         // Update cart buttons visibility
         updateWizardCartButtons();
 
@@ -3142,6 +3160,52 @@
     }
 
     /**
+     * Returns an object describing which local types are present in favorites.
+     */
+    function getFavoriteTypes() {
+        var favorites = getFavorites();
+        var result = { hasApartment: false, hasGarage: false, hasStorage: false };
+        favorites.forEach(function(localId) {
+            var item = document.querySelector('.apartment-item[data-local-id="' + localId + '"]');
+            if (!item) return;
+            var localType = item.getAttribute('data-local-type') || '';
+            if (localType === 'Lokal mieszkalny') result.hasApartment = true;
+            else if (localType === 'Garaż') result.hasGarage = true;
+            else if (localType === 'Komórka lokatorska' || localType === 'Pomieszczenie gospodarcze') result.hasStorage = true;
+        });
+        return result;
+    }
+
+    /**
+     * Updates step 2 content based on what's already in favorites.
+     * Shows only the buttons for types that are still missing.
+     */
+    function updateWizardStep2() {
+        var wizardModal = document.getElementById('wizardModal');
+        if (!wizardModal) return;
+        var step2 = wizardModal.querySelector('[data-wizard-step="2"]');
+        if (!step2) return;
+
+        var types = getFavoriteTypes();
+        var garageBtn = step2.querySelector('[data-wizard-action="find-garage"]');
+        var storageBtn = step2.querySelector('[data-wizard-action="find-storage"]');
+        var description = step2.querySelector('p');
+
+        if (garageBtn) garageBtn.style.display = types.hasGarage ? 'none' : 'inline-flex';
+        if (storageBtn) storageBtn.style.display = types.hasStorage ? 'none' : 'inline-flex';
+
+        if (description) {
+            if (!types.hasGarage && !types.hasStorage) {
+                description.textContent = 'Świetny wybór! Teraz uzupełnij swoją ofertę o garaż, komórkę lokatorską lub pomieszczenie gospodarcze.';
+            } else if (!types.hasGarage) {
+                description.textContent = 'Świetny wybór! Teraz uzupełnij swoją ofertę o garaż.';
+            } else if (!types.hasStorage) {
+                description.textContent = 'Świetny wybór! Teraz uzupełnij swoją ofertę o komórkę lokatorską lub pomieszczenie gospodarcze.';
+            }
+        }
+    }
+
+    /**
      * Called when user clicks on "Konfigurator oferty" tab.
      * If empty, show wizard step 1 instead of empty list.
      * Returns true if wizard was shown (to prevent normal toggle behavior).
@@ -3160,7 +3224,7 @@
      */
     function handleWizardAfterFavoriteAdd() {
         if (wizardState === 'finding_apartment') {
-            // User just added their first apartment - show step 2
+            // User just added their first apartment - check what else is needed
             setTimeout(function() {
                 switchToFavoritesView();
                 setTimeout(function() {
@@ -3171,11 +3235,19 @@
         }
 
         if (wizardState === 'finding_storage') {
-            // User just added a storage/garage - show step 3
+            // User just added a storage/garage - check if anything else is missing
+            var types = getFavoriteTypes();
+            var needsMore = !types.hasGarage || !types.hasStorage;
             setTimeout(function() {
                 switchToFavoritesView();
                 setTimeout(function() {
-                    showWizardStep(3);
+                    if (needsMore) {
+                        // Still missing something - show updated step 2
+                        showWizardStep(2);
+                    } else {
+                        // Everything added - show step 3
+                        showWizardStep(3);
+                    }
                 }, 400);
             }, 600);
             return;

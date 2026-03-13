@@ -798,8 +798,9 @@
 }
 
 .icon-btn.favorited svg {
-    fill: #333;
-    stroke: none;
+    stroke: #333;
+    stroke-width: 2.5;
+    fill: none;
 }
 
 .icon-btn.watched svg {
@@ -932,8 +933,9 @@
 
 .mobile-configurator-btn svg {
     flex-shrink: 0;
-    fill: white;
-    stroke: none;
+    fill: none;
+    stroke: white;
+    stroke-width: 2;
 }
 
 .mobile-configurator-btn.is-favorite {
@@ -1883,8 +1885,9 @@
 }
 
 .apartment-detail-modal .icon-btn.favorited svg {
-    fill: #333;
-    stroke: none;
+    stroke: #333;
+    stroke-width: 2.5;
+    fill: none;
 }
 
 .apartment-detail-modal .icon-btn.watched svg {
