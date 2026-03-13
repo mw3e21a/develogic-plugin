@@ -463,10 +463,9 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             <span class="watched-count" id="watchedCount">0 obserwowanych</span>
             <button class="favorites-toggle-btn" data-toggle-view="favorites">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
                 </svg>
-                Konfigurator zakupu
+                Konfigurator oferty
             </button>
             <span class="favorites-count" id="favoritesCount">0 wybranych</span>
             <?php if ($show_quote_btn): ?>
@@ -536,16 +535,17 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
     <div class="apartment-list-header">
         <div class="header-cell header-nr">
             <span class="header-sort" data-sort="data-number">
-                Nr
+                Nr lokalu
                 <span class="sort-arrow">
                     <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
                     <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
                 </span>
             </span>
         </div>
+        <div class="header-cell header-status">Dostępność</div>
         <div class="header-cell header-floor">
             <span class="header-sort" data-sort="data-floor">
-                Piętro
+                Kondygnacja
                 <span class="sort-arrow">
                     <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
                     <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
@@ -561,10 +561,9 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </span>
             </span>
         </div>
-        <div class="header-cell header-local-type">Typ</div>
         <div class="header-cell header-rooms">
             <span class="header-sort" data-sort="data-rooms">
-                Pokoje
+                Licz. pokoi
                 <span class="sort-arrow">
                     <svg class="arrow-up" viewBox="0 0 12 8" fill="currentColor"><path d="M6 0L0 8h12L6 0z"/></svg>
                     <svg class="arrow-down" viewBox="0 0 12 8" fill="currentColor"><path d="M6 8L0 0h12L6 8z"/></svg>
@@ -580,7 +579,6 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </span>
             </span>
         </div>
-        <div class="header-cell header-status">Status</div>
         <div class="header-cell header-price">
             <span class="header-sort" data-sort="data-price">
                 Cena
@@ -590,7 +588,15 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </span>
             </span>
         </div>
-        <div class="header-cell header-actions"></div>
+        <div class="header-cell header-configurator" style="grid-column: span 3;">
+            <button class="header-configurator-btn favorites-toggle-btn" data-toggle-view="favorites">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                    <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
+                </svg>
+                Konfigurator oferty
+                <span class="header-configurator-count" id="headerConfiguratorCount"></span>
+            </button>
+        </div>
     </div>
 
     <div class="apartment-list">
@@ -606,12 +612,11 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
         <div class="no-favorites-placeholder" style="display: none;">
             <div class="placeholder-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
                 </svg>
             </div>
             <h3>Brak wybranych ofert</h3>
-            <p>Kliknij ikonę koszyka przy wybranym mieszkaniu, aby dodać je do konfiguratora zakupu</p>
+            <p>Kliknij ikonę koszyka przy wybranym mieszkaniu, aby dodać je do konfiguratora oferty</p>
         </div>
         <?php if (empty($locals)): ?>
             <div class="no-results">
@@ -916,27 +921,6 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     <div class="apartment-number"><?php echo esc_html($local['number']); ?></div>
                 </div>
 
-                <div class="apartment-floor">
-                    <span class="cell-value"><?php echo esc_html($floor_display); ?></span>
-                </div>
-
-                <div class="apartment-area">
-                    <span class="cell-value"><?php echo number_format($local['area'], 2, ',', ' '); ?> m²</span>
-                </div>
-
-                <div class="apartment-local-type">
-                    <span class="cell-value"><?php echo esc_html(isset($local['localType']) ? $local['localType'] : ''); ?></span>
-                </div>
-
-                <div class="apartment-rooms">
-                    <span class="cell-value"><?php echo absint($local['rooms']); ?></span>
-                </div>
-
-
-                <div class="apartment-price-m2">
-                    <span class="price-m2-value"><?php echo number_format($price_m2, 2, ',', ' '); ?> zł/m²</span>
-                </div>
-
                 <div class="apartment-status">
                     <span class="status-badge <?php
                         if ($status_class === 'reserved') {
@@ -955,32 +939,37 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     </span>
                 </div>
 
+                <div class="apartment-floor">
+                    <span class="cell-value"><?php echo esc_html($floor_display); ?></span>
+                </div>
+
+                <div class="apartment-area">
+                    <span class="cell-value"><?php echo number_format($local['area'], 2, ',', ' '); ?> m²</span>
+                </div>
+
+                <div class="apartment-rooms">
+                    <span class="cell-value"><?php echo absint($local['rooms']); ?></span>
+                </div>
+
+                <div class="apartment-price-m2">
+                    <span class="price-m2-value"><?php echo number_format($price_m2, 2, ',', ' '); ?> zł/m²</span>
+                </div>
+
                 <div class="apartment-price">
                     <?php if ($has_package_promo && $old_price): ?>
                         <div class="price-old"><?php echo number_format($old_price, 0, ',', ' '); ?> zł</div>
                     <?php endif; ?>
                     <div class="price-main"><?php echo number_format($display_price, 0, ',', ' '); ?> zł</div>
+                    <?php if ($has_package_promo): ?>
+                        <div class="promo-badge">Promocja</div>
+                    <?php endif; ?>
                     <?php if ($show_omnibus_price && $has_package_promo && !empty($local['omnibusPriceGross']) && $local['omnibusPriceGross'] > 0): ?>
                         <div class="price-omnibus-label">Najniższa cena z ostatnich 30 dni</div>
                         <div class="price-omnibus-value"><?php echo number_format($local['omnibusPriceGross'], 0, ',', ' '); ?> zł</div>
                     <?php endif; ?>
-                    <?php if ($has_package_promo): ?>
-                        <div class="promo-badge">Promocja</div>
-                    <?php endif; ?>
                 </div>
 
-                <div class="apartment-actions">
-                    <!-- Mobile expand toggle -->
-                    <button class="icon-btn mobile-expand-toggle mobile-only" data-action="expand" aria-label="<?php esc_attr_e('Pokaż szczegóły', 'develogic'); ?>" title="Pokaż szczegóły" onclick="event.stopPropagation();">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="6 9 12 15 18 9"/>
-                        </svg>
-                    </button>
-                    <?php if ($show_360 && !empty($tour_3d_url)): ?>
-                    <a href="<?php echo esc_url($tour_3d_url); ?>" class="icon-btn icon-btn-3d icon-btn-360" target="_blank" rel="noopener noreferrer" aria-label="<?php esc_attr_e('Zobacz spacer 3D 360°', 'develogic'); ?>" title="Zobacz spacer 3D 360° (otwiera w nowej karcie)" onclick="event.stopPropagation();">
-                        <span class="text-360">360°</span>
-                    </a>
-                    <?php endif; ?>
+                <div class="apartment-pdf">
                     <?php if (!empty($pdf_link)): ?>
                     <a href="<?php echo esc_url($pdf_link); ?>" class="icon-btn icon-btn-pdf" target="_blank" rel="noopener noreferrer" aria-label="<?php esc_attr_e('Pobierz kartę lokalu', 'develogic'); ?>" title="Pobierz kartę lokalu (otwiera PDF w nowej karcie)" onclick="event.stopPropagation();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -992,11 +981,45 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         </svg>
                     </a>
                     <?php endif; ?>
+                </div>
+
+                <div class="apartment-watched">
+                    <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
+                    <button class="icon-btn gtm-watched-btn" data-action="watched" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Obserwuj', 'develogic'); ?>" title="Dodaj do obserwowanych">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                        </svg>
+                    </button>
+                    <?php endif; ?>
+                </div>
+
+                <div class="apartment-favorite">
+                    <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
+                    <button class="icon-btn gtm-favorite-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do konfiguratora oferty', 'develogic'); ?>" title="Dodaj do konfiguratora oferty">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
+                        </svg>
+                    </button>
+                    <?php endif; ?>
+                </div>
+
+                <div class="apartment-actions mobile-only">
+                    <!-- Mobile expand toggle -->
+                    <button class="icon-btn mobile-expand-toggle" data-action="expand" aria-label="<?php esc_attr_e('Pokaż szczegóły', 'develogic'); ?>" title="Pokaż szczegóły" onclick="event.stopPropagation();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                    <?php if ($show_360 && !empty($tour_3d_url)): ?>
+                    <a href="<?php echo esc_url($tour_3d_url); ?>" class="icon-btn icon-btn-3d icon-btn-360" target="_blank" rel="noopener noreferrer" aria-label="<?php esc_attr_e('Zobacz spacer 3D 360°', 'develogic'); ?>" title="Zobacz spacer 3D 360° (otwiera w nowej karcie)" onclick="event.stopPropagation();">
+                        <span class="text-360">360°</span>
+                    </a>
+                    <?php endif; ?>
                     <?php
                     $contact_phone = develogic()->get_setting('contact_phone', '');
                     if (!empty($contact_phone)):
                     ?>
-                    <a href="tel:<?php echo esc_attr(preg_replace('/[^\d\+]/', '', $contact_phone)); ?>" class="icon-btn icon-btn-phone mobile-only" aria-label="<?php esc_attr_e('Zadzwoń', 'develogic'); ?>" title="<?php echo esc_attr(sprintf(__('Zadzwoń: %s', 'develogic'), $contact_phone)); ?>" onclick="event.stopPropagation();">
+                    <a href="tel:<?php echo esc_attr(preg_replace('/[^\d\+]/', '', $contact_phone)); ?>" class="icon-btn icon-btn-phone" aria-label="<?php esc_attr_e('Zadzwoń', 'develogic'); ?>" title="<?php echo esc_attr(sprintf(__('Zadzwoń: %s', 'develogic'), $contact_phone)); ?>" onclick="event.stopPropagation();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                         </svg>
@@ -1007,19 +1030,6 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         <svg viewBox="0 0 24 24">
                             <rect x="3" y="5" width="18" height="14" rx="2"/>
                             <path d="M3 7l9 6 9-6"/>
-                        </svg>
-                    </button>
-                    <?php endif; ?>
-                    <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
-                    <button class="icon-btn gtm-watched-btn" data-action="watched" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Obserwuj', 'develogic'); ?>" title="Dodaj do obserwowanych">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                        </svg>
-                    </button>
-                    <button class="icon-btn gtm-favorite-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" aria-label="<?php esc_attr_e('Dodaj do konfiguratora zakupu', 'develogic'); ?>" title="Dodaj do konfiguratora zakupu">
-                        <svg viewBox="0 0 24 24">
-                            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                         </svg>
                     </button>
                     <?php endif; ?>
@@ -1064,10 +1074,9 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     </button>
                     <button class="mobile-configurator-btn" data-action="favorite" data-local-id="<?php echo esc_attr($local['localId']); ?>" onclick="event.stopPropagation();">
                         <svg viewBox="0 0 24 24" width="18" height="18">
-                            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                            <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
                         </svg>
-                        <span class="mobile-configurator-btn-text">Dodaj do konfiguratora zakupu</span>
+                        <span class="mobile-configurator-btn-text">Dodaj do konfiguratora oferty</span>
                     </button>
                     <?php endif; ?>
                     <?php if ($image1_thumb): ?>
@@ -1130,8 +1139,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             <div class="wizard-hint">
                 <span class="wizard-hint-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2">
-                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
                     </svg>
                 </span>
                 <span>Naciśnij ikonę koszyka przy wybranym lokalu, aby dodać go do konfiguratora</span>
@@ -1145,8 +1153,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             </button>
             <button class="wizard-btn wizard-btn-cart wizard-go-to-cart" data-wizard-action="go-to-cart" style="display: none;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
                 </svg>
                 <span class="wizard-cart-text">Przejdź do listy wybranych lokali</span>
                 <span class="wizard-cart-count"></span>
@@ -1181,8 +1188,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </button>
                 <button class="wizard-btn wizard-btn-cart wizard-go-to-cart" data-wizard-action="go-to-cart" style="display: none;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
                     </svg>
                     <span class="wizard-cart-text">Przejdź do listy wybranych lokali</span>
                     <span class="wizard-cart-count"></span>
@@ -1216,8 +1222,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </button>
                 <button class="wizard-btn wizard-btn-cart wizard-go-to-cart" data-wizard-action="go-to-cart" style="display: none;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
                     </svg>
                     <span class="wizard-cart-text">Przejdź do listy wybranych lokali</span>
                     <span class="wizard-cart-count"></span>
@@ -1256,10 +1261,9 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                     </svg>
                 </button>
-                <button class="icon-btn" data-action="favorite-modal" aria-label="<?php esc_attr_e('Dodaj do konfiguratora zakupu', 'develogic'); ?>" title="Dodaj do konfiguratora zakupu">
+                <button class="icon-btn" data-action="favorite-modal" aria-label="<?php esc_attr_e('Dodaj do konfiguratora oferty', 'develogic'); ?>" title="Dodaj do konfiguratora oferty">
                     <svg viewBox="0 0 24 24">
-                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
                     </svg>
                 </button>
                 <?php endif; ?>
@@ -1429,8 +1433,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 <!-- Show Cart Button -->
                 <button class="show-cart-btn" id="modalShowCartBtn" style="display: none;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                        <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 16"/>
                     </svg>
                     <span class="show-cart-btn-text">Pokaż koszyk</span>
                     <span class="show-cart-btn-count" id="modalCartCount"></span>

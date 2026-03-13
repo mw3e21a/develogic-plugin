@@ -116,6 +116,21 @@
     // ===========================
     // Sticky Offset for sorting bar
     // ===========================
+    // Fix: ensure no ancestor of the sticky element has overflow:hidden which breaks position:sticky
+    function fixStickyAncestors() {
+        var stickyEls = document.querySelectorAll('.apartment-list-header, .apartment-list-mobile-header');
+        stickyEls.forEach(function(stickyEl) {
+            var parent = stickyEl.parentElement;
+            while (parent && parent !== document.documentElement) {
+                var style = window.getComputedStyle(parent);
+                if (style.overflow === 'hidden' || style.overflowY === 'hidden') {
+                    parent.style.overflow = 'visible';
+                }
+                parent = parent.parentElement;
+            }
+        });
+    }
+
     function setupStickyOffset() {
         function updateStickyTop() {
             // Find all fixed/sticky elements at the top of the page
@@ -139,21 +154,6 @@
             });
             var stickyTop = offset > 0 ? Math.round(offset) + 'px' : '0px';
             document.documentElement.style.setProperty('--develogic-sticky-top', stickyTop);
-        }
-
-        // Fix: ensure no ancestor of the sticky element has overflow:hidden which breaks position:sticky
-        function fixStickyAncestors() {
-            var stickyEls = document.querySelectorAll('.apartment-list-header, .apartment-list-mobile-header');
-            stickyEls.forEach(function(stickyEl) {
-                var parent = stickyEl.parentElement;
-                while (parent && parent !== document.documentElement) {
-                    var style = window.getComputedStyle(parent);
-                    if (style.overflow === 'hidden' || style.overflowY === 'hidden') {
-                        parent.style.overflow = 'visible';
-                    }
-                    parent = parent.parentElement;
-                }
-            });
         }
 
         updateStickyTop();
@@ -1269,11 +1269,11 @@
         document.querySelectorAll('[data-local-id="' + localId + '"][data-action="favorite"], .icon-btn[data-local-id="' + localId + '"][data-action="favorite-modal"]').forEach(b => {
             b.classList.toggle('favorited', isAdding);
             b.classList.toggle('is-favorite', isAdding);
-            b.setAttribute('title', isAdding ? 'Usuń z konfiguratora zakupu' : 'Dodaj do konfiguratora zakupu');
+            b.setAttribute('title', isAdding ? 'Usuń z konfiguratora oferty' : 'Dodaj do konfiguratora oferty');
             // Update mobile configurator button text
             var btnText = b.querySelector('.mobile-configurator-btn-text');
             if (btnText) {
-                btnText.textContent = isAdding ? 'Usuń z konfiguratora zakupu' : 'Dodaj do konfiguratora zakupu';
+                btnText.textContent = isAdding ? 'Usuń z konfiguratora oferty' : 'Dodaj do konfiguratora oferty';
             }
         });
         
@@ -1326,10 +1326,10 @@
             document.querySelectorAll('[data-local-id="' + localId + '"][data-action="favorite"], .icon-btn[data-local-id="' + localId + '"][data-action="favorite-modal"]').forEach(btn => {
                 btn.classList.add('favorited');
                 btn.classList.add('is-favorite');
-                btn.setAttribute('title', 'Usuń z konfiguratora zakupu');
+                btn.setAttribute('title', 'Usuń z konfiguratora oferty');
                 var btnText = btn.querySelector('.mobile-configurator-btn-text');
                 if (btnText) {
-                    btnText.textContent = 'Usuń z konfiguratora zakupu';
+                    btnText.textContent = 'Usuń z konfiguratora oferty';
                 }
             });
             
@@ -2274,6 +2274,8 @@
             resetZoom();
             modal.style.display = 'none';
             document.body.style.overflow = '';
+            // Re-fix sticky ancestors after modal close (overflow changes may break position:sticky)
+            fixStickyAncestors();
         }
     }
     
@@ -2482,7 +2484,7 @@
         toast.innerHTML = `
             <div class="toast-icon"></div>
             <div class="toast-content">
-                <div class="toast-title">Dodano do konfiguratora zakupu</div>
+                <div class="toast-title">Dodano do konfiguratora oferty</div>
                 <span class="toast-link" id="toastFavoritesLink">Zobacz listę</span>
             </div>
         `;
@@ -2532,13 +2534,17 @@
             btn.addEventListener('click', function() {
                 const view = this.getAttribute('data-toggle-view');
 
-                // Intercept: if clicking "Konfigurator zakupu" and it's empty, show wizard
+                // Intercept: if clicking "Konfigurator oferty" and it's empty, show wizard
                 if (view === 'favorites' && handleConfiguratorClick()) {
                     return;
                 }
 
-                // Update button active states
-                toggleButtons.forEach(b => b.classList.toggle('active', b === this));
+                // Update button active states - sync all buttons with same data-toggle-view
+                const clickedView = this.getAttribute('data-toggle-view');
+                toggleButtons.forEach(b => {
+                    const bView = b.getAttribute('data-toggle-view');
+                    b.classList.toggle('active', bView === clickedView);
+                });
 
                 // Notify quote button about view change
                 document.dispatchEvent(new CustomEvent('develogic:view_changed', { detail: { view: view } }));
@@ -2604,7 +2610,7 @@
 
         const container = document.querySelector('.favorites-toggle-container');
         const quoteEmail = container ? container.getAttribute('data-quote-email') : '';
-        const quoteSubject = container ? container.getAttribute('data-quote-subject') : 'Szczegóły oferty z konfiguratora zakupu';
+        const quoteSubject = container ? container.getAttribute('data-quote-subject') : 'Szczegóły oferty z konfiguratora oferty';
 
         // Show/hide based on favorites count AND being in configurator view
         function updateQuoteBtnVisibility() {
@@ -2651,7 +2657,7 @@
                 lines.join('\n') +
                 '\n\nPozdrawiam'
             );
-            const subject = encodeURIComponent(quoteSubject || 'Szczegóły oferty z konfiguratora zakupu');
+            const subject = encodeURIComponent(quoteSubject || 'Szczegóły oferty z konfiguratora oferty');
             const mailto = 'mailto:' + (quoteEmail || '') + '?subject=' + subject + '&body=' + body;
             window.location.href = mailto;
         });
@@ -2698,12 +2704,17 @@
     
     function updateFavoritesCount() {
         const favoritesCount = document.getElementById('favoritesCount');
-        if (!favoritesCount) return;
-        
+        const headerCount = document.getElementById('headerConfiguratorCount');
+
         const favorites = getFavorites();
         const count = favorites.length;
-        
-        favoritesCount.textContent = count + ' ' + (count === 1 ? 'wybrane' : 'wybranych');
+
+        if (favoritesCount) {
+            favoritesCount.textContent = count + ' ' + (count === 1 ? 'wybrane' : 'wybranych');
+        }
+        if (headerCount) {
+            headerCount.textContent = count > 0 ? count : '';
+        }
     }
 
     // ===========================
@@ -3096,6 +3107,8 @@
 
         wizardModal.classList.remove('visible');
         document.body.style.overflow = '';
+        // Re-fix sticky ancestors after modal close
+        fixStickyAncestors();
 
         setTimeout(function() {
             wizardModal.style.display = 'none';
@@ -3129,7 +3142,7 @@
     }
 
     /**
-     * Called when user clicks on "Konfigurator zakupu" tab.
+     * Called when user clicks on "Konfigurator oferty" tab.
      * If empty, show wizard step 1 instead of empty list.
      * Returns true if wizard was shown (to prevent normal toggle behavior).
      */
