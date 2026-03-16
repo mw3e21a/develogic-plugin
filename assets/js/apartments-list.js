@@ -1322,13 +1322,26 @@
         }
     }
     
+    function getPageId() {
+        const container = document.querySelector('.develogic-apartments-container');
+        return container ? (container.getAttribute('data-page-id') || '') : '';
+    }
+
+    function getFavoritesKey() {
+        return 'develogic_fav_v3_' + getPageId();
+    }
+
+    function getWatchedKey() {
+        return 'develogic_watch_v3_' + getPageId();
+    }
+
     function getFavorites() {
-        const favorites = localStorage.getItem('develogic_fav_v2');
+        const favorites = localStorage.getItem(getFavoritesKey());
         return favorites ? JSON.parse(favorites) : [];
     }
-    
+
     function saveFavorites(favorites) {
-        localStorage.setItem('develogic_fav_v2', JSON.stringify(favorites));
+        localStorage.setItem(getFavoritesKey(), JSON.stringify(favorites));
         document.dispatchEvent(new CustomEvent('develogic:favorites_changed'));
     }
     
@@ -1455,12 +1468,12 @@
     }
 
     function getWatched() {
-        const watched = localStorage.getItem('develogic_watch_v2');
+        const watched = localStorage.getItem(getWatchedKey());
         return watched ? JSON.parse(watched) : [];
     }
 
     function saveWatched(watched) {
-        localStorage.setItem('develogic_watch_v2', JSON.stringify(watched));
+        localStorage.setItem(getWatchedKey(), JSON.stringify(watched));
         document.dispatchEvent(new CustomEvent('develogic:watched_changed'));
     }
 
@@ -1500,8 +1513,8 @@
         const watchedCount = document.getElementById('watchedCount');
         if (!watchedCount) return;
 
-        const watched = getWatched();
-        const count = watched.length;
+        const onPage = getWatchedOnPage();
+        const count = onPage.length;
 
         watchedCount.textContent = count + ' ' + (count === 1 ? 'obserwowane' : 'obserwowanych');
     }
@@ -1510,8 +1523,8 @@
         const apartmentList = document.querySelector('.apartment-list');
         if (!apartmentList) return;
 
-        const watched = getWatched();
-        const hasWatched = watched.length > 0;
+        const onPage = getWatchedOnPage();
+        const hasWatched = onPage.length > 0;
 
         if (hasWatched) {
             apartmentList.classList.remove('has-no-watched');
@@ -2618,29 +2631,16 @@
     // Quote cart button
     // ===========================
     function setupQuoteCartButton() {
-        const quoteBtn = document.getElementById('quoteCartBtn');
-        if (!quoteBtn) return;
+        const summaryInquiryBtn = document.getElementById('summaryInquiryBtn');
+        if (!summaryInquiryBtn) return;
 
         const container = document.querySelector('.favorites-toggle-container');
         const quoteEmail = container ? container.getAttribute('data-quote-email') : '';
         const quoteSubject = container ? container.getAttribute('data-quote-subject') : 'Szczegóły oferty z konfiguratora oferty';
 
-        // Show/hide based on favorites count AND being in configurator view
-        function updateQuoteBtnVisibility() {
-            const favorites = getFavorites();
-            const isInFavoritesView = document.querySelector('.favorites-toggle-btn[data-toggle-view="favorites"].active');
-            quoteBtn.style.display = (favorites.length > 0 && isInFavoritesView) ? 'flex' : 'none';
-        }
-
-        updateQuoteBtnVisibility();
-
-        // Re-check visibility when favorites change or view changes
-        document.addEventListener('develogic:favorites_changed', updateQuoteBtnVisibility);
-        document.addEventListener('develogic:view_changed', updateQuoteBtnVisibility);
-
-        quoteBtn.addEventListener('click', function(e) {
+        summaryInquiryBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            const favorites = getFavorites();
+            const favorites = getFavoritesOnPage();
             if (!favorites.length) return;
 
             // Collect apartment data for all favorites
@@ -2680,9 +2680,9 @@
         const apartmentList = document.querySelector('.apartment-list');
         if (!apartmentList) return;
         
-        const favorites = getFavorites();
-        const hasFavorites = favorites.length > 0;
-        
+        const onPage = getFavoritesOnPage();
+        const hasFavorites = onPage.length > 0;
+
         if (hasFavorites) {
             apartmentList.classList.remove('has-no-favorites');
         } else {
@@ -2691,7 +2691,7 @@
     }
     
     function updateUrlWithFavorites() {
-        const favorites = getFavorites();
+        const favorites = getFavoritesOnPage();
         if (favorites.length === 0) {
             removeFavoritesFromUrl();
             return;
@@ -2715,12 +2715,35 @@
         window.history.pushState({}, '', url.toString());
     }
     
+    function getLocalIdsInDom() {
+        const ids = new Set();
+        document.querySelectorAll('.apartment-item[data-modal]').forEach(item => {
+            try {
+                const data = JSON.parse(item.getAttribute('data-modal'));
+                if (data.localId) ids.add(String(data.localId));
+            } catch (e) {}
+        });
+        return ids;
+    }
+
+    function getFavoritesOnPage() {
+        const favorites = getFavorites();
+        const domIds = getLocalIdsInDom();
+        return favorites.filter(id => domIds.has(String(id)));
+    }
+
+    function getWatchedOnPage() {
+        const watched = getWatched();
+        const domIds = getLocalIdsInDom();
+        return watched.filter(id => domIds.has(String(id)));
+    }
+
     function updateFavoritesCount() {
         const favoritesCount = document.getElementById('favoritesCount');
         const headerCount = document.getElementById('headerConfiguratorCount');
 
-        const favorites = getFavorites();
-        const count = favorites.length;
+        const onPage = getFavoritesOnPage();
+        const count = onPage.length;
 
         if (favoritesCount) {
             favoritesCount.textContent = count + ' ' + (count === 1 ? 'wybrane' : 'wybranych');
@@ -2743,7 +2766,7 @@
         var apartmentList = document.querySelector('.apartment-list');
         var isInFavoritesView = apartmentList && apartmentList.classList.contains('hide-favorites');
 
-        var favorites = getFavorites();
+        var favorites = getFavoritesOnPage();
 
         if (!isInFavoritesView || favorites.length === 0) {
             summary.classList.remove('visible');
@@ -2798,7 +2821,7 @@
         var countEl = document.getElementById('modalCartCount');
         if (!btn) return;
 
-        var favorites = getFavorites();
+        var favorites = getFavoritesOnPage();
         if (favorites.length > 0) {
             btn.style.display = 'flex';
             if (countEl) {
@@ -2976,8 +2999,7 @@
     // Purchase Configurator Wizard
     // ===========================
 
-    // Wizard state: null | 'finding_apartment' | 'finding_storage'
-    let wizardState = null;
+    var wizardState = null;
 
     function setupWizard() {
         const wizardModal = document.getElementById('wizardModal');
@@ -2991,8 +3013,6 @@
 
         // Step 1: Find apartment button
         wizardModal.querySelector('[data-wizard-action="find-apartment"]').addEventListener('click', function() {
-            wizardState = 'finding_apartment';
-
             closeWizardModal();
 
             // Switch to "Wszystkie" view
@@ -3004,18 +3024,27 @@
 
         // Step 2: Find garage button
         wizardModal.querySelector('[data-wizard-action="find-garage"]').addEventListener('click', function() {
-            wizardState = 'finding_storage';
-
             closeWizardModal();
 
             switchToAllView();
             setLocalTypeFilter('Garaż');
         });
 
+        // Step 2: Find parking button
+        var parkingBtn = wizardModal.querySelector('[data-wizard-action="find-parking"]');
+        if (parkingBtn) {
+            parkingBtn.addEventListener('click', function() {
+                wizardState = 'finding_storage';
+
+                closeWizardModal();
+
+                switchToAllView();
+                setLocalTypeFilter('Miejsce postojowe');
+            });
+        }
+
         // Step 2: Find storage/cellar button
         wizardModal.querySelector('[data-wizard-action="find-storage"]').addEventListener('click', function() {
-            wizardState = 'finding_storage';
-
             closeWizardModal();
 
             switchToAllView();
@@ -3034,14 +3063,13 @@
 
         // Step 3: Send inquiry
         wizardModal.querySelector('[data-wizard-action="send-inquiry"]').addEventListener('click', function() {
-            wizardState = null;
             closeWizardModal();
 
             // Switch to favorites view and trigger quote email
             switchToFavoritesView();
 
             setTimeout(function() {
-                const quoteBtn = document.getElementById('quoteCartBtn');
+                const quoteBtn = document.getElementById('summaryInquiryBtn');
                 if (quoteBtn) {
                     quoteBtn.click();
                 }
@@ -3050,7 +3078,6 @@
 
         // Step 3: Back to list
         wizardModal.querySelector('[data-wizard-action="back-to-list"]').addEventListener('click', function() {
-            wizardState = null;
             closeWizardModal();
 
             switchToAllView();
@@ -3103,7 +3130,10 @@
             targetStep.style.display = 'flex';
         }
 
-        // Update step 2 buttons based on what's already in favorites
+        // Update step content based on current favorites
+        if (stepNumber === 1) {
+            updateWizardStep1();
+        }
         if (stepNumber === 2) {
             updateWizardStep2();
         }
@@ -3164,15 +3194,27 @@
      */
     function getFavoriteTypes() {
         var favorites = getFavorites();
-        var result = { hasApartment: false, hasGarage: false, hasStorage: false };
+        var result = { hasApartment: false, hasGarage: false, hasParking: false, hasStorage: false };
+
+        // Build a map of localId → localType from all apartment-item elements in the DOM
+        var typeMap = {};
+        document.querySelectorAll('.apartment-item[data-modal]').forEach(function(item) {
+            try {
+                var data = JSON.parse(item.getAttribute('data-modal'));
+                if (data && data.localId) {
+                    typeMap[String(data.localId)] = item.getAttribute('data-local-type') || '';
+                }
+            } catch (e) {}
+        });
+
         favorites.forEach(function(localId) {
-            var item = document.querySelector('.apartment-item[data-local-id="' + localId + '"]');
-            if (!item) return;
-            var localType = item.getAttribute('data-local-type') || '';
+            var localType = typeMap[String(localId)] || '';
             if (localType === 'Lokal mieszkalny') result.hasApartment = true;
             else if (localType === 'Garaż') result.hasGarage = true;
+            else if (localType === 'Miejsce postojowe') result.hasParking = true;
             else if (localType === 'Komórka lokatorska' || localType === 'Pomieszczenie gospodarcze') result.hasStorage = true;
         });
+
         return result;
     }
 
@@ -3188,20 +3230,46 @@
 
         var types = getFavoriteTypes();
         var garageBtn = step2.querySelector('[data-wizard-action="find-garage"]');
+        var parkingBtn = step2.querySelector('[data-wizard-action="find-parking"]');
         var storageBtn = step2.querySelector('[data-wizard-action="find-storage"]');
         var description = step2.querySelector('p');
 
         if (garageBtn) garageBtn.style.display = types.hasGarage ? 'none' : 'inline-flex';
+        if (parkingBtn) parkingBtn.style.display = types.hasParking ? 'none' : 'inline-flex';
         if (storageBtn) storageBtn.style.display = types.hasStorage ? 'none' : 'inline-flex';
 
         if (description) {
-            if (!types.hasGarage && !types.hasStorage) {
-                description.textContent = 'Świetny wybór! Teraz uzupełnij swoją ofertę o garaż, komórkę lokatorską lub pomieszczenie gospodarcze.';
-            } else if (!types.hasGarage) {
-                description.textContent = 'Świetny wybór! Teraz uzupełnij swoją ofertę o garaż.';
-            } else if (!types.hasStorage) {
-                description.textContent = 'Świetny wybór! Teraz uzupełnij swoją ofertę o komórkę lokatorską lub pomieszczenie gospodarcze.';
+            var missing = [];
+            if (!types.hasGarage) missing.push('garaż');
+            if (!types.hasParking) missing.push('miejsce postojowe na zewnątrz');
+            if (!types.hasStorage) missing.push('komórkę lokatorską lub pom. gospodarcze');
+            if (missing.length > 0) {
+                description.textContent = 'Świetny wybór! Teraz uzupełnij swoją ofertę o ' + missing.join(', ') + '.';
             }
+        }
+    }
+
+    /**
+     * Updates step 1 content based on whether configurator already has non-apartment items.
+     * Shows appropriate heading and description so user isn't told the configurator is empty
+     * when they've already added a parking spot, garage, or storage unit.
+     */
+    function updateWizardStep1() {
+        var wizardModal = document.getElementById('wizardModal');
+        if (!wizardModal) return;
+        var step1 = wizardModal.querySelector('[data-wizard-step="1"]');
+        if (!step1) return;
+
+        var favorites = getFavoritesOnPage();
+        var h3 = step1.querySelector('h3');
+        var p = step1.querySelector('p');
+
+        if (favorites.length > 0) {
+            if (h3) h3.textContent = 'Teraz wybierz mieszkanie';
+            if (p) p.textContent = 'Lokal został dodany do konfiguratora. Uzupełnij swój wybór o wymarzone mieszkanie z naszej oferty.';
+        } else {
+            if (h3) h3.textContent = 'Dodaj pierwsze mieszkanie';
+            if (p) p.textContent = 'Twój konfigurator zakupu jest pusty. Zacznij od wybrania wymarzonego mieszkania z naszej oferty.';
         }
     }
 
@@ -3211,7 +3279,7 @@
      * Returns true if wizard was shown (to prevent normal toggle behavior).
      */
     function handleConfiguratorClick() {
-        const favorites = getFavorites();
+        const favorites = getFavoritesOnPage();
         if (favorites.length === 0) {
             showWizardStep(1);
             return true;
@@ -3223,35 +3291,23 @@
      * Called after a favorite is added. Handles wizard flow transitions.
      */
     function handleWizardAfterFavoriteAdd() {
-        if (wizardState === 'finding_apartment') {
-            // User just added their first apartment - check what else is needed
-            setTimeout(function() {
-                switchToFavoritesView();
-                setTimeout(function() {
-                    showWizardStep(2);
-                }, 400);
-            }, 600);
-            return;
-        }
-
-        if (wizardState === 'finding_storage') {
-            // User just added a storage/garage - check if anything else is missing
+        // Always show the wizard after adding to configurator with the correct step
+        setTimeout(function() {
             var types = getFavoriteTypes();
-            var needsMore = !types.hasGarage || !types.hasStorage;
-            setTimeout(function() {
-                switchToFavoritesView();
-                setTimeout(function() {
-                    if (needsMore) {
-                        // Still missing something - show updated step 2
-                        showWizardStep(2);
-                    } else {
-                        // Everything added - show step 3
-                        showWizardStep(3);
-                    }
-                }, 400);
-            }, 600);
-            return;
-        }
+
+            if (types.hasApartment) {
+                // Has apartment - check what else is needed
+                var needsMore = !types.hasGarage || !types.hasParking || !types.hasStorage;
+                if (needsMore) {
+                    showWizardStep(2);
+                } else {
+                    showWizardStep(3);
+                }
+            } else {
+                // No apartment yet - show step 1 (find apartment)
+                showWizardStep(1);
+            }
+        }, 400);
     }
 
 })();

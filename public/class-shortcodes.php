@@ -571,10 +571,15 @@ class Develogic_Shortcodes {
             $default_floor_kl_pg = $kl_pg_floors[0];
         }
         
+        // Resolve investment ID for template (needed for localStorage scoping)
+        $resolved_investment_id = !empty($filters['investmentId']) ? $filters['investmentId'] : '';
+
         // Load template
         ob_start();
         $this->load_template('apartments-list', array(
             'instance_id' => $instance_id,
+            'investment_id' => $resolved_investment_id,
+            'page_id' => get_the_ID(),
             'atts' => $atts,
             'kl_pg_floors' => $kl_pg_floors,
             'default_floor_kl_pg' => $default_floor_kl_pg,

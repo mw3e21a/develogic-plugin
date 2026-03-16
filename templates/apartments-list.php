@@ -39,7 +39,13 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
      <?php if (isset($atts['floor']) && $atts['floor'] !== ''): ?>
      data-default-floor="<?php echo esc_attr($atts['floor']); ?>"
      <?php endif; ?>
-     data-multiple-floors="<?php echo $has_multiple_floors ? 'true' : 'false'; ?>">
+     data-multiple-floors="<?php echo $has_multiple_floors ? 'true' : 'false'; ?>"
+     <?php if (!empty($investment_id)): ?>
+     data-investment-id="<?php echo esc_attr($investment_id); ?>"
+     <?php endif; ?>
+     <?php if (!empty($page_id)): ?>
+     data-page-id="<?php echo esc_attr($page_id); ?>"
+     <?php endif; ?>>
     <!-- Loading Spinner -->
     <div class="develogic-loading-overlay">
         <div class="develogic-spinner">
@@ -468,14 +474,6 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 Konfigurator oferty
             </button>
             <span class="favorites-count" id="favoritesCount">0 wybranych</span>
-            <?php if ($show_quote_btn): ?>
-            <button class="quote-cart-btn" id="quoteCartBtn" style="display: none;" title="Wyślij zapytanie o szczegóły oferty">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-8 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
-                </svg>
-                Wyślij zapytanie o szczegóły
-            </button>
-            <?php endif; ?>
         </div>
         
         
@@ -917,8 +915,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                  data-attributes="<?php echo esc_attr(json_encode($all_attributes)); ?>"
                  data-modal='<?php echo esc_attr(json_encode($modal_data)); ?>'>
                 <div class="apartment-info">
-                    <div class="building-name"><?php echo esc_html($local['building']); ?></div>
-                    <div class="apartment-number"><?php echo esc_html($local['number']); ?></div>
+                    <div class="apartment-number"><span class="building-name"><?php echo esc_html($local['building']); ?></span> <?php echo esc_html($local['number']); ?></div>
                 </div>
 
                 <div class="apartment-status">
@@ -1106,6 +1103,15 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             <span class="summary-label">Łączna cena</span>
             <span class="summary-value" id="configuratorTotalPrice">0 zł</span>
         </div>
+        <?php if ($show_quote_btn): ?>
+        <button class="summary-inquiry-btn" id="summaryInquiryBtn" title="Wyślij zapytanie o szczegóły oferty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="5" width="18" height="14" rx="2"/>
+                <path d="M3 7l9 6 9-6"/>
+            </svg>
+            Wyślij zapytanie o szczegóły
+        </button>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 
@@ -1160,7 +1166,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             </button>
         </div>
 
-        <!-- Step 2: Congratulations - now pick garage/storage -->
+        <!-- Step 2: Congratulations - now pick garage/parking/storage -->
         <div class="wizard-step" data-wizard-step="2" style="display: none;">
             <div class="wizard-icon wizard-icon-success">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1169,7 +1175,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </svg>
             </div>
             <h3>Gratulacje!</h3>
-            <p>Świetny wybór! Teraz uzupełnij swoją ofertę o garaż, komórkę lokatorską lub pomieszczenie gospodarcze.</p>
+            <p>Świetny wybór! Teraz uzupełnij swoją ofertę o garaż, komórkę lokatorską lub miejsce postojowe na zewnątrz.</p>
             <div class="wizard-btn-group">
                 <button class="wizard-btn wizard-btn-primary" data-wizard-action="find-garage">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1178,13 +1184,20 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         <circle cx="5.5" cy="18.5" r="2.5"/>
                         <circle cx="13.5" cy="18.5" r="2.5"/>
                     </svg>
-                    Garaż
+                    Wybierz garaż
+                </button>
+                <button class="wizard-btn wizard-btn-primary" data-wizard-action="find-parking">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <text x="12" y="16" text-anchor="middle" font-size="12" font-weight="bold" fill="currentColor" stroke="none">P</text>
+                    </svg>
+                    Wybierz miejsce postojowe na zewnątrz
                 </button>
                 <button class="wizard-btn wizard-btn-primary" data-wizard-action="find-storage">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
                     </svg>
-                    Komórka lokatorska / Pom. gospodarcze
+                    Wybierz komórkę lokatorską lub pom. gospodarcze
                 </button>
                 <button class="wizard-btn wizard-btn-cart wizard-go-to-cart" data-wizard-action="go-to-cart" style="display: none;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
