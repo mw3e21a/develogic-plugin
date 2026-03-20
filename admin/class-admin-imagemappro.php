@@ -130,36 +130,52 @@ class Develogic_Admin_ImageMapPro {
         if (!isset($_POST['building_map']) || !is_array($_POST['building_map'])) {
             return;
         }
-        
+
         $mappings = array();
-        
-        foreach ($_POST['building_map'] as $building => $shortcodes) {
+
+        foreach ($_POST['building_map'] as $building => $entries) {
             $building_clean = sanitize_text_field($building);
-            
-            // Handle multiple shortcodes (array)
-            if (is_array($shortcodes)) {
-                $shortcodes_clean = array();
-                foreach ($shortcodes as $shortcode) {
-                    $shortcode_clean = sanitize_text_field($shortcode);
-                    if (!empty($shortcode_clean)) {
-                        $shortcodes_clean[] = $shortcode_clean;
+            if (empty($building_clean)) {
+                continue;
+            }
+
+            $building_entries = array();
+
+            if (is_array($entries)) {
+                foreach ($entries as $entry) {
+                    if (is_array($entry) && !empty($entry['shortcode'])) {
+                        // New format: {shortcode, layers[]}
+                        $shortcode = sanitize_text_field($entry['shortcode']);
+                        if (empty($shortcode)) {
+                            continue;
+                        }
+                        $layers = array();
+                        if (!empty($entry['layers']) && is_array($entry['layers'])) {
+                            $layers = array_map('intval', $entry['layers']);
+                            $layers = array_filter($layers, function($l) { return $l >= 0; });
+                        }
+                        if (!empty($layers)) {
+                            $building_entries[] = $shortcode . ':' . implode(',', $layers);
+                        } else {
+                            $building_entries[] = $shortcode;
+                        }
+                    } elseif (is_string($entry)) {
+                        // Old format: plain shortcode string
+                        $shortcode = sanitize_text_field($entry);
+                        if (!empty($shortcode)) {
+                            $building_entries[] = $shortcode;
+                        }
                     }
                 }
-                
-                if (!empty($building_clean) && !empty($shortcodes_clean)) {
-                    $mappings[$building_clean] = $shortcodes_clean;
-                }
-            } else {
-                // Backwards compatibility - single shortcode
-                $shortcode_clean = sanitize_text_field($shortcodes);
-                if (!empty($building_clean) && !empty($shortcode_clean)) {
-                    $mappings[$building_clean] = array($shortcode_clean);
-                }
+            }
+
+            if (!empty($building_entries)) {
+                $mappings[$building_clean] = $building_entries;
             }
         }
-        
+
         update_option('develogic_imagemappro_building_map', $mappings);
-        
+
         add_settings_error(
             'develogic_imagemappro',
             'mappings_saved',
@@ -228,6 +244,9 @@ class Develogic_Admin_ImageMapPro {
         
         // Get Image Map Pro projects
         $projects = $imagemappro_active ? $this->get_imagemappro_projects() : array();
+
+        // Get layers for projects that have them
+        $project_layers = $imagemappro_active ? $this->get_project_layers() : array();
         
         // Default statuses
         $default_statuses = array(
@@ -309,13 +328,13 @@ class Develogic_Admin_ImageMapPro {
             </div>
             
             <!-- Building Mappings -->
-            <div class="card" style="max-width: 800px; margin-bottom: 20px;">
+            <div class="card" style="max-width: 900px; margin-bottom: 20px;">
                 <h2><?php _e('Mapowanie budynków na projekty Image Map Pro', 'develogic'); ?></h2>
-                
+
                 <p class="description">
-                    <?php _e('Przypisz każdy budynek do odpowiedniego shortcode\'u Image Map Pro. Dzięki temu system wie, które kształty aktualizować dla każdego budynku.', 'develogic'); ?>
+                    <?php _e('Przypisz każdy budynek do projektu Image Map Pro. Jeśli projekt ma warstwy (layers), możesz wybrać konkretne warstwy — dzięki temu system wie, które kształty należą do tego budynku.', 'develogic'); ?>
                 </p>
-                
+
                 <?php if (empty($buildings)): ?>
                     <p><em><?php _e('Brak budynków w bazie. Wykonaj najpierw synchronizację lokali.', 'develogic'); ?></em></p>
                 <?php elseif (empty($projects)): ?>
@@ -324,22 +343,39 @@ class Develogic_Admin_ImageMapPro {
                     <form method="post" action="">
                         <?php wp_nonce_field('develogic_imagemappro_settings', 'develogic_imagemappro_nonce'); ?>
                         <input type="hidden" name="develogic_imagemappro_action" value="save_mappings">
-                        
+
+                        <?php
+                        // Encode layers data for JavaScript
+                        $layers_json = wp_json_encode($project_layers);
+                        ?>
+                        <script>var develogicProjectLayers = <?php echo $layers_json; ?>;</script>
+
                         <div style="overflow-x: auto;">
                             <table class="widefat striped" style="width: 100%;">
                                 <thead>
                                     <tr>
-                                        <th style="width: 30%;"><?php _e('Budynek (Develogic)', 'develogic'); ?></th>
-                                        <th style="width: 70%;"><?php _e('Shortcode Image Map Pro', 'develogic'); ?></th>
+                                        <th style="width: 25%;"><?php _e('Budynek (Develogic)', 'develogic'); ?></th>
+                                        <th style="width: 75%;"><?php _e('Projekty i warstwy Image Map Pro', 'develogic'); ?></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <?php foreach ($buildings as $building): 
-                                        // Get current mappings for this building (now an array)
-                                        $selected_shortcodes = isset($mappings[$building['name']]) ? $mappings[$building['name']] : array();
-                                        // Ensure it's an array (backwards compatibility)
-                                        if (!is_array($selected_shortcodes)) {
-                                            $selected_shortcodes = array($selected_shortcodes);
+                                    <?php foreach ($buildings as $building):
+                                        $building_key = $building['id'];
+                                        // Get current mapping entries for this building
+                                        $building_entries = isset($mappings[$building_key]) ? $mappings[$building_key] : array();
+                                        if (!is_array($building_entries)) {
+                                            $building_entries = array($building_entries);
+                                        }
+
+                                        // Parse entries into shortcode => layers format
+                                        $parsed_entries = array();
+                                        foreach ($building_entries as $entry) {
+                                            if (strpos($entry, ':') !== false) {
+                                                list($sc, $layers_str) = explode(':', $entry, 2);
+                                                $parsed_entries[$sc] = array_map('intval', explode(',', $layers_str));
+                                            } else {
+                                                $parsed_entries[$entry] = array();
+                                            }
                                         }
                                     ?>
                                         <tr>
@@ -349,44 +385,82 @@ class Develogic_Admin_ImageMapPro {
                                                 <code>ID: <?php echo esc_html($building['id']); ?></code>
                                             </td>
                                             <td>
-                                                <!-- Multi-select dla wielu projektów -->
-                                                <select 
-                                                    name="building_map[<?php echo esc_attr($building['name']); ?>][]" 
-                                                    multiple 
-                                                    size="5"
-                                                    style="width: 100%; max-width: 400px;"
-                                                    class="develogic-multi-select"
-                                                >
-                                                    <?php foreach ($projects as $project): 
-                                                        $version_label = isset($project->version) && $project->version === 'old' ? ' [v4/v5]' : '';
+                                                <div class="develogic-mapping-entries" data-building="<?php echo esc_attr($building_key); ?>">
+                                                    <?php
+                                                    // Show existing entries or one empty row
+                                                    $entries_to_show = !empty($parsed_entries) ? $parsed_entries : array('' => array());
+                                                    $entry_index = 0;
+                                                    foreach ($entries_to_show as $selected_sc => $selected_layers):
                                                     ?>
-                                                        <option 
-                                                            value="<?php echo esc_attr($project->shortcode); ?>"
-                                                            <?php selected(in_array($project->shortcode, $selected_shortcodes)); ?>
-                                                        >
-                                                            <?php echo esc_html($project->name); ?> (<?php echo esc_html($project->shortcode); ?>)<?php echo esc_html($version_label); ?>
-                                                        </option>
-                                                    <?php endforeach; ?>
-                                                </select>
-                                                <p class="description">
-                                                    <?php _e('Przytrzymaj Ctrl (Cmd na Mac) aby wybrać wiele projektów', 'develogic'); ?>
-                                                </p>
+                                                    <div class="develogic-mapping-row" style="margin-bottom: 10px; padding: 8px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 3px;">
+                                                        <div style="display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;">
+                                                            <div style="flex: 1; min-width: 200px;">
+                                                                <label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;"><?php _e('Projekt:', 'develogic'); ?></label>
+                                                                <select
+                                                                    name="building_map[<?php echo esc_attr($building_key); ?>][<?php echo $entry_index; ?>][shortcode]"
+                                                                    class="develogic-project-select"
+                                                                    style="width: 100%;"
+                                                                >
+                                                                    <option value=""><?php _e('— wybierz projekt —', 'develogic'); ?></option>
+                                                                    <?php foreach ($projects as $project): ?>
+                                                                        <option
+                                                                            value="<?php echo esc_attr($project->shortcode); ?>"
+                                                                            <?php selected($project->shortcode, $selected_sc); ?>
+                                                                            data-has-layers="<?php echo isset($project_layers[$project->shortcode]) ? '1' : '0'; ?>"
+                                                                        >
+                                                                            <?php echo esc_html($project->name); ?> (<?php echo esc_html($project->shortcode); ?>)
+                                                                        </option>
+                                                                    <?php endforeach; ?>
+                                                                </select>
+                                                            </div>
+                                                            <div class="develogic-layers-container" style="flex: 1; min-width: 200px; <?php echo empty($project_layers[$selected_sc]) ? 'display:none;' : ''; ?>">
+                                                                <label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;"><?php _e('Warstwy (opcjonalnie):', 'develogic'); ?></label>
+                                                                <?php if (!empty($selected_sc) && isset($project_layers[$selected_sc])): ?>
+                                                                    <div class="develogic-layers-checkboxes">
+                                                                    <?php foreach ($project_layers[$selected_sc] as $layer): ?>
+                                                                        <label style="display: block; font-size: 13px; padding: 2px 0;">
+                                                                            <input type="checkbox"
+                                                                                name="building_map[<?php echo esc_attr($building_key); ?>][<?php echo $entry_index; ?>][layers][]"
+                                                                                value="<?php echo esc_attr($layer['id']); ?>"
+                                                                                <?php checked(in_array($layer['id'], $selected_layers)); ?>
+                                                                            >
+                                                                            <?php echo esc_html($layer['title']); ?>
+                                                                            <span style="color: #888;">(<?php echo $layer['spots_count']; ?> kształtów)</span>
+                                                                        </label>
+                                                                    <?php endforeach; ?>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                                <p class="description" style="font-size: 11px; margin-top: 4px;">
+                                                                    <?php _e('Brak zaznaczenia = wszystkie warstwy', 'develogic'); ?>
+                                                                </p>
+                                                            </div>
+                                                            <div style="padding-top: 18px;">
+                                                                <button type="button" class="button button-small develogic-remove-row" title="<?php _e('Usuń', 'develogic'); ?>">&times;</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <?php
+                                                    $entry_index++;
+                                                    endforeach;
+                                                    ?>
+                                                    <button type="button" class="button button-small develogic-add-row">+ <?php _e('Dodaj projekt', 'develogic'); ?></button>
+                                                </div>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
                         </div>
-                        
+
                         <p class="submit">
                             <button type="submit" class="button button-primary">
                                 <?php _e('Zapisz mapowania', 'develogic'); ?>
                             </button>
-                            
-                            <button 
-                                type="submit" 
-                                name="develogic_imagemappro_action" 
-                                value="clear_mappings" 
+
+                            <button
+                                type="submit"
+                                name="develogic_imagemappro_action"
+                                value="clear_mappings"
                                 class="button button-secondary"
                                 onclick="return confirm('<?php esc_attr_e('Czy na pewno chcesz usunąć wszystkie mapowania?', 'develogic'); ?>');"
                             >
@@ -491,6 +565,64 @@ class Develogic_Admin_ImageMapPro {
             if (typeof $.fn.wpColorPicker !== 'undefined') {
                 $('.develogic-color-picker').wpColorPicker();
             }
+
+            var projectLayers = (typeof develogicProjectLayers !== 'undefined') ? develogicProjectLayers : {};
+
+            // When project select changes, show/hide layers
+            $(document).on('change', '.develogic-project-select', function() {
+                var $row = $(this).closest('.develogic-mapping-row');
+                var $layersContainer = $row.find('.develogic-layers-container');
+                var shortcode = $(this).val();
+                var layers = projectLayers[shortcode] || [];
+
+                if (layers.length > 1) {
+                    var buildingKey = $(this).closest('.develogic-mapping-entries').data('building');
+                    var entryIndex = $row.index();
+                    var html = '<div class="develogic-layers-checkboxes">';
+                    layers.forEach(function(layer) {
+                        html += '<label style="display: block; font-size: 13px; padding: 2px 0;">';
+                        html += '<input type="checkbox" name="building_map[' + buildingKey + '][' + entryIndex + '][layers][]" value="' + layer.id + '">';
+                        html += ' ' + layer.title + ' <span style="color: #888;">(' + layer.spots_count + ' kształtów)</span>';
+                        html += '</label>';
+                    });
+                    html += '</div>';
+                    html += '<p class="description" style="font-size: 11px; margin-top: 4px;">Brak zaznaczenia = wszystkie warstwy</p>';
+                    $layersContainer.html(html).show();
+                } else {
+                    $layersContainer.hide().html('');
+                }
+            });
+
+            // Add new mapping row
+            $(document).on('click', '.develogic-add-row', function() {
+                var $container = $(this).closest('.develogic-mapping-entries');
+                var buildingKey = $container.data('building');
+                var entryIndex = $container.find('.develogic-mapping-row').length;
+                var $firstRow = $container.find('.develogic-mapping-row:first');
+                var $newRow = $firstRow.clone();
+
+                // Reset values
+                $newRow.find('select').val('');
+                $newRow.find('.develogic-layers-container').hide().html('');
+
+                // Update names
+                $newRow.find('select').attr('name', 'building_map[' + buildingKey + '][' + entryIndex + '][shortcode]');
+
+                $newRow.insertBefore($(this));
+            });
+
+            // Remove mapping row
+            $(document).on('click', '.develogic-remove-row', function() {
+                var $container = $(this).closest('.develogic-mapping-entries');
+                var $rows = $container.find('.develogic-mapping-row');
+                if ($rows.length > 1) {
+                    $(this).closest('.develogic-mapping-row').remove();
+                } else {
+                    // Last row - just clear it
+                    $rows.find('select').val('');
+                    $rows.find('.develogic-layers-container').hide().html('');
+                }
+            });
         });
         </script>
         <?php
@@ -536,15 +668,15 @@ class Develogic_Admin_ImageMapPro {
      */
     private function get_imagemappro_projects() {
         global $wpdb;
-        
+
         $projects = array();
-        
+
         // Try new version (table-based)
         $table_name = $wpdb->prefix . 'image_map_pro_projects';
-        
+
         if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
             $table_projects = $wpdb->get_results("SELECT id, name, shortcode FROM $table_name ORDER BY name ASC");
-            
+
             if ($table_projects) {
                 foreach ($table_projects as $project) {
                     $project->version = 'new';
@@ -552,10 +684,10 @@ class Develogic_Admin_ImageMapPro {
                 $projects = array_merge($projects, $table_projects);
             }
         }
-        
+
         // Try old version (wp_options based)
         $old_options = get_option('image-map-pro-wordpress-admin-options', false);
-        
+
         if ($old_options && isset($old_options['saves']) && is_array($old_options['saves'])) {
             foreach ($old_options['saves'] as $project_id => $project_data) {
                 if (isset($project_data['meta'])) {
@@ -564,13 +696,56 @@ class Develogic_Admin_ImageMapPro {
                     $project->name = isset($project_data['meta']['name']) ? $project_data['meta']['name'] : "Project $project_id";
                     $project->shortcode = isset($project_data['meta']['shortcode']) ? $project_data['meta']['shortcode'] : "project_$project_id";
                     $project->version = 'old';
-                    
+
                     $projects[] = $project;
                 }
             }
         }
-        
+
         return $projects;
+    }
+
+    /**
+     * Get layers for all Image Map Pro projects that have them
+     *
+     * @return array Shortcode => array of layers [{id, title, spots_count}]
+     */
+    private function get_project_layers() {
+        $layers_map = array();
+
+        $old_options = get_option('image-map-pro-wordpress-admin-options', false);
+        if ($old_options && isset($old_options['saves']) && is_array($old_options['saves'])) {
+            foreach ($old_options['saves'] as $project_id => $project_data) {
+                $shortcode = isset($project_data['meta']['shortcode']) ? $project_data['meta']['shortcode'] : '';
+                if (empty($shortcode) || empty($project_data['json'])) {
+                    continue;
+                }
+                $json = json_decode(stripslashes($project_data['json']), true);
+                if (!$json) {
+                    continue;
+                }
+                $layers = isset($json['layers']['layers_list']) ? $json['layers']['layers_list'] : array();
+                $spots = isset($json['spots']) ? $json['spots'] : array();
+                if (empty($layers) || count($layers) <= 1) {
+                    continue;
+                }
+                $project_layers = array();
+                foreach ($layers as $layer) {
+                    $layer_id = $layer['id'];
+                    $layer_spots = array_filter($spots, function($s) use ($layer_id) {
+                        return isset($s['layerID']) && $s['layerID'] == $layer_id;
+                    });
+                    $project_layers[] = array(
+                        'id' => $layer_id,
+                        'title' => $layer['title'],
+                        'spots_count' => count($layer_spots),
+                    );
+                }
+                $layers_map[$shortcode] = $project_layers;
+            }
+        }
+
+        return $layers_map;
     }
 }
 

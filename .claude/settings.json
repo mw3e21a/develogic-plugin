@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dpkg -l)",
+      "Bash(docker ps:*)",
+      "Bash(docker exec:*)",
+      "Read(//tmp/**)",
+      "Bash(php -l /home/michal/own_projects/develogic-wp-plugin/includes/class-imagemappro-integration.php)",
+      "Bash(php -l /home/michal/own_projects/develogic-wp-plugin/admin/class-admin-imagemappro.php)",
+      "WebFetch(domain:www.imagemappro.com)",
+      "Read(//home/michal/**)"
+    ]
+  }
+}

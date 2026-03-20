@@ -547,38 +547,16 @@
             }
         }
         
-        // Additional options from URL - dynamic based on available filters
-        // Map URL parameter names to option keys
-        const urlParamToOptionKey = {
-            'promocja': 'promo',
-            '2_lazienki': '2bath',
-            'garderoba': 'wardrobe',
-            'widok_na_jezioro': 'lake_view',
-            'balkon': 'balcony',
-            '2_balkony': '2balconies',
-            'taras': 'terrace',
-            'ogrod': 'garden',
-            'aneks_kuchenny': 'kitchen_annex',
-            'jasna_kuchnia': 'bright_kitchen',
-            'winda': 'elevator',
-            'osobne_wc': 'separate_wc',
-            'pom_gospodarcze': 'storage',
-            'komorka_lokatorska': 'cellar',
-            'klimatyzacja': 'air_conditioning',
-            'parking': 'parking',
-            'miejsce_postojowe': 'parking_space',
-            'plac_zabaw': 'playground'
-        };
-        
-        // Apply URL parameters to additional options filters
-        for (const [urlParam, optionKey] of Object.entries(urlParamToOptionKey)) {
-            if (urlParams.has(urlParam)) {
-                const paramValue = urlParams.get(urlParam);
-                const filter = document.querySelector(`.filter-extras input[data-option-key="${optionKey}"]`);
-                if (filter && (paramValue === '1' || paramValue === 'true')) {
+        // Additional options from URL - match by feature name
+        // URL param: extra=FeatureName (can be repeated)
+        const extraParams = urlParams.getAll('extra');
+        if (extraParams.length > 0) {
+            extraParams.forEach(extraValue => {
+                const filter = document.querySelector(`.filter-extras input[data-feature-name="${extraValue}"]`);
+                if (filter) {
                     filter.checked = true;
                 }
-            }
+            });
         }
     }
     
@@ -638,8 +616,8 @@
         if (priceMin) priceMin.addEventListener('change', applyFilters);
         if (priceMax) priceMax.addEventListener('change', applyFilters);
         
-        // Additional options checkboxes - dynamic based on settings
-        const additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-option-key]');
+        // Additional options checkboxes - feature names from shortcode
+        const additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-feature-name]');
         additionalOptionFilters.forEach(filter => {
             filter.addEventListener('change', applyFilters);
         });
@@ -648,6 +626,27 @@
         const resetBtn = document.getElementById('resetFilters');
         if (resetBtn) {
             resetBtn.addEventListener('click', resetFilters);
+        }
+
+        // Check promotions button - toggles promo filter for current building
+        const checkPromotionsBtn = document.getElementById('checkPromotionsBtn');
+        if (checkPromotionsBtn) {
+            checkPromotionsBtn.addEventListener('click', function() {
+                // Find promo checkbox by feature name containing "promocj" (case-insensitive)
+                const allExtrasCheckboxes = document.querySelectorAll('.filter-extras input[type="checkbox"][data-feature-name]');
+                let promoCheckbox = null;
+                allExtrasCheckboxes.forEach(cb => {
+                    const name = (cb.getAttribute('data-feature-name') || '').toLowerCase();
+                    if (name.includes('promocj') || name.includes('promo')) {
+                        promoCheckbox = cb;
+                    }
+                });
+                if (promoCheckbox) {
+                    promoCheckbox.checked = !promoCheckbox.checked;
+                }
+                this.classList.toggle('active');
+                applyFilters();
+            });
         }
         
         // Show more filters button (mobile)
@@ -700,7 +699,7 @@
         const selectedLocalType = localTypeFilter.value;
         
         // Types that should have auto-selected floor
-        const typesWithAutoFloor = ['Komórka lokatorska', 'Pomieszczenie gospodarcze', 'Garaż'];
+        const typesWithAutoFloor = ['Komórka lokatorska', 'Garaż'];
         
         // Check if floor filter has a default value from shortcode
         const hasDefaultFloor = container.getAttribute('data-default-floor');
@@ -962,13 +961,12 @@
         const areaMax = parseFloat(document.getElementById('areaMax')?.value) || Infinity;
         const priceMin = parseFloat(document.getElementById('priceMin')?.value) || 0;
         const priceMax = parseFloat(document.getElementById('priceMax')?.value) || Infinity;
-        // Get all checked additional options dynamically
-        const checkedAdditionalOptions = {};
-        const additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-option-key]');
+        // Get all checked additional options (feature names from shortcode)
+        const checkedFeatureNames = [];
+        const additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-feature-name]');
         additionalOptionFilters.forEach(filter => {
-            const optionKey = filter.getAttribute('data-option-key');
-            if (optionKey && filter.checked) {
-                checkedAdditionalOptions[optionKey] = true;
+            if (filter.checked) {
+                checkedFeatureNames.push(filter.getAttribute('data-feature-name'));
             }
         });
         
@@ -1026,96 +1024,19 @@
             const itemPrice = parseFloat(item.getAttribute('data-price-value')) || 0;
             shouldShow = shouldShow && itemPrice >= priceMin && itemPrice <= priceMax;
             
-            // Additional options filters - dynamic based on settings
-            const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
-            
-            // Map option keys to attribute matching patterns
-            const optionAttributePatterns = {
-                'promo': {
-                    checkPromo: true, // Special handling for promo
-                    patterns: ['promocja']
-                },
-                '2bath': {
-                    patterns: ['2 lazienki', 'dwie lazienki', '2 lazienk']
-                },
-                'wardrobe': {
-                    patterns: ['garderoba']
-                },
-                'lake_view': {
-                    patterns: ['widok na jezioro', 'widok na jezior', 'jezioro']
-                },
-                'balcony': {
-                    patterns: ['balkon']
-                },
-                '2balconies': {
-                    patterns: ['2 balkony', 'dwa balkony', '2 balkon']
-                },
-                'terrace': {
-                    patterns: ['taras']
-                },
-                'garden': {
-                    patterns: ['ogród', 'ogrodek']
-                },
-                'kitchen_annex': {
-                    patterns: ['aneks kuchenny', 'aneks']
-                },
-                'bright_kitchen': {
-                    patterns: ['jasna kuchnia']
-                },
-                'elevator': {
-                    patterns: ['winda']
-                },
-                'separate_wc': {
-                    patterns: ['osobne wc', 'osobne WC']
-                },
-                'storage': {
-                    patterns: ['pom. gospodarcze', 'pomieszczenie gospodarcze']
-                },
-                'cellar': {
-                    patterns: ['komórka lokatorska', 'komorka lokatorska']
-                },
-                'air_conditioning': {
-                    patterns: ['klimatyzacja']
-                },
-                'parking': {
-                    patterns: ['parking']
-                },
-                'parking_space': {
-                    patterns: ['miejsce postojowe']
-                },
-                'playground': {
-                    patterns: ['plac zabaw']
-                }
-            };
-            
-            // Check each selected additional option
-            for (const optionKey in checkedAdditionalOptions) {
-                if (checkedAdditionalOptions[optionKey]) {
-                    const optionConfig = optionAttributePatterns[optionKey];
-                    if (!optionConfig) continue;
-                    
-                    let hasMatch = false;
-                    
-                    // Special handling for promo
-                    if (optionKey === 'promo' && optionConfig.checkPromo) {
-                        const hasPromoDiscount = item.getAttribute('data-has-promo') === 'true';
-                        const hasPromoAttribute = attributes.some(attr => {
-                            const attrName = typeof attr === 'string' ? attr : (attr.name || '');
-                            const attrLower = attrName.toLowerCase().trim();
-                            return attrLower === 'promocja' || attrLower.includes('promocja');
-                        });
-                        hasMatch = hasPromoDiscount || hasPromoAttribute;
-                    } else {
-                        // Check attributes against patterns
-                        hasMatch = attributes.some(attr => {
-                            const attrName = typeof attr === 'string' ? attr : (attr.name || '');
-                            const attrLower = attrName.toLowerCase().trim();
-                            return optionConfig.patterns.some(pattern => {
-                                return attrLower === pattern || attrLower.includes(pattern);
-                            });
-                        });
-                    }
-                    
+            // Additional options filters - match feature names against attributes
+            if (checkedFeatureNames.length > 0) {
+                const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
+
+                for (const featureName of checkedFeatureNames) {
+                    const featureLower = featureName.toLowerCase().trim();
+
+                    const hasMatch = attributes.some(attr => {
+                        const attrName = typeof attr === 'string' ? attr : (attr.name || '');
+                        const attrLower = attrName.toLowerCase().trim();
+                        return attrLower === featureLower || attrLower.includes(featureLower) || featureLower.includes(attrLower);
+                    });
+
                     if (!hasMatch) {
                         shouldShow = false;
                         break;
@@ -1161,14 +1082,7 @@
         // Reset dropdowns
         const localTypeFilter = document.getElementById('localTypeFilter');
         if (localTypeFilter) {
-            // Reset to "Lokal mieszkalny" if available, otherwise "Garaż", otherwise "all"
-            const lokalMieszkalnyOption = Array.from(localTypeFilter.options).find(opt => opt.value === 'Lokal mieszkalny');
-            if (lokalMieszkalnyOption) {
-                localTypeFilter.value = 'Lokal mieszkalny';
-            } else {
-                const garazOption = Array.from(localTypeFilter.options).find(opt => opt.value === 'Garaż');
-                localTypeFilter.value = garazOption ? 'Garaż' : 'all';
-            }
+            localTypeFilter.value = 'all';
         }
         
         const buildingFilter = document.getElementById('buildingFilter');
@@ -1187,8 +1101,8 @@
         if (priceMin) priceMin.value = '';
         if (priceMax) priceMax.value = '';
         
-        // Reset additional options checkboxes - dynamic
-        const additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-option-key]');
+        // Reset additional options checkboxes
+        const additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-feature-name]');
         additionalOptionFilters.forEach(filter => {
             filter.checked = false;
         });
@@ -1798,7 +1712,6 @@
                     'Lokal mieszkalny': 'Mieszkanie',
                     'Garaż': 'Garaż',
                     'Komórka lokatorska': 'Komórka lokatorska',
-                    'Pomieszczenie gospodarcze': 'Pomieszczenie gospodarcze',
                     'Miejsce postojowe': 'Miejsce postojowe'
                 };
                 localTypeLabel = typeMap[data.localType] || data.localType;
@@ -3049,14 +2962,12 @@
 
             switchToAllView();
 
-            // Try Komórka lokatorska first, then Pomieszczenie gospodarcze
+            // Set filter to Komórka lokatorska
             const localTypeFilter = document.getElementById('localTypeFilter');
             if (localTypeFilter) {
                 const options = Array.from(localTypeFilter.options).map(o => o.value);
                 if (options.includes('Komórka lokatorska')) {
                     setLocalTypeFilter('Komórka lokatorska');
-                } else if (options.includes('Pomieszczenie gospodarcze')) {
-                    setLocalTypeFilter('Pomieszczenie gospodarcze');
                 }
             }
         });
@@ -3212,7 +3123,7 @@
             if (localType === 'Lokal mieszkalny') result.hasApartment = true;
             else if (localType === 'Garaż') result.hasGarage = true;
             else if (localType === 'Miejsce postojowe') result.hasParking = true;
-            else if (localType === 'Komórka lokatorska' || localType === 'Pomieszczenie gospodarcze') result.hasStorage = true;
+            else if (localType === 'Komórka lokatorska') result.hasStorage = true;
         });
 
         return result;

@@ -199,7 +199,6 @@ final class Develogic_Integration {
             'tour_360_url' => '', // Default 360° tour URL
             'enable_cron_sync' => false, // Disabled by default
             'primary_color' => '#0066cc', // Default primary color
-            'additional_options' => array('promo', '2bath', 'wardrobe', 'lake_view'), // Default additional options
         );
         
         add_option('develogic_settings', $default_options);

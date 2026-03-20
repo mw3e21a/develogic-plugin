@@ -30,6 +30,8 @@ Szablon `apartments-list` to katalogowy widok listy mieszkań wzorowany na profe
 | `sort_by` | string | priceGrossm2 | Domyślne sortowanie (floor, area, rooms, priceGross, priceGrossm2) |
 | `sort_dir` | string | asc | Kierunek sortowania (asc, desc) |
 | `gallery` | bool | true | Czy włączyć lightGallery |
+| `hide_extras` | bool | false | Czy ukryć sekcję "Opcje dodatkowe" |
+| `extras` | string | - | Lista opcji dodatkowych (oddzielone przecinkami). Nazwy muszą odpowiadać nazwom features z panelu Develogic (AvailableProductFeatures). Jeśli nie podano, sekcja opcji dodatkowych nie wyświetla się. Przykład: `extras="W promocji,2 łazienki,Z garderobą,Widok na jezioro"` |
 
 ## Przykłady użycia
 
@@ -51,6 +53,11 @@ Szablon `apartments-list` to katalogowy widok listy mieszkań wzorowany na profe
 ### Bez liczników i ulubionych
 ```
 [develogic_apartments_list show_counters="false" show_favorite="false"]
+```
+
+### Z ręcznie zdefiniowanymi opcjami dodatkowymi
+```
+[develogic_apartments_list extras="W promocji,2 łazienki,Z garderobą,Widok na jezioro"]
 ```
 
 ### Tylko konkretny budynek

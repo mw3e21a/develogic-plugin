@@ -145,6 +145,7 @@ class Develogic_Shortcodes {
             'hide_price_filter' => 'false',
             'hide_building_filter' => 'false',
             'hide_extras' => 'false',
+            'extras' => '',
             'default_local_type' => '',
             'show_features' => 'true',
             'show_apartment_images' => 'true',
@@ -453,6 +454,12 @@ class Develogic_Shortcodes {
         $hide_price_filter = ($atts['hide_price_filter'] === 'true' || $atts['hide_price_filter'] === true);
         $hide_building_filter = ($atts['hide_building_filter'] === 'true' || $atts['hide_building_filter'] === true);
         $hide_extras = ($atts['hide_extras'] === 'true' || $atts['hide_extras'] === true);
+
+        // Parse extras parameter - allows overriding additional options from shortcode
+        $shortcode_extras = null;
+        if (!empty($atts['extras'])) {
+            $shortcode_extras = array_map('trim', explode(',', $atts['extras']));
+        }
         $show_features = !($atts['show_features'] === 'false' || $atts['show_features'] === false);
         $show_apartment_images = !($atts['show_apartment_images'] === 'false' || $atts['show_apartment_images'] === false);
         $show_omnibus_price = !($atts['show_omnibus_price'] === 'false' || $atts['show_omnibus_price'] === false);
@@ -590,6 +597,7 @@ class Develogic_Shortcodes {
             'hide_price_filter' => $hide_price_filter,
             'hide_building_filter' => $hide_building_filter,
             'hide_extras' => $hide_extras,
+            'shortcode_extras' => $shortcode_extras,
             'default_local_type' => $default_local_type,
             'building_floors_map' => $building_floors_map,
             'is_residential_local' => $is_residential_local,

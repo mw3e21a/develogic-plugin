@@ -63,7 +63,7 @@ class Develogic_ImageMapPro_Integration {
      */
     private function load_building_mapping() {
         $mapping = get_option('develogic_imagemappro_building_map', array());
-        
+
         if (!empty($mapping) && is_array($mapping)) {
             $this->building_shortcode_map = $mapping;
         }
@@ -211,29 +211,40 @@ class Develogic_ImageMapPro_Integration {
             }
             
         } else {
-            // NEW version: artboards with children
-            if (empty($project_data['artboards']) || !is_array($project_data['artboards'])) {
-                $this->log('No artboards found in NEW version project: ' . $project->name, 'warning');
-                return $result;
-            }
-            
-            $this->log(sprintf('NEW version project has %d artboards', count($project_data['artboards'])), 'info');
-            
-            // Process each artboard
-            foreach ($project_data['artboards'] as &$artboard) {
-                if (empty($artboard['children']) || !is_array($artboard['children'])) {
-                    continue;
+            // NEW version: try artboards first, then fall back to spots
+            $has_artboards = !empty($project_data['artboards']) && is_array($project_data['artboards']);
+            $has_spots = !empty($project_data['spots']) && is_array($project_data['spots']);
+
+            if ($has_artboards) {
+                $this->log(sprintf('NEW version project has %d artboards', count($project_data['artboards'])), 'info');
+
+                foreach ($project_data['artboards'] as &$artboard) {
+                    if (empty($artboard['children']) || !is_array($artboard['children'])) {
+                        continue;
+                    }
+
+                    $this->log(sprintf('Processing artboard with %d shapes', count($artboard['children'])), 'info');
+
+                    foreach ($artboard['children'] as &$shape) {
+                        if ($this->process_single_shape($shape, $locals, $project)) {
+                            $modified = true;
+                            $result['shapes_updated']++;
+                        }
+                    }
                 }
-                
-                $this->log(sprintf('Processing artboard with %d shapes', count($artboard['children'])), 'info');
-                
-                // Process each shape (polygon/spot)
-                foreach ($artboard['children'] as &$shape) {
+            } elseif ($has_spots) {
+                // NEW version stored in table but uses spots structure (e.g. Image Map Pro v6 with layers)
+                $this->log(sprintf('NEW version project uses spots structure, has %d spots', count($project_data['spots'])), 'info');
+
+                foreach ($project_data['spots'] as &$shape) {
                     if ($this->process_single_shape($shape, $locals, $project)) {
                         $modified = true;
                         $result['shapes_updated']++;
                     }
                 }
+            } else {
+                $this->log('No artboards or spots found in NEW version project: ' . $project->name, 'warning');
+                return $result;
             }
         }
         
@@ -308,143 +319,123 @@ class Develogic_ImageMapPro_Integration {
     /**
      * Find Develogic local that matches a shape
      *
+     * Uses the building mapping to determine which building a shape belongs to.
+     * Mapping entries can include layer filters (format: "shortcode:layer1,layer2")
+     * to disambiguate shapes in multi-building projects.
+     *
      * @param array $shape Shape data
      * @param array $locals Array of locals
      * @param object $project Project object
      * @return array|null Local data or null
      */
     private function find_local_for_shape($shape, $locals, $project) {
-        // Try to extract local number from shape title
         $shape_title = isset($shape['title']) ? trim($shape['title']) : '';
-        
+
         if (empty($shape_title)) {
             return null;
         }
-        
-        // Determine which buildings this project belongs to (can be multiple!)
-        $building_ids = array();
-        $building_names = array();
-        
-        // Check if we have a mapping for this shortcode
-        if (!empty($this->building_shortcode_map)) {
-            $this->log(sprintf('Building map: %s', json_encode($this->building_shortcode_map)), 'info');
-            
-            // Collect ALL buildings that map to this shortcode
-            foreach ($this->building_shortcode_map as $building => $shortcodes) {
-                // Handle both single shortcode (string) and multiple (array) - backwards compatibility
-                $shortcodes_array = is_array($shortcodes) ? $shortcodes : array($shortcodes);
-                
-                // Check if this project shortcode is in the building's shortcodes
-                if (in_array($project->shortcode, $shortcodes_array)) {
-                    // Try to parse building info
-                    if (is_numeric($building)) {
-                        $building_ids[] = intval($building);
-                        $this->log(sprintf('Matched project %s to building ID: %d', $project->shortcode, $building), 'info');
-                    } else {
-                        $building_names[] = $building;
-                        $this->log(sprintf('Matched project %s to building NAME: %s', $project->shortcode, $building), 'info');
-                    }
-                    // DON'T break - collect all buildings!
-                }
-            }
-        } else {
-            $this->log('Building map is empty!', 'warning');
-        }
-        
-        // Search for local by number
-        foreach ($locals as $local) {
-            $local_number = isset($local['number']) ? trim($local['number']) : '';
-            $local_external_number = isset($local['externalNumber']) ? trim($local['externalNumber']) : '';
-            
-            // Debug logging
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                if ($shape_title === 'M63' || $local_number === 'M63') {
-                    error_log(sprintf(
-                        '[ImageMapPro Debug] Comparing shape "%s" with local "%s" (external: "%s")',
-                        $shape_title,
-                        $local_number,
-                        $local_external_number
-                    ));
-                }
-            }
-            
-            // Match by number or external number
-            if ($shape_title === $local_number || $shape_title === $local_external_number) {
-                // Found a number match!
-                $this->log(sprintf(
-                    'Found number match: shape "%s" = local "%s", checking building...',
-                    $shape_title,
-                    $local_number
-                ), 'info');
-                
-                // If we have building filters, check if it matches ANY of them
-                if (!empty($building_ids)) {
+
+        $shape_layer_id = isset($shape['layerID']) ? $shape['layerID'] : null;
+
+        // Find which building ID this shape belongs to based on shortcode + layer mapping
+        $matched_building_id = $this->resolve_building_for_shape($project->shortcode, $shape_layer_id);
+
+        if ($matched_building_id !== null) {
+            $this->log(sprintf(
+                'Shape "%s" (layer %s) resolved to building ID: %d',
+                $shape_title, $shape_layer_id, $matched_building_id
+            ), 'info');
+
+            // Search for local matching this number AND building
+            foreach ($locals as $local) {
+                $local_number = isset($local['number']) ? trim($local['number']) : '';
+                $local_external = isset($local['externalNumber']) ? trim($local['externalNumber']) : '';
+
+                if ($shape_title === $local_number || $shape_title === $local_external) {
                     $local_building_id = isset($local['buildingId']) ? intval($local['buildingId']) : null;
-                    $this->log(sprintf(
-                        'Comparing building IDs: expected one of [%s], local has=%s',
-                        implode(', ', $building_ids),
-                        $local_building_id
-                    ), 'info');
-                    
-                    if (in_array($local_building_id, $building_ids)) {
+                    if ($local_building_id === $matched_building_id) {
                         $this->log(sprintf(
                             'Matched shape "%s" to local %s (building ID: %d)',
-                            $shape_title,
-                            $local_number,
-                            $local_building_id
+                            $shape_title, $local_number, $matched_building_id
                         ), 'success');
                         return $local;
-                    } else {
-                        $this->log(sprintf(
-                            'Building ID mismatch for "%s": expected one of [%s], got %s',
-                            $local_number,
-                            implode(', ', $building_ids),
-                            $local_building_id
-                        ), 'warning');
                     }
-                } elseif (!empty($building_names)) {
-                    $local_building_name = isset($local['building']) ? $local['building'] : null;
-                    $this->log(sprintf(
-                        'Comparing building names: expected one of [%s], local has="%s"',
-                        implode(', ', $building_names),
-                        $local_building_name
-                    ), 'info');
-                    
-                    if (in_array($local_building_name, $building_names)) {
-                        $this->log(sprintf(
-                            'Matched shape "%s" to local %s (building: %s)',
-                            $shape_title,
-                            $local_number,
-                            $local_building_name
-                        ), 'success');
-                        return $local;
-                    } else {
-                        $this->log(sprintf(
-                            'Building name mismatch for "%s": expected one of [%s], got "%s"',
-                            $local_number,
-                            implode(', ', $building_names),
-                            $local_building_name
-                        ), 'warning');
-                    }
+                }
+            }
+
+            $this->log(sprintf(
+                'No local found for shape "%s" in building %d',
+                $shape_title, $matched_building_id
+            ), 'warning');
+            return null;
+        }
+
+        // No mapping resolved — fallback: return first matching local (legacy behavior)
+        $this->log(sprintf(
+            'No building mapping for shape "%s" in project %s (layer %s) — using first match',
+            $shape_title, $project->shortcode, $shape_layer_id
+        ), 'warning');
+
+        foreach ($locals as $local) {
+            $local_number = isset($local['number']) ? trim($local['number']) : '';
+            $local_external = isset($local['externalNumber']) ? trim($local['externalNumber']) : '';
+
+            if ($shape_title === $local_number || $shape_title === $local_external) {
+                return $local;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve which building ID a shape belongs to based on project shortcode and layer
+     *
+     * Mapping format: building_id => ["shortcode", "shortcode:layer1,layer2", ...]
+     *
+     * @param string $project_shortcode The Image Map Pro project shortcode
+     * @param int|null $shape_layer_id The layer ID of the shape (null if no layers)
+     * @return int|null Building ID or null if no mapping found
+     */
+    private function resolve_building_for_shape($project_shortcode, $shape_layer_id) {
+        if (empty($this->building_shortcode_map)) {
+            return null;
+        }
+
+        foreach ($this->building_shortcode_map as $building_key => $entries) {
+            if (!is_numeric($building_key)) {
+                continue;
+            }
+            $building_id = intval($building_key);
+            $entries_array = is_array($entries) ? $entries : array($entries);
+
+            foreach ($entries_array as $entry) {
+                // Parse entry: "shortcode" or "shortcode:layer1,layer2"
+                if (strpos($entry, ':') !== false) {
+                    list($entry_shortcode, $layers_str) = explode(':', $entry, 2);
+                    $allowed_layers = array_map('intval', explode(',', $layers_str));
                 } else {
-                    // No building filter, return first match
-                    $this->log(sprintf(
-                        'Matched shape "%s" to local %s (no building filter)',
-                        $shape_title,
-                        $local_number
-                    ), 'success');
-                    return $local;
+                    $entry_shortcode = $entry;
+                    $allowed_layers = array(); // empty = all layers
+                }
+
+                // Check if shortcode matches
+                if ($entry_shortcode !== $project_shortcode) {
+                    continue;
+                }
+
+                // If no layer restriction, this building matches
+                if (empty($allowed_layers)) {
+                    return $building_id;
+                }
+
+                // If shape has a layer, check if it's in the allowed list
+                if ($shape_layer_id !== null && in_array(intval($shape_layer_id), $allowed_layers)) {
+                    return $building_id;
                 }
             }
         }
-        
-        // Log when shape is not found
-        $this->log(sprintf(
-            'No local found for shape "%s" in project %s',
-            $shape_title,
-            $project->shortcode
-        ), 'warning');
-        
+
         return null;
     }
     

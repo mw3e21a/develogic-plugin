@@ -2377,6 +2377,41 @@
     color: #666;
 }
 
+.header-promo-btn {
+    margin-left: auto;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid #d4380d;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: #d4380d;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.header-promo-btn svg {
+    stroke: #d4380d;
+}
+
+.header-promo-btn:hover {
+    background: #fff2e8;
+    box-shadow: 0 1px 4px rgba(212, 56, 13, 0.15);
+}
+
+.header-promo-btn.active {
+    background: #d4380d;
+    color: #fff;
+}
+
+.header-promo-btn.active svg {
+    stroke: #fff;
+}
+
 .quote-cart-btn {
     display: flex;
     align-items: center;

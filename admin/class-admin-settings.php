@@ -280,23 +280,6 @@ class Develogic_Admin_Settings {
             'develogic_appearance_section',
             array('field' => 'primary_color', 'default' => '#0066cc', 'description' => __('Główny kolor przycisków i elementów interaktywnych', 'develogic'))
         );
-        
-        // Additional Options Settings Section
-        add_settings_section(
-            'develogic_additional_options_section',
-            __('Opcje dodatkowe', 'develogic'),
-            array($this, 'render_additional_options_section_description'),
-            'develogic'
-        );
-        
-        add_settings_field(
-            'additional_options',
-            __('Dostępne opcje dodatkowe', 'develogic'),
-            array($this, 'render_additional_options_checkboxes'),
-            'develogic',
-            'develogic_additional_options_section',
-            array('field' => 'additional_options')
-        );
     }
     
     /**
@@ -414,14 +397,6 @@ class Develogic_Admin_Settings {
             $output['primary_color'] = '#0066cc'; // Default
         }
         
-        // Additional options - sanitize array
-        if (isset($input['additional_options']) && is_array($input['additional_options'])) {
-            $output['additional_options'] = array_map('sanitize_text_field', $input['additional_options']);
-        } else {
-            // Default options if not set
-            $output['additional_options'] = array('promo', '2bath', 'wardrobe', 'lake_view');
-        }
-        
         // Preserve sync_investments and sync_buildings if not in input
         // (they are managed on the sync page, not in settings)
         if (isset($input['sync_investments']) && is_array($input['sync_investments'])) {
@@ -514,10 +489,6 @@ class Develogic_Admin_Settings {
     
     public function render_appearance_section_description() {
         echo '<p>' . __('Dostosuj wygląd elementów interfejsu.', 'develogic') . '</p>';
-    }
-    
-    public function render_additional_options_section_description() {
-        echo '<p>' . __('Wybierz które opcje dodatkowe mają być dostępne w filtrach mieszkań. Opcje są filtrowane na podstawie atrybutów mieszkań z API.', 'develogic') . '</p>';
     }
     
     public function render_text_field($args) {
@@ -765,102 +736,5 @@ class Develogic_Admin_Settings {
         }
     }
     
-    public function render_additional_options_checkboxes($args) {
-        $settings = get_option('develogic_settings');
-        $selected = isset($settings[$args['field']]) && is_array($settings[$args['field']]) 
-            ? $settings[$args['field']] 
-            : array('promo', '2bath', 'wardrobe', 'lake_view');
-        
-        // Available options with their labels and attribute matching patterns
-        $available_options = array(
-            'promo' => array(
-                'label' => __('W promocji', 'develogic'),
-                'description' => __('Filtruje mieszkania z promocją (sprawdza atrybut "promocja" oraz maxDiscountPercent)', 'develogic')
-            ),
-            '2bath' => array(
-                'label' => __('2 łazienki', 'develogic'),
-                'description' => __('Filtruje mieszkania z 2 łazienkami (sprawdza atrybut "2 lazienki")', 'develogic')
-            ),
-            'wardrobe' => array(
-                'label' => __('Z garderobą', 'develogic'),
-                'description' => __('Filtruje mieszkania z garderobą (sprawdza atrybut "garderoba")', 'develogic')
-            ),
-            'lake_view' => array(
-                'label' => __('Widok na jezioro', 'develogic'),
-                'description' => __('Filtruje mieszkania z widokiem na jezioro (sprawdza atrybut "widok na jezioro")', 'develogic')
-            ),
-            'balcony' => array(
-                'label' => __('Balkon', 'develogic'),
-                'description' => __('Filtruje mieszkania z balkonem (sprawdza atrybut "balkon")', 'develogic')
-            ),
-            '2balconies' => array(
-                'label' => __('2 balkony', 'develogic'),
-                'description' => __('Filtruje mieszkania z 2 balkonami (sprawdza atrybut "2 balkony")', 'develogic')
-            ),
-            'terrace' => array(
-                'label' => __('Taras', 'develogic'),
-                'description' => __('Filtruje mieszkania z tarasem (sprawdza atrybut "taras")', 'develogic')
-            ),
-            'garden' => array(
-                'label' => __('Ogród', 'develogic'),
-                'description' => __('Filtruje mieszkania z ogrodem (sprawdza atrybut "ogród")', 'develogic')
-            ),
-            'kitchen_annex' => array(
-                'label' => __('Aneks kuchenny', 'develogic'),
-                'description' => __('Filtruje mieszkania z aneksem kuchennym (sprawdza atrybut "aneks kuchenny")', 'develogic')
-            ),
-            'bright_kitchen' => array(
-                'label' => __('Jasna kuchnia', 'develogic'),
-                'description' => __('Filtruje mieszkania z jasną kuchnią (sprawdza atrybut "jasna kuchnia")', 'develogic')
-            ),
-            'elevator' => array(
-                'label' => __('Winda', 'develogic'),
-                'description' => __('Filtruje mieszkania z windą (sprawdza atrybut "winda")', 'develogic')
-            ),
-            'separate_wc' => array(
-                'label' => __('Osobne WC', 'develogic'),
-                'description' => __('Filtruje mieszkania z osobnym WC (sprawdza atrybut "osobne WC")', 'develogic')
-            ),
-            'storage' => array(
-                'label' => __('Pom. gospodarcze', 'develogic'),
-                'description' => __('Filtruje mieszkania z pomieszczeniem gospodarczym (sprawdza atrybut "pom. gospodarcze")', 'develogic')
-            ),
-            'cellar' => array(
-                'label' => __('Komórka lokatorska', 'develogic'),
-                'description' => __('Filtruje mieszkania z komórką lokatorską (sprawdza atrybut "komórka lokatorska")', 'develogic')
-            ),
-            'air_conditioning' => array(
-                'label' => __('Klimatyzacja', 'develogic'),
-                'description' => __('Filtruje mieszkania z klimatyzacją (sprawdza atrybut "klimatyzacja")', 'develogic')
-            ),
-            'parking' => array(
-                'label' => __('Parking', 'develogic'),
-                'description' => __('Filtruje mieszkania z parkingiem (sprawdza atrybut "parking")', 'develogic')
-            ),
-            'parking_space' => array(
-                'label' => __('Miejsce postojowe', 'develogic'),
-                'description' => __('Filtruje mieszkania z miejscem postojowym (sprawdza atrybut "miejsce postojowe")', 'develogic')
-            ),
-            'playground' => array(
-                'label' => __('Plac zabaw', 'develogic'),
-                'description' => __('Filtruje mieszkania z placem zabaw (sprawdza atrybut "plac zabaw")', 'develogic')
-            )
-        );
-        
-        echo '<fieldset>';
-        foreach ($available_options as $key => $option) {
-            $checked = in_array($key, $selected);
-            printf(
-                '<label style="display: block; margin-bottom: 10px;"><input type="checkbox" name="develogic_settings[%s][]" value="%s" %s> <strong>%s</strong><br><span style="color: #666; font-size: 12px; margin-left: 24px;">%s</span></label>',
-                esc_attr($args['field']),
-                esc_attr($key),
-                checked($checked, true, false),
-                esc_html($option['label']),
-                esc_html($option['description'])
-            );
-        }
-        echo '</fieldset>';
-        echo '<p class="description">' . __('Zaznacz opcje które mają być dostępne w filtrach mieszkań. Opcje są filtrowane na podstawie atrybutów mieszkań z API Develogic.', 'develogic') . '</p>';
-    }
 }
 

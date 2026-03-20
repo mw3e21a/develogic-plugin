@@ -104,10 +104,15 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     <select class="filter-select" id="localTypeFilter">
                         <?php
                         // Show all available local types in the filter
+                        // "Pomieszczenie gospodarcze" is merged with "Komórka lokatorska"
                         $available_types = array();
                         foreach ($locals as $local) {
                             if (!empty($local['localType'])) {
                                 $type = $local['localType'];
+                                // Remap "Pomieszczenie gospodarcze" to "Komórka lokatorska"
+                                if ($type === 'Pomieszczenie gospodarcze') {
+                                    $type = 'Komórka lokatorska';
+                                }
                                 if (!in_array($type, $available_types)) {
                                     $available_types[] = $type;
                                 }
@@ -126,7 +131,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         }
                         
                         // Define display order for types
-                        $type_order = array('Lokal mieszkalny', 'Garaż', 'Komórka lokatorska', 'Pomieszczenie gospodarcze', 'Miejsce postojowe');
+                        $type_order = array('Lokal mieszkalny', 'Garaż', 'Komórka lokatorska', 'Miejsce postojowe');
                         $ordered_types = array();
                         foreach ($type_order as $ordered_type) {
                             if (in_array($ordered_type, $available_types)) {
@@ -298,33 +303,33 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         <select class="filter-select" id="areaMin">
                             <option value="">od</option>
                             <option value="1" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '1'); ?>>1m²</option>
-                            <option value="25" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '25'); ?>>25m²</option>
+                            <option value="10" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '10'); ?>>10m²</option>
+                            <option value="20" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '20'); ?>>20m²</option>
+                            <option value="30" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '30'); ?>>30m²</option>
                             <option value="40" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '40'); ?>>40m²</option>
                             <option value="50" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '50'); ?>>50m²</option>
                             <option value="60" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '60'); ?>>60m²</option>
                             <option value="70" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '70'); ?>>70m²</option>
                             <option value="80" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '80'); ?>>80m²</option>
+                            <option value="90" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '90'); ?>>90m²</option>
                             <option value="100" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '100'); ?>>100m²</option>
                             <option value="120" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '120'); ?>>120m²</option>
-                            <option value="150" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '150'); ?>>150m²</option>
-                            <option value="250" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '250'); ?>>250m²</option>
-                            <option value="400" <?php selected(!empty($atts['min_area']) ? $atts['min_area'] : '', '400'); ?>>400m²</option>
                         </select>
                         <span class="filter-separator">-</span>
                         <select class="filter-select" id="areaMax">
                             <option value="">do</option>
                             <option value="1" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '1'); ?>>1m²</option>
-                            <option value="25" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '25'); ?>>25m²</option>
+                            <option value="10" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '10'); ?>>10m²</option>
+                            <option value="20" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '20'); ?>>20m²</option>
+                            <option value="30" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '30'); ?>>30m²</option>
                             <option value="40" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '40'); ?>>40m²</option>
                             <option value="50" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '50'); ?>>50m²</option>
                             <option value="60" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '60'); ?>>60m²</option>
                             <option value="70" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '70'); ?>>70m²</option>
                             <option value="80" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '80'); ?>>80m²</option>
+                            <option value="90" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '90'); ?>>90m²</option>
                             <option value="100" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '100'); ?>>100m²</option>
                             <option value="120" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '120'); ?>>120m²</option>
-                            <option value="150" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '150'); ?>>150m²</option>
-                            <option value="250" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '250'); ?>>250m²</option>
-                            <option value="400" <?php selected(!empty($atts['max_area']) ? $atts['max_area'] : '', '400'); ?>>400m²</option>
                         </select>
                     </div>
                 </div>
@@ -337,7 +342,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         $price_steps = array(
                             5000, 10000, 50000, 100000, 150000, 200000, 250000,
                             300000, 350000, 400000, 450000, 500000, 600000, 700000,
-                            750000, 800000, 900000, 1000000, 1500000, 2000000, 3000000, 4000000
+                            750000, 800000, 900000, 1000000, 1500000
                         );
                         $default_price_min = !empty($atts['min_price_gross']) ? $atts['min_price_gross'] : '';
                         $default_price_max = !empty($atts['max_price_gross']) ? $atts['max_price_gross'] : '';
@@ -362,51 +367,24 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
         </div>
 
         <div class="filter-row">
-            <?php if (empty($hide_extras)): 
-                // Get additional options from settings
-                $settings = get_option('develogic_settings', array());
-                $additional_options = isset($settings['additional_options']) && is_array($settings['additional_options']) 
-                    ? $settings['additional_options'] 
-                    : array('promo', '2bath', 'wardrobe', 'lake_view');
-                
-                // Map option keys to labels and filter IDs
-                $option_labels = array(
-                    'promo' => __('W promocji', 'develogic'),
-                    '2bath' => __('2 łazienki', 'develogic'),
-                    'wardrobe' => __('Z garderobą', 'develogic'),
-                    'lake_view' => __('Widok na jezioro', 'develogic'),
-                    'balcony' => __('Balkon', 'develogic'),
-                    '2balconies' => __('2 balkony', 'develogic'),
-                    'terrace' => __('Taras', 'develogic'),
-                    'garden' => __('Ogród', 'develogic'),
-                    'kitchen_annex' => __('Aneks kuchenny', 'develogic'),
-                    'bright_kitchen' => __('Jasna kuchnia', 'develogic'),
-                    'elevator' => __('Winda', 'develogic'),
-                    'separate_wc' => __('Osobne WC', 'develogic'),
-                    'storage' => __('Pom. gospodarcze', 'develogic'),
-                    'cellar' => __('Komórka lokatorska', 'develogic'),
-                    'air_conditioning' => __('Klimatyzacja', 'develogic'),
-                    'parking' => __('Parking', 'develogic'),
-                    'parking_space' => __('Miejsce postojowe', 'develogic'),
-                    'playground' => __('Plac zabaw', 'develogic')
-                );
-                
-                if (!empty($additional_options)): ?>
+            <?php if (empty($hide_extras) && !empty($shortcode_extras)):
+                // extras are defined in shortcode as feature names from Develogic API
+                $additional_options = $shortcode_extras;
+                ?>
             <div class="filter-group filter-extras">
                 <label class="filter-label">Opcje dodatkowe:</label>
                 <div class="filter-checkboxes">
-                    <?php foreach ($additional_options as $option_key): 
-                        if (isset($option_labels[$option_key])): ?>
+                    <?php foreach ($additional_options as $feature_name):
+                        $feature_slug = sanitize_title($feature_name); ?>
                     <label class="filter-checkbox">
-                        <input type="checkbox" id="<?php echo esc_attr($option_key); ?>Filter" value="<?php echo esc_attr($option_key); ?>" data-option-key="<?php echo esc_attr($option_key); ?>">
-                        <span><?php echo esc_html($option_labels[$option_key]); ?></span>
+                        <input type="checkbox" id="<?php echo esc_attr($feature_slug); ?>Filter" value="<?php echo esc_attr($feature_name); ?>" data-feature-name="<?php echo esc_attr($feature_name); ?>">
+                        <span><?php echo esc_html($feature_name); ?></span>
                     </label>
-                        <?php endif; 
-                    endforeach; ?>
+                    <?php endforeach; ?>
                 </div>
             </div>
-                <?php endif; ?>
-            
+            <?php endif; ?>
+
             <button type="button" class="filter-show-more-btn mobile-only" id="showMoreFilters" aria-expanded="false">
                 <span class="show-more-text">Pokaż więcej filtrów</span>
                 <span class="show-less-text" style="display: none;">Ukryj dodatkowe filtry</span>
@@ -414,7 +392,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     <path d="M6 9l6 6 6-6"/>
                 </svg>
             </button>
-            
+
             <div class="filter-group filter-actions">
                 <button class="filter-reset-btn" id="resetFilters">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -426,24 +404,8 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     Resetuj filtry
                 </button>
             </div>
-            <?php endif; ?>
         </div>
         
-        <?php if (!empty($hide_extras)): ?>
-        <div class="filter-row">
-            <div class="filter-group filter-actions">
-                <button class="filter-reset-btn" id="resetFilters">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                        <path d="M21 3v5h-5"/>
-                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                        <path d="M3 21v-5h5"/>
-                    </svg>
-                    Resetuj filtry
-                </button>
-            </div>
-        </div>
-        <?php endif; ?>
     </div>
 
     <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
@@ -477,6 +439,14 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
         </div>
         
         
+        <button class="header-promo-btn" id="checkPromotionsBtn" title="Sprawdź aktualne promocje dla tego budynku">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+                <line x1="7" y1="7" x2="7.01" y2="7"/>
+            </svg>
+            Sprawdź aktualne promocje
+        </button>
+
         <div class="favorites-share-container" id="favoritesShareContainer" style="display: none;">
             <span class="share-label">Udostępnij listę na:</span>
             <button class="share-btn share-twitter" data-share="twitter" title="Twitter">
@@ -496,6 +466,16 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </svg>
             </button>
         </div>
+    </div>
+    <?php else: ?>
+    <div class="promo-btn-standalone" style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+        <button class="header-promo-btn" id="checkPromotionsBtn" title="Sprawdź aktualne promocje dla tego budynku">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+                <line x1="7" y1="7" x2="7.01" y2="7"/>
+            </svg>
+            Sprawdź aktualne promocje
+        </button>
     </div>
     <?php endif; ?>
 
@@ -714,64 +694,12 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         }
                     }
                     
-                    // Get enabled additional options from settings
-                    $settings = get_option('develogic_settings', array());
-                    $additional_options = isset($settings['additional_options']) && is_array($settings['additional_options']) 
-                        ? $settings['additional_options'] 
-                        : array('promo', '2bath', 'wardrobe', 'lake_view');
-                    
-                    // Map option keys to attribute name patterns that should be whitelisted
-                    $option_to_attributes = array(
-                        'promo' => array('promocja'),
-                        '2bath' => array('2 lazienki', 'dwie lazienki', '2 lazienk'),
-                        'wardrobe' => array('garderoba'),
-                        'lake_view' => array('widok na jezioro', 'widok na jezior', 'jezioro'),
-                        'balcony' => array('balkon'),
-                        '2balconies' => array('2 balkony', 'dwa balkony', '2 balkon'),
-                        'terrace' => array('taras'),
-                        'garden' => array('ogród', 'ogrodek'),
-                        'kitchen_annex' => array('aneks kuchenny', 'aneks'),
-                        'bright_kitchen' => array('jasna kuchnia'),
-                        'elevator' => array('winda'),
-                        'separate_wc' => array('osobne wc', 'osobne WC'),
-                        'storage' => array('pom. gospodarcze', 'pomieszczenie gospodarcze'),
-                        'cellar' => array('komórka lokatorska', 'komorka lokatorska'),
-                        'air_conditioning' => array('klimatyzacja'),
-                        'parking' => array('parking'),
-                        'parking_space' => array('miejsce postojowe'),
-                        'playground' => array('plac zabaw')
-                    );
-                    
-                    // Build whitelist from enabled options
-                    $tag_whitelist = array();
-                    foreach ($additional_options as $option_key) {
-                        if (isset($option_to_attributes[$option_key])) {
-                            $tag_whitelist = array_merge($tag_whitelist, $option_to_attributes[$option_key]);
-                        }
+                    // Build whitelist from shortcode extras (feature names) or use default
+                    if (!empty($shortcode_extras)) {
+                        $tag_whitelist = $shortcode_extras;
+                    } else {
+                        $tag_whitelist = apply_filters('develogic_attribute_whitelist', array());
                     }
-                    
-                    // Apply default whitelist filter (for backward compatibility)
-                    $default_whitelist = apply_filters('develogic_attribute_whitelist', array(
-                        'aneks kuchenny',
-                        'balkon',
-                        '2 balkony',
-                        'taras',
-                        'ogród',
-                        'garderoba',
-                        'jasna kuchnia',
-                        'winda',
-                        'plac zabaw',
-                        'osobne WC',
-                        '2 lazienki',
-                        'pom. gospodarcze',
-                        'komórka lokatorska',
-                        'klimatyzacja',
-                        'parking',
-                        'miejsce postojowe'
-                    ));
-                    
-                    // Merge with default whitelist and remove duplicates
-                    $tag_whitelist = array_unique(array_merge($tag_whitelist, $default_whitelist));
                     
                     // Filter attributes for display using whitelist
                     foreach ($local['attributes'] as $attr) {
@@ -890,10 +818,23 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 $image2_url = '';
                 $image2_thumb = '';
                 if ($image2) {
-                    $image2_url = !empty($image2['wordpress_url']) ? $image2['wordpress_url'] : 
+                    $image2_url = !empty($image2['wordpress_url']) ? $image2['wordpress_url'] :
                                  (!empty($image2['displayUrl']) ? $image2['displayUrl'] : $image2['uri']);
-                    $image2_thumb = !empty($image2['thumbnail_url']) ? $image2['thumbnail_url'] : 
+                    $image2_thumb = !empty($image2['thumbnail_url']) ? $image2['thumbnail_url'] :
                                   (!empty($image2['thumbnailUrl']) ? $image2['thumbnailUrl'] : $image2_url);
+                }
+
+                // Find "Marketingowy" projection for mobile expand image (3D floor plan)
+                $marketing_image_url = '';
+                $marketing_image_thumb = '';
+                foreach ($projections as $proj) {
+                    if (isset($proj['type']) && $proj['type'] === 'Marketingowy') {
+                        $marketing_image_url = !empty($proj['wordpress_url']) ? $proj['wordpress_url'] :
+                                              (!empty($proj['displayUrl']) ? $proj['displayUrl'] : $proj['uri']);
+                        $marketing_image_thumb = !empty($proj['thumbnail_url']) ? $proj['thumbnail_url'] :
+                                               (!empty($proj['thumbnailUrl']) ? $proj['thumbnailUrl'] : $marketing_image_url);
+                        break;
+                    }
                 }
                 
             ?>
@@ -906,7 +847,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                  data-price-m2="<?php echo esc_attr($price_m2_padded); ?>"
                  data-area="<?php echo esc_attr($area_padded); ?>"
                  data-building="<?php echo esc_attr($local['building']); ?>"
-                 data-local-type="<?php echo esc_attr(isset($local['localType']) ? $local['localType'] : ''); ?>"
+                 data-local-type="<?php $lt = isset($local['localType']) ? $local['localType'] : ''; if ($lt === 'Pomieszczenie gospodarcze') { $lt = 'Komórka lokatorska'; } echo esc_attr($lt); ?>"
                  data-floor-number="<?php echo esc_attr($floor_value); ?>"
                  data-area-value="<?php echo esc_attr($local['area']); ?>"
                  data-price-value="<?php echo esc_attr($display_price); ?>"
@@ -1052,6 +993,10 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                             <span class="mobile-detail-value"><?php echo number_format($display_price, 0, ',', ' '); ?> zł</span>
                         </div>
                         <div class="mobile-detail-item">
+                            <span class="mobile-detail-label">Cena za m²</span>
+                            <span class="mobile-detail-value"><?php echo number_format($price_m2, 0, ',', ' '); ?> zł/m²</span>
+                        </div>
+                        <div class="mobile-detail-item">
                             <span class="mobile-detail-label">Status</span>
                             <span class="mobile-detail-value"><?php
                                 if ($status_class === 'available') {
@@ -1076,9 +1021,15 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         <span class="mobile-configurator-btn-text">Dodaj do konfiguratora oferty</span>
                     </button>
                     <?php endif; ?>
-                    <?php if ($image1_thumb): ?>
+                    <?php
+                    // Use "Marketingowy" projection for mobile expand, fallback to Karta lokalu
+                    $mobile_img_url = $marketing_image_url ? $marketing_image_url : $image1_url;
+                    $mobile_img_thumb = $marketing_image_thumb ? $marketing_image_thumb : $image1_thumb;
+                    $mobile_img_alt = $marketing_image_url ? 'Rzut 3D' : 'Rzut lokalu';
+                    ?>
+                    <?php if ($mobile_img_thumb): ?>
                     <div class="mobile-expand-image">
-                        <img src="<?php echo esc_url($image1_url ? $image1_url : $image1_thumb); ?>" alt="<?php echo esc_attr($local['number']); ?> - Rzut lokalu" loading="lazy">
+                        <img src="<?php echo esc_url($mobile_img_url ? $mobile_img_url : $mobile_img_thumb); ?>" alt="<?php echo esc_attr($local['number']); ?> - <?php echo $mobile_img_alt; ?>" loading="lazy">
                     </div>
                     <?php endif; ?>
                     <button class="mobile-expand-detail-btn" data-action="open-modal" onclick="event.stopPropagation();">
