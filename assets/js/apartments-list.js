@@ -48,9 +48,12 @@
         
         // Apply URL filters first
         applyUrlFilters();
-        
+
         // Apply filters on page load to respect default localType selection
         applyFilters();
+
+        // Initial sort: available first, then floor asc, then number asc
+        performInitialSort();
         
         // Scroll to specific apartment if specified in URL
         scrollToApartmentFromUrl();
@@ -353,7 +356,36 @@
         // Re-append sorted items
         items.forEach(item => apartmentList.appendChild(item));
     }
-    
+
+    function performInitialSort() {
+        var apartmentList = document.querySelector('.apartment-list');
+        if (!apartmentList) return;
+
+        var items = Array.from(apartmentList.querySelectorAll('.apartment-item'));
+
+        var typeOrder = { 'Lokal mieszkalny': 0, 'Komórka lokatorska': 1, 'Miejsce postojowe': 2, 'Garaż': 3 };
+        var statusOrder = { 'available': 0, 'reserved': 1, 'sold': 2 };
+
+        items.sort(function(a, b) {
+            // 1. Local type: apartments first, then storage, parking, garages
+            var aType = typeOrder[a.getAttribute('data-local-type')] ?? 4;
+            var bType = typeOrder[b.getAttribute('data-local-type')] ?? 4;
+            if (aType !== bType) return aType - bType;
+
+            // 2. Status: available first, then reserved, then sold
+            var aStatus = statusOrder[a.getAttribute('data-status-class')] ?? 3;
+            var bStatus = statusOrder[b.getAttribute('data-status-class')] ?? 3;
+            if (aStatus !== bStatus) return aStatus - bStatus;
+
+            // 3. Number ascending (natural sort: M1, M2, ... M10, M11, M12)
+            var aNum = a.getAttribute('data-number') || '';
+            var bNum = b.getAttribute('data-number') || '';
+            return aNum.localeCompare(bNum, undefined, { numeric: true, sensitivity: 'base' });
+        });
+
+        items.forEach(function(item) { apartmentList.appendChild(item); });
+    }
+
     // ===========================
     // URL Filters functionality
     // ===========================
@@ -1075,12 +1107,16 @@
                 const attributes = JSON.parse(item.getAttribute('data-attributes') || '[]');
 
                 for (const featureName of checkedFeatureNames) {
-                    const featureLower = featureName.toLowerCase().trim();
+                    const featureNorm = normalizeFeatureName(featureName);
 
                     const hasMatch = attributes.some(attr => {
                         const attrName = typeof attr === 'string' ? attr : (attr.name || '');
-                        const attrLower = attrName.toLowerCase().trim();
-                        return attrLower === featureLower || attrLower.includes(featureLower) || featureLower.includes(attrLower);
+                        const attrNorm = normalizeFeatureName(attrName);
+                        // Exact match
+                        if (attrNorm === featureNorm) return true;
+                        // Attribute starts with filter name followed by " (" bracket (e.g. "przeszklony balkon (oranżeria)" matches "przeszklony balkon")
+                        if (attrNorm.length > featureNorm.length && attrNorm.startsWith(featureNorm) && attrNorm.substring(featureNorm.length).trimStart().charAt(0) === '(') return true;
+                        return false;
                     });
 
                     if (!hasMatch) {
@@ -1101,6 +1137,9 @@
         
         // Show/hide no results message
         updateNoResultsMessage(visibleCount);
+
+        // Update stats counter with filtered count
+        updateStatsCounter(visibleCount);
 
         // Show floor sort option only when multiple different floors are visible
         const floorSortOption = document.querySelector('.header-sort[data-sort="data-floor"]');
@@ -1178,6 +1217,35 @@
         }
     }
     
+    function normalizeFeatureName(name) {
+        // Fix broken unicode escapes (e.g. "u017c" -> "ż") that may come from API data
+        var fixed = name.replace(/u([0-9a-fA-F]{4})/g, function(match, hex) {
+            var code = parseInt(hex, 16);
+            // Only fix if it's a plausible unicode char (Latin Extended range 0x00C0-0x024F)
+            if (code >= 0x00C0 && code <= 0x024F) return String.fromCharCode(code);
+            return match;
+        });
+        // Lowercase, normalize unicode (NFD decompose + remove diacritics), trim
+        return fixed.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\u0142/g, 'l').replace(/\u0141/g, 'L');
+    }
+
+    function updateStatsCounter(visibleCount) {
+        var statsEl = document.querySelector('.stats');
+        if (!statsEl) return;
+
+        // Find the text node that contains "dostępnych"
+        var childNodes = statsEl.childNodes;
+        for (var i = 0; i < childNodes.length; i++) {
+            var node = childNodes[i];
+            var text = node.textContent || '';
+            if (text.indexOf('dostępnych') !== -1) {
+                // Replace the number before "dostępnych"
+                node.textContent = text.replace(/\d+\s*dostępnych/, visibleCount + ' dostępnych');
+                break;
+            }
+        }
+    }
+
     function debounce(func, wait) {
         let timeout;
         return function executedFunction(...args) {
@@ -2618,11 +2686,14 @@
             var phoneField = document.getElementById('inquiryPhone');
             var submitBtn = document.getElementById('summaryInquiryBtn');
             var messageEl = document.getElementById('inquiryFormMessage');
+            var rodoCheckbox = document.getElementById('inquiryRodoConsent');
+            var rodoWrapper = rodoCheckbox ? rodoCheckbox.closest('.inquiry-rodo-consent') : null;
 
             // Clear previous errors
             [nameField, emailField].forEach(function(f) {
                 f.classList.remove('field-error');
             });
+            if (rodoWrapper) rodoWrapper.classList.remove('field-error');
             messageEl.style.display = 'none';
 
             // Validate
@@ -2631,9 +2702,26 @@
             if (!emailField.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value.trim())) {
                 emailField.classList.add('field-error'); hasError = true;
             }
+            if (rodoCheckbox && !rodoCheckbox.checked) {
+                if (rodoWrapper) rodoWrapper.classList.add('field-error');
+                hasError = true;
+            }
 
             if (hasError) return;
 
+            // Check if configurator has only 1 item - suggest adding more for better offer
+            if (hasOnlyOneItemInFavorites()) {
+                showBetterOfferPopup(function() {
+                    submitInquiryForm(form, nameField, emailField, phoneField, submitBtn, messageEl);
+                });
+                return;
+            }
+
+            submitInquiryForm(form, nameField, emailField, phoneField, submitBtn, messageEl);
+        });
+    }
+
+    function submitInquiryForm(form, nameField, emailField, phoneField, submitBtn, messageEl) {
             // Collect survey data
             var surveyData = {};
             var areaRadio = form.querySelector('input[name="survey_area"]:checked');
@@ -2735,7 +2823,51 @@
                 messageEl.className = 'inquiry-form-message error';
                 messageEl.textContent = 'Wystąpił błąd połączenia. Spróbuj ponownie.';
             });
-        });
+    }
+
+    function hasOnlyOneItemInFavorites() {
+        var favorites = getFavoritesOnPage();
+        return favorites.length === 1;
+    }
+
+    function showBetterOfferPopup(onContinue) {
+        var popup = document.getElementById('betterOfferPopup');
+        if (!popup) { onContinue(); return; }
+
+        popup.style.display = 'flex';
+
+        var closePopup = function() {
+            popup.style.display = 'none';
+            // Remove event listeners
+            continueBtn.removeEventListener('click', handleContinue);
+            addMoreBtn.removeEventListener('click', handleAddMore);
+            closeBtn.removeEventListener('click', handleClose);
+            overlay.removeEventListener('click', handleClose);
+        };
+
+        var continueBtn = document.getElementById('betterOfferContinue');
+        var addMoreBtn = document.getElementById('betterOfferAddMore');
+        var closeBtn = popup.querySelector('.better-offer-popup-close');
+        var overlay = popup.querySelector('.better-offer-popup-overlay');
+
+        var handleContinue = function() {
+            closePopup();
+            onContinue();
+        };
+
+        var handleAddMore = function() {
+            closePopup();
+            switchToAllView();
+        };
+
+        var handleClose = function() {
+            closePopup();
+        };
+
+        continueBtn.addEventListener('click', handleContinue);
+        addMoreBtn.addEventListener('click', handleAddMore);
+        closeBtn.addEventListener('click', handleClose);
+        overlay.addEventListener('click', handleClose);
     }
 
     function checkAndToggleNoFavoritesPlaceholder() {

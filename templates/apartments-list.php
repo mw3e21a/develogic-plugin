@@ -853,6 +853,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                  data-price-value="<?php echo esc_attr($display_price); ?>"
                  data-rooms-value="<?php echo esc_attr($local['rooms']); ?>"
                  data-has-promo="<?php echo $has_package_promo ? 'true' : 'false'; ?>"
+                 data-status-class="<?php echo esc_attr($status_class); ?>"
                  data-attributes="<?php echo esc_attr(json_encode($all_attributes)); ?>"
                  data-modal='<?php echo esc_attr(json_encode($modal_data)); ?>'>
                 <div class="apartment-info">
@@ -1106,7 +1107,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                                 </div>
                             </div>
                             <div class="inquiry-survey-section">
-                                <span class="inquiry-survey-label">Aby przedstawić najbardziej dopasowaną promocję, zaznacz pasujące odpowiedzi:</span>
+                                <span class="inquiry-survey-label"><strong>Aby przedstawić najbardziej dopasowaną promocję, zaznacz pasujące odpowiedzi:</strong></span>
                                 <div class="inquiry-survey-options inquiry-survey-options--column">
                                     <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="służby mundurowe"> Jestem pracownikiem tzw. służb mundurowych</label>
                                     <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="ślub 2025/2026"> Wziąłem/wzięłam ślub w 2025 lub 2026 roku</label>
@@ -1131,6 +1132,12 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                             </div>
                         </div>
                     </div>
+                    <div class="inquiry-rodo-consent">
+                        <label class="inquiry-checkbox inquiry-rodo-label">
+                            <input type="checkbox" id="inquiryRodoConsent" required>
+                            <span class="inquiry-rodo-text">Wyrażam zgodę na przetwarzanie moich danych osobowych zgodnie z <a href="/polityka-bezpieczenstwa/" target="_blank">Polityką Prywatności</a> w celu otrzymania odpowiedzi na zapytanie.</span>
+                        </label>
+                    </div>
                     <div class="inquiry-form-action">
                         <button type="submit" class="summary-inquiry-btn" id="summaryInquiryBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1148,6 +1155,25 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
     </div>
     <?php endif; ?>
 
+</div>
+
+<!-- Popup: better offer with full package -->
+<div id="betterOfferPopup" class="better-offer-popup" style="display: none;">
+    <div class="better-offer-popup-overlay"></div>
+    <div class="better-offer-popup-content">
+        <button class="better-offer-popup-close" aria-label="Zamknij">&times;</button>
+        <div class="better-offer-popup-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:48px;height:48px;color:#f59e0b;">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+        </div>
+        <h3>Możesz uzyskać korzystniejszą ofertę!</h3>
+        <p>Jeżeli zdecydujesz się na zakup pełnego pakietu tj.: <strong>Mieszkanie + Komórka lokatorska + Miejsce postojowe</strong> lub <strong>Mieszkanie + Komórka lokatorska + Garaż</strong> &mdash; uzyskasz korzystniejszą ofertę specjalną.</p>
+        <div class="better-offer-popup-actions">
+            <button class="better-offer-btn better-offer-btn-secondary" id="betterOfferContinue">Wyślij mimo to</button>
+            <button class="better-offer-btn better-offer-btn-primary" id="betterOfferAddMore">Dodaj więcej lokali</button>
+        </div>
+    </div>
 </div>
 
 <!-- Toast Container -->

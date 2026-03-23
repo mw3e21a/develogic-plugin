@@ -10,7 +10,11 @@
       "WebFetch(domain:www.imagemappro.com)",
       "Read(//home/michal/**)",
       "Bash(grep -rn \"api\\\\|mobile\\\\|app\\\\|push\\\\|notification\\\\|FCM\\\\|firebase\\\\|dziecko\\\\|child.*request\\\\|prosi.*dostęp\" /home/michal/own_projects/develogic-wp-plugin/*.txt)",
-      "Bash(grep -rn \"api\\\\|send\\\\|http\\\\|curl\\\\|webhook\" /home/michal/own_projects/develogic-wp-plugin/includes/*.php)"
+      "Bash(grep -rn \"api\\\\|send\\\\|http\\\\|curl\\\\|webhook\" /home/michal/own_projects/develogic-wp-plugin/includes/*.php)",
+      "Bash(node -e \"console.log\\(''ż''.normalize\\(''NFD''\\).split\\(''''\\).map\\(c => c.charCodeAt\\(0\\).toString\\(16\\)\\)\\)\")",
+      "Bash(php -r \"echo json_encode\\([''name'' => ''przeszklony balkon \\(oranżeria\\)'']\\) . PHP_EOL; echo json_encode\\([''name'' => ''wyższa kondygnacja'']\\) . PHP_EOL;\")",
+      "Bash(php -r \":*)",
+      "Bash(node -e \":*)"
     ]
   }
 }
