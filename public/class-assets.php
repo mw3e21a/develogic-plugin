@@ -94,6 +94,8 @@ class Develogic_Assets {
                 'obserwuj' => __('obserwuj', 'develogic'),
                 'obserwujesz' => __('obserwujesz', 'develogic'),
             ),
+            'restUrl' => rest_url('develogic/v1'),
+            'nonce' => wp_create_nonce('wp_rest'),
             'developer_name' => develogic()->get_setting('developer_name', get_bloginfo('name')),
             'contact_link_desktop' => develogic()->get_setting('contact_link_desktop', ''),
             'contact_link_mobile' => develogic()->get_setting('contact_link_mobile', 'mailto:' . get_option('admin_email')),

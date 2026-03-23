@@ -256,6 +256,15 @@ class Develogic_Admin_Settings {
         );
         
         add_settings_field(
+            'contact_email',
+            __('Email do zapytań z konfiguratora', 'develogic'),
+            array($this, 'render_text_field'),
+            'develogic',
+            'develogic_a1_section',
+            array('field' => 'contact_email', 'placeholder' => get_option('admin_email'), 'description' => __('Adres email na który będą wysyłane zapytania z konfiguratora oferty. Jeśli nie ustawiono, używany jest email administratora.', 'develogic'))
+        );
+
+        add_settings_field(
             'tour_360_url',
             __('Domyślny link 360°', 'develogic'),
             array($this, 'render_text_field'),
@@ -381,6 +390,13 @@ class Develogic_Admin_Settings {
             $output['contact_phone'] = '';
         }
         
+        // Contact email for configurator inquiries
+        if (isset($input['contact_email']) && !empty(trim($input['contact_email']))) {
+            $output['contact_email'] = sanitize_email(trim($input['contact_email']));
+        } else {
+            $output['contact_email'] = '';
+        }
+
         // Tour 360 URL - sanitize URL
         $output['tour_360_url'] = isset($input['tour_360_url']) ? esc_url_raw(trim($input['tour_360_url'])) : '';
         

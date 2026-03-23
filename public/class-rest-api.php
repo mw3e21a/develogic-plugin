@@ -79,6 +79,40 @@ class Develogic_REST_API {
                 ),
             ),
         ));
+
+        // Send inquiry from configurator
+        register_rest_route(self::NAMESPACE, '/inquiry', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'send_inquiry'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'name' => array(
+                    'type' => 'string',
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+                'email' => array(
+                    'type' => 'string',
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_email',
+                ),
+                'phone' => array(
+                    'type' => 'string',
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+                'survey_data' => array(
+                    'type' => 'string',
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+                'apartments' => array(
+                    'type' => 'string',
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_textarea_field',
+                ),
+            ),
+        ));
     }
     
     /**
@@ -245,16 +279,81 @@ class Develogic_REST_API {
      */
     public function get_buildings($request) {
         $investment_id = $request->get_param('investment_id');
-        
+
         $filters = array();
         if (!empty($investment_id)) {
             $filters['investmentId'] = $investment_id;
         }
-        
+
         $locals = Develogic_Local_Query::get_locals($filters);
         $buildings = Develogic_Filter_Sort::get_buildings($locals);
-        
+
         return new WP_REST_Response($buildings, 200);
+    }
+
+    /**
+     * Send inquiry email from configurator
+     */
+    public function send_inquiry($request) {
+        $name = $request->get_param('name');
+        $email = $request->get_param('email');
+        $phone = $request->get_param('phone');
+        $survey_data = $request->get_param('survey_data');
+        $apartments = $request->get_param('apartments');
+
+        // Validate email
+        if (!is_email($email)) {
+            return new WP_Error('invalid_email', __('Nieprawidłowy adres email', 'develogic'), array('status' => 400));
+        }
+
+        // Validate required fields
+        if (empty($name) || empty($apartments)) {
+            return new WP_Error('missing_fields', __('Wypełnij wszystkie wymagane pola', 'develogic'), array('status' => 400));
+        }
+
+        // Get recipient email from settings
+        $to = develogic()->get_setting('contact_email', '');
+        if (empty($to)) {
+            $to = get_option('admin_email');
+        }
+
+        // Build email
+        $subject = sprintf('Zapytanie z konfiguratora - %s', $name);
+
+        $body = "Nowe zapytanie z konfiguratora oferty\n\n" .
+            "Imię i nazwisko: " . $name . "\n" .
+            "Email: " . $email . "\n" .
+            "Telefon: " . (!empty($phone) ? $phone : '-') . "\n\n";
+
+        // Add survey answers
+        if (!empty($survey_data)) {
+            $survey = json_decode(wp_unslash($survey_data), true);
+            if (is_array($survey) && !empty($survey)) {
+                $body .= "Ankieta:\n";
+                foreach ($survey as $question => $answer) {
+                    $body .= "  " . $question . ": " . $answer . "\n";
+                }
+                $body .= "\n";
+            }
+        }
+
+        $body .= "Wybrane lokale:\n" . $apartments . "\n";
+
+        $headers = array(
+            'Content-Type: text/plain; charset=UTF-8',
+            'Reply-To: ' . $name . ' <' . $email . '>',
+        );
+
+        $sent = wp_mail($to, $subject, $body, $headers);
+
+        if (!$sent) {
+            return new WP_Error('mail_error', __('Nie udało się wysłać wiadomości. Spróbuj ponownie.', 'develogic'), array('status' => 500));
+        }
+
+        return new WP_REST_Response(array(
+            'success' => true,
+            'message' => __('Zapytanie zostało wysłane pomyślnie', 'develogic'),
+        ), 200);
     }
 }
 

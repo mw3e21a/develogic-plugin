@@ -8,7 +8,9 @@
       "Bash(php -l /home/michal/own_projects/develogic-wp-plugin/includes/class-imagemappro-integration.php)",
       "Bash(php -l /home/michal/own_projects/develogic-wp-plugin/admin/class-admin-imagemappro.php)",
       "WebFetch(domain:www.imagemappro.com)",
-      "Read(//home/michal/**)"
+      "Read(//home/michal/**)",
+      "Bash(grep -rn \"api\\\\|mobile\\\\|app\\\\|push\\\\|notification\\\\|FCM\\\\|firebase\\\\|dziecko\\\\|child.*request\\\\|prosi.*dostęp\" /home/michal/own_projects/develogic-wp-plugin/*.txt)",
+      "Bash(grep -rn \"api\\\\|send\\\\|http\\\\|curl\\\\|webhook\" /home/michal/own_projects/develogic-wp-plugin/includes/*.php)"
     ]
   }
 }

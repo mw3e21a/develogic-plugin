@@ -38,7 +38,7 @@
         setupApartmentClicks();
         setupModal();
         setupFavoritesViewToggle();
-        setupQuoteCartButton();
+        setupInquiryForm();
         setupShareButtons();
         updateFavoritesCount();
         updateWatchedCount();
@@ -595,7 +595,10 @@
         // Floor filter
         const floorFilter = document.getElementById('floorFilter');
         if (floorFilter) {
-            floorFilter.addEventListener('change', applyFilters);
+            floorFilter.addEventListener('change', function() {
+                resetLocalTypeIfEmptyOnFloor();
+                applyFilters();
+            });
         }
         
         // Initialize dynamic floor filtering if enabled
@@ -682,6 +685,49 @@
         }
     }
     
+    /**
+     * When the user changes the floor filter, check if any apartments of the
+     * currently selected local type exist on that floor. If not, reset the
+     * local type filter to "all" so the user doesn't see "no results".
+     */
+    function resetLocalTypeIfEmptyOnFloor() {
+        const localTypeFilter = document.getElementById('localTypeFilter');
+        const floorFilter = document.getElementById('floorFilter');
+        if (!localTypeFilter || !floorFilter) return;
+
+        const selectedLocalType = localTypeFilter.value;
+        const selectedFloor = floorFilter.value;
+
+        // Nothing to reset if either filter is already "all"
+        if (selectedLocalType === 'all' || selectedFloor === 'all') return;
+
+        const selectedFloorNum = parseFloorToNumber(selectedFloor);
+        if (selectedFloorNum === null) return;
+
+        // Also respect the current building filter
+        const selectedBuilding = document.getElementById('buildingFilter')?.value || 'all';
+
+        const apartmentItems = document.querySelectorAll('.apartment-item');
+        const hasMatch = Array.from(apartmentItems).some(item => {
+            const itemLocalType = item.getAttribute('data-local-type') || '';
+            if (itemLocalType !== selectedLocalType) return false;
+
+            const itemFloorNum = parseFloorToNumber(item.getAttribute('data-floor-number'));
+            if (itemFloorNum !== selectedFloorNum) return false;
+
+            if (selectedBuilding !== 'all') {
+                const itemBuilding = item.getAttribute('data-building') || '';
+                if (itemBuilding && itemBuilding !== selectedBuilding) return false;
+            }
+
+            return true;
+        });
+
+        if (!hasMatch) {
+            localTypeFilter.value = 'all';
+        }
+    }
+
     /**
      * Auto-select floor when KL/PG/Garaż is selected and only one floor exists
      * Reset to "all" for other local types
@@ -2541,51 +2587,154 @@
     }
     
     // ===========================
-    // Quote cart button
+    // Inquiry form (in configurator summary)
     // ===========================
-    function setupQuoteCartButton() {
-        const summaryInquiryBtn = document.getElementById('summaryInquiryBtn');
-        if (!summaryInquiryBtn) return;
+    function setupInquiryForm() {
+        var form = document.getElementById('inquiryForm');
+        if (!form) return;
 
-        const container = document.querySelector('.favorites-toggle-container');
-        const quoteEmail = container ? container.getAttribute('data-quote-email') : '';
-        const quoteSubject = container ? container.getAttribute('data-quote-subject') : 'Szczegóły oferty z konfiguratora oferty';
+        // Toggle inline selects when their parent checkbox is checked/unchecked
+        var childrenCheckbox = document.getElementById('surveyPromoChildren');
+        var specialCheckbox = document.getElementById('surveyPromoSpecial');
+        if (childrenCheckbox) {
+            childrenCheckbox.addEventListener('change', function() {
+                var sel = form.querySelector('select[name="survey_children_count"]');
+                if (sel) { sel.disabled = !this.checked; if (!this.checked) sel.value = ''; }
+            });
+        }
+        if (specialCheckbox) {
+            specialCheckbox.addEventListener('change', function() {
+                var sel = form.querySelector('select[name="survey_special_promo"]');
+                if (sel) { sel.disabled = !this.checked; if (!this.checked) sel.value = ''; }
+            });
+        }
 
-        summaryInquiryBtn.addEventListener('click', function(e) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
             e.stopPropagation();
-            const favorites = getFavoritesOnPage();
+
+            var nameField = document.getElementById('inquiryName');
+            var emailField = document.getElementById('inquiryEmail');
+            var phoneField = document.getElementById('inquiryPhone');
+            var submitBtn = document.getElementById('summaryInquiryBtn');
+            var messageEl = document.getElementById('inquiryFormMessage');
+
+            // Clear previous errors
+            [nameField, emailField].forEach(function(f) {
+                f.classList.remove('field-error');
+            });
+            messageEl.style.display = 'none';
+
+            // Validate
+            var hasError = false;
+            if (!nameField.value.trim()) { nameField.classList.add('field-error'); hasError = true; }
+            if (!emailField.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value.trim())) {
+                emailField.classList.add('field-error'); hasError = true;
+            }
+
+            if (hasError) return;
+
+            // Collect survey data
+            var surveyData = {};
+            var areaRadio = form.querySelector('input[name="survey_area"]:checked');
+            if (areaRadio) surveyData['Metraż'] = areaRadio.value;
+            var roomsRadio = form.querySelector('input[name="survey_rooms"]:checked');
+            if (roomsRadio) surveyData['Liczba pokoi'] = roomsRadio.value;
+            var purchaseRadio = form.querySelector('input[name="survey_purchase_status"]:checked');
+            if (purchaseRadio) surveyData['Kupował od Dom Ełcki'] = purchaseRadio.value;
+            var ageRadio = form.querySelector('input[name="survey_age"]:checked');
+            if (ageRadio) surveyData['Grupa wiekowa'] = ageRadio.value;
+
+            // Promo checkboxes
+            var promoChecked = Array.from(form.querySelectorAll('input[name="survey_promo[]"]:checked'));
+            var promoValues = [];
+            promoChecked.forEach(function(cb) {
+                var val = cb.value;
+                if (val === 'dzieci') {
+                    var countSel = form.querySelector('select[name="survey_children_count"]');
+                    var count = countSel ? countSel.value : '';
+                    val = 'Dzieci: ' + (count || 'nie podano liczby');
+                } else if (val === 'promocja specjalna') {
+                    var promoSel = form.querySelector('select[name="survey_special_promo"]');
+                    var promo = promoSel ? promoSel.value : '';
+                    val = 'Promocja specjalna: ' + (promo || 'nie wybrano');
+                }
+                promoValues.push(val);
+            });
+            if (promoValues.length) surveyData['Promocje'] = promoValues.join('; ');
+
+            // Collect apartment data
+            var favorites = getFavoritesOnPage();
             if (!favorites.length) return;
 
-            // Collect apartment data for all favorites
-            const lines = [];
-            favorites.forEach(localId => {
-                let found = null;
-                document.querySelectorAll('.apartment-item').forEach(el => {
+            var lines = [];
+            favorites.forEach(function(localId) {
+                var found = null;
+                document.querySelectorAll('.apartment-item').forEach(function(el) {
                     try {
-                        const data = JSON.parse(el.getAttribute('data-modal') || '{}');
+                        var data = JSON.parse(el.getAttribute('data-modal') || '{}');
                         if (String(data.localId) === String(localId)) {
                             found = data;
                         }
-                    } catch(e) {}
+                    } catch(err) {}
                 });
                 if (found) {
-                    const price = found.priceGross ? Number(found.priceGross).toLocaleString('pl-PL') + ' zł' : '-';
-                    const area = found.area ? Number(found.area).toLocaleString('pl-PL', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²' : '-';
-                    const localType = found.localType || 'Lokal';
+                    var price = found.priceGross ? Number(found.priceGross).toLocaleString('pl-PL') + ' zł' : '-';
+                    var area = found.area ? Number(found.area).toLocaleString('pl-PL', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²' : '-';
+                    var localType = found.localType || 'Lokal';
                     lines.push(localType + ' ' + (found.number || localId) + ' | ' + (found.building || '') + ' | Piętro: ' + (found.floorDisplay || found.floor || '-') + ' | Pow.: ' + area + ' | Cena: ' + price);
                 } else {
                     lines.push('ID: ' + localId);
                 }
             });
 
-            const body = encodeURIComponent(
-                'Dzień dobry,\n\nProszę o szczegóły oferty na poniższe lokale:\n\n' +
-                lines.join('\n') +
-                '\n\nPozdrawiam'
-            );
-            const subject = encodeURIComponent(quoteSubject || 'Szczegóły oferty z konfiguratora oferty');
-            const mailto = 'mailto:' + (quoteEmail || '') + '?subject=' + subject + '&body=' + body;
-            window.location.href = mailto;
+            // Disable button
+            submitBtn.disabled = true;
+            var originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;flex-shrink:0;animation:spin 1s linear infinite"><circle cx="12" cy="12" r="10" stroke-dasharray="31.4 31.4" stroke-dashoffset="10"/></svg> Wysyłanie...';
+
+            // Send via REST API
+            var restUrl = (typeof develogicApartmentsData !== 'undefined' && develogicApartmentsData.restUrl) ? develogicApartmentsData.restUrl : '/wp-json/develogic/v1';
+            var nonce = (typeof develogicApartmentsData !== 'undefined' && develogicApartmentsData.nonce) ? develogicApartmentsData.nonce : '';
+
+            fetch(restUrl + '/inquiry', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-WP-Nonce': nonce
+                },
+                body: JSON.stringify({
+                    name: nameField.value.trim(),
+                    email: emailField.value.trim(),
+                    phone: phoneField.value.trim(),
+                    survey_data: JSON.stringify(surveyData),
+                    apartments: lines.join('\n')
+                })
+            })
+            .then(function(response) { return response.json().then(function(data) { return { ok: response.ok, data: data }; }); })
+            .then(function(result) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                messageEl.style.display = 'block';
+
+                if (result.ok && result.data.success) {
+                    messageEl.className = 'inquiry-form-message success';
+                    messageEl.textContent = 'Zapytanie zostało wysłane pomyślnie!';
+                    form.reset();
+                    // Re-disable selects after reset
+                    form.querySelectorAll('.inquiry-inline-select').forEach(function(s) { s.disabled = true; });
+                } else {
+                    messageEl.className = 'inquiry-form-message error';
+                    messageEl.textContent = (result.data && result.data.message) ? result.data.message : 'Nie udało się wysłać zapytania. Spróbuj ponownie.';
+                }
+            })
+            .catch(function() {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                messageEl.style.display = 'block';
+                messageEl.className = 'inquiry-form-message error';
+                messageEl.textContent = 'Wystąpił błąd połączenia. Spróbuj ponownie.';
+            });
         });
     }
 
@@ -2976,13 +3125,13 @@
         wizardModal.querySelector('[data-wizard-action="send-inquiry"]').addEventListener('click', function() {
             closeWizardModal();
 
-            // Switch to favorites view and trigger quote email
+            // Switch to favorites view and scroll to inquiry form
             switchToFavoritesView();
 
             setTimeout(function() {
-                const quoteBtn = document.getElementById('summaryInquiryBtn');
-                if (quoteBtn) {
-                    quoteBtn.click();
+                var formWrapper = document.getElementById('inquiryFormWrapper');
+                if (formWrapper) {
+                    formWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }, 300);
         });

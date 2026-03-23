@@ -1055,13 +1055,95 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             <span class="summary-value" id="configuratorTotalPrice">0 zł</span>
         </div>
         <?php if ($show_quote_btn): ?>
-        <button class="summary-inquiry-btn" id="summaryInquiryBtn" title="Wyślij zapytanie o szczegóły oferty">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="5" width="18" height="14" rx="2"/>
-                <path d="M3 7l9 6 9-6"/>
-            </svg>
-            Wyślij zapytanie o szczegóły
-        </button>
+        <div class="inquiry-form-wrapper" id="inquiryFormWrapper">
+            <h4 class="inquiry-form-title">Wyślij zapytanie o szczegóły</h4>
+            <form class="inquiry-form" id="inquiryForm" novalidate>
+                <div class="inquiry-form-layout">
+                    <div class="inquiry-form-fields">
+                        <div class="inquiry-form-row">
+                            <div class="inquiry-form-field">
+                                <input type="text" id="inquiryName" name="name" placeholder="Imię i nazwisko *" required>
+                            </div>
+                            <div class="inquiry-form-field">
+                                <input type="tel" id="inquiryPhone" name="phone" placeholder="Telefon">
+                            </div>
+                            <div class="inquiry-form-field">
+                                <input type="email" id="inquiryEmail" name="email" placeholder="Email *" required>
+                            </div>
+                        </div>
+                        <div class="inquiry-survey">
+                            <div class="inquiry-survey-section">
+                                <span class="inquiry-survey-label">Jaki metraż wybranego mieszkania Cię interesuje?</span>
+                                <div class="inquiry-survey-options">
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_area" value="do 40 m²"> do 40 m²</label>
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_area" value="40–60 m²"> 40–60 m²</label>
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_area" value="powyżej 60 m²"> powyżej 60 m²</label>
+                                </div>
+                            </div>
+                            <div class="inquiry-survey-section">
+                                <span class="inquiry-survey-label">Ile pokoi ma mieć Twoje wymarzone mieszkanie?</span>
+                                <div class="inquiry-survey-options">
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_rooms" value="1"> 1</label>
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_rooms" value="2"> 2</label>
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_rooms" value="3"> 3</label>
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_rooms" value="4+"> 4+</label>
+                                </div>
+                            </div>
+                            <div class="inquiry-survey-section">
+                                <span class="inquiry-survey-label">Czy kiedykolwiek kupiłeś dowolną nieruchomość bezpośrednio od firmy Dom Ełcki?</span>
+                                <div class="inquiry-survey-options">
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_purchase_status" value="tak"> tak</label>
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_purchase_status" value="nie"> nie</label>
+                                </div>
+                            </div>
+                            <div class="inquiry-survey-section">
+                                <span class="inquiry-survey-label">Do której grupy wiekowej należysz?</span>
+                                <div class="inquiry-survey-options">
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_age" value="18–30 lat"> 18–30 lat</label>
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_age" value="30–40 lat"> 30–40 lat</label>
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_age" value="40–60 lat"> 40–60 lat</label>
+                                    <label class="inquiry-checkbox"><input type="radio" name="survey_age" value="60+"> 60+</label>
+                                </div>
+                            </div>
+                            <div class="inquiry-survey-section">
+                                <span class="inquiry-survey-label">Aby przedstawić najbardziej dopasowaną promocję, zaznacz pasujące odpowiedzi:</span>
+                                <div class="inquiry-survey-options inquiry-survey-options--column">
+                                    <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="służby mundurowe"> Jestem pracownikiem tzw. służb mundurowych</label>
+                                    <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="ślub 2025/2026"> Wziąłem/wzięłam ślub w 2025 lub 2026 roku</label>
+                                    <label class="inquiry-checkbox">
+                                        <input type="checkbox" name="survey_promo[]" value="dzieci" id="surveyPromoChildren"> Posiadam dwójkę lub większą liczbę dzieci do 18 roku życia (lub do 26 r.ż. w przypadku dzieci uczących się):
+                                        <select name="survey_children_count" class="inquiry-inline-select" disabled>
+                                            <option value="">—</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4+">4+</option>
+                                        </select>
+                                    </label>
+                                    <label class="inquiry-checkbox">
+                                        <input type="checkbox" name="survey_promo[]" value="promocja specjalna" id="surveyPromoSpecial"> W ramach promocji specjalnej wolałbym otrzymać:
+                                        <select name="survey_special_promo" class="inquiry-inline-select" disabled>
+                                            <option value="">—</option>
+                                            <option value="klimatyzacja gratis">klimatyzację gratis</option>
+                                            <option value="szpachlowanie z malowaniem gratis">szpachlowanie z malowaniem gratis</option>
+                                        </select>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="inquiry-form-action">
+                        <button type="submit" class="summary-inquiry-btn" id="summaryInquiryBtn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="5" width="18" height="14" rx="2"/>
+                                <path d="M3 7l9 6 9-6"/>
+                            </svg>
+                            Wyślij zapytanie o szczegóły
+                        </button>
+                    </div>
+                </div>
+                <div class="inquiry-form-message" id="inquiryFormMessage" style="display: none;"></div>
+            </form>
+        </div>
         <?php endif; ?>
     </div>
     <?php endif; ?>

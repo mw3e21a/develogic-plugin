@@ -101,20 +101,35 @@ class Develogic_Admin_ImageMapPro {
         if (!isset($_POST['status_colors']) || !is_array($_POST['status_colors'])) {
             return;
         }
-        
+
         $colors = array();
-        
-        foreach ($_POST['status_colors'] as $status => $color) {
+
+        foreach ($_POST['status_colors'] as $status => $data) {
             $status_clean = sanitize_text_field($status);
-            $color_clean = sanitize_hex_color_no_hash($color);
-            
-            if (!empty($status_clean) && !empty($color_clean)) {
-                $colors[$status_clean] = $color_clean;
+            if (empty($status_clean) || !is_array($data)) {
+                continue;
             }
+
+            $color = isset($data['color']) ? sanitize_hex_color_no_hash($data['color']) : '';
+            $hover_color = isset($data['hover_color']) ? sanitize_hex_color_no_hash($data['hover_color']) : '';
+
+            if (empty($color)) {
+                continue;
+            }
+            if (empty($hover_color)) {
+                $hover_color = $color;
+            }
+
+            $colors[$status_clean] = array(
+                'color' => $color,
+                'opacity' => isset($data['opacity']) ? max(0, min(1, floatval($data['opacity']))) : 0.65,
+                'hover_color' => $hover_color,
+                'hover_opacity' => isset($data['hover_opacity']) ? max(0, min(1, floatval($data['hover_opacity']))) : 0.40,
+            );
         }
-        
+
         update_option('develogic_imagemappro_colors', $colors);
-        
+
         add_settings_error(
             'develogic_imagemappro',
             'colors_saved',
@@ -248,19 +263,29 @@ class Develogic_Admin_ImageMapPro {
         // Get layers for projects that have them
         $project_layers = $imagemappro_active ? $this->get_project_layers() : array();
         
-        // Default statuses
+        // Default statuses (new format)
         $default_statuses = array(
-            'Wolny' => '7ED322',
-            'Sprzedany' => 'ee1c24',
-            'Rezerwacja' => 'FFA500',
-            'Miękka rezerwacja' => 'FFA500',
-            'Przeniesiona własność' => 'ee1c24',
-            'Niedostępny' => 'cccccc',
-            'Wyłączony ze sprzedaży' => 'cccccc',
+            'Wolny'                    => array('color' => '7ED322', 'opacity' => 0.65, 'hover_color' => '7ED322', 'hover_opacity' => 0.40),
+            'Sprzedany'                => array('color' => 'ee1c24', 'opacity' => 0.65, 'hover_color' => 'ee1c24', 'hover_opacity' => 0.40),
+            'Rezerwacja'               => array('color' => 'FFA500', 'opacity' => 0.65, 'hover_color' => 'FFA500', 'hover_opacity' => 0.40),
+            'Miękka rezerwacja'        => array('color' => 'FFA500', 'opacity' => 0.65, 'hover_color' => 'FFA500', 'hover_opacity' => 0.40),
+            'Przeniesiona własność'    => array('color' => 'ee1c24', 'opacity' => 0.65, 'hover_color' => 'ee1c24', 'hover_opacity' => 0.40),
+            'Niedostępny'              => array('color' => 'cccccc', 'opacity' => 0.65, 'hover_color' => 'cccccc', 'hover_opacity' => 0.40),
+            'Wyłączony ze sprzedaży'   => array('color' => 'cccccc', 'opacity' => 0.65, 'hover_color' => 'cccccc', 'hover_opacity' => 0.40),
         );
-        
-        // Merge with saved colors
-        $all_colors = array_merge($default_statuses, $colors);
+
+        // Merge with saved colors (handle old string format)
+        $all_colors = $default_statuses;
+        if (!empty($colors) && is_array($colors)) {
+            foreach ($colors as $status => $value) {
+                if (is_array($value)) {
+                    $all_colors[$status] = $value;
+                } else {
+                    $hex = ltrim($value, '#');
+                    $all_colors[$status] = array('color' => $hex, 'opacity' => 0.65, 'hover_color' => $hex, 'hover_opacity' => 0.40);
+                }
+            }
+        }
         
         ?>
         <div class="wrap">
@@ -292,27 +317,71 @@ class Develogic_Admin_ImageMapPro {
                     <?php wp_nonce_field('develogic_imagemappro_settings', 'develogic_imagemappro_nonce'); ?>
                     <input type="hidden" name="develogic_imagemappro_action" value="save_colors">
                     
-                    <table class="form-table">
+                    <table class="widefat striped" style="max-width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 18%;"><?php _e('Status', 'develogic'); ?></th>
+                                <th style="width: 20%;"><?php _e('Kolor', 'develogic'); ?></th>
+                                <th style="width: 12%;"><?php _e('Opacity', 'develogic'); ?></th>
+                                <th style="width: 20%;"><?php _e('Kolor (hover)', 'develogic'); ?></th>
+                                <th style="width: 12%;"><?php _e('Opacity (hover)', 'develogic'); ?></th>
+                                <th style="width: 18%;"><?php _e('Podgląd', 'develogic'); ?></th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            <?php foreach ($all_colors as $status => $color): ?>
+                            <?php foreach ($all_colors as $status => $cfg): ?>
                                 <tr>
-                                    <th scope="row">
-                                        <label for="color_<?php echo esc_attr($status); ?>">
-                                            <?php echo esc_html($status); ?>
-                                        </label>
-                                    </th>
+                                    <td><strong><?php echo esc_html($status); ?></strong></td>
                                     <td>
-                                        <input 
-                                            type="text" 
-                                            id="color_<?php echo esc_attr($status); ?>" 
-                                            name="status_colors[<?php echo esc_attr($status); ?>]" 
-                                            value="#<?php echo esc_attr($color); ?>" 
+                                        <input
+                                            type="text"
+                                            name="status_colors[<?php echo esc_attr($status); ?>][color]"
+                                            value="#<?php echo esc_attr($cfg['color']); ?>"
                                             class="develogic-color-picker"
-                                            data-default-color="#<?php echo esc_attr($color); ?>"
+                                            data-default-color="#<?php echo esc_attr($cfg['color']); ?>"
                                         >
-                                        <span class="description">
-                                            <?php _e('Kolor hex dla statusu', 'develogic'); ?> "<?php echo esc_html($status); ?>"
-                                        </span>
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            name="status_colors[<?php echo esc_attr($status); ?>][opacity]"
+                                            value="<?php echo esc_attr($cfg['opacity']); ?>"
+                                            min="0" max="1" step="0.05"
+                                            style="width: 70px;"
+                                        >
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="text"
+                                            name="status_colors[<?php echo esc_attr($status); ?>][hover_color]"
+                                            value="#<?php echo esc_attr($cfg['hover_color']); ?>"
+                                            class="develogic-color-picker"
+                                            data-default-color="#<?php echo esc_attr($cfg['hover_color']); ?>"
+                                        >
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="number"
+                                            name="status_colors[<?php echo esc_attr($status); ?>][hover_opacity]"
+                                            value="<?php echo esc_attr($cfg['hover_opacity']); ?>"
+                                            min="0" max="1" step="0.05"
+                                            style="width: 70px;"
+                                        >
+                                    </td>
+                                    <td>
+                                        <span style="display:inline-block;width:30px;height:30px;border-radius:4px;border:1px solid #ccc;vertical-align:middle;background:rgba(<?php
+                                            $r = hexdec(substr($cfg['color'], 0, 2));
+                                            $g = hexdec(substr($cfg['color'], 2, 2));
+                                            $b = hexdec(substr($cfg['color'], 4, 2));
+                                            echo "$r,$g,$b," . esc_attr($cfg['opacity']);
+                                        ?>);" title="default"></span>
+                                        <span style="margin: 0 4px;">&rarr;</span>
+                                        <span style="display:inline-block;width:30px;height:30px;border-radius:4px;border:1px solid #ccc;vertical-align:middle;background:rgba(<?php
+                                            $rh = hexdec(substr($cfg['hover_color'], 0, 2));
+                                            $gh = hexdec(substr($cfg['hover_color'], 2, 2));
+                                            $bh = hexdec(substr($cfg['hover_color'], 4, 2));
+                                            echo "$rh,$gh,$bh," . esc_attr($cfg['hover_opacity']);
+                                        ?>);" title="hover"></span>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

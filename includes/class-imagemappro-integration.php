@@ -24,13 +24,13 @@ class Develogic_ImageMapPro_Integration {
      * @var array
      */
     private $status_colors = array(
-        'Wolny' => '7ED322',        // Green - available
-        'Sprzedany' => 'ee1c24',    // Red - sold
-        'Rezerwacja' => 'FFA500',   // Orange - reserved
-        'Miękka rezerwacja' => 'FFA500',  // Orange - soft reservation (same as regular reservation)
-        'Przeniesiona własność' => 'ee1c24',  // Red - transferred ownership (same as sold)
-        'Niedostępny' => 'cccccc',  // Gray - unavailable
-        'Wyłączony ze sprzedaży' => 'cccccc',  // Gray - unavailable (same as Niedostępny)
+        'Wolny'                    => array('color' => '7ED322', 'opacity' => 0.65, 'hover_color' => '7ED322', 'hover_opacity' => 0.40),
+        'Sprzedany'                => array('color' => 'ee1c24', 'opacity' => 0.65, 'hover_color' => 'ee1c24', 'hover_opacity' => 0.40),
+        'Rezerwacja'               => array('color' => 'FFA500', 'opacity' => 0.65, 'hover_color' => 'FFA500', 'hover_opacity' => 0.40),
+        'Miękka rezerwacja'        => array('color' => 'FFA500', 'opacity' => 0.65, 'hover_color' => 'FFA500', 'hover_opacity' => 0.40),
+        'Przeniesiona własność'    => array('color' => 'ee1c24', 'opacity' => 0.65, 'hover_color' => 'ee1c24', 'hover_opacity' => 0.40),
+        'Niedostępny'              => array('color' => 'cccccc', 'opacity' => 0.65, 'hover_color' => 'cccccc', 'hover_opacity' => 0.40),
+        'Wyłączony ze sprzedaży'   => array('color' => 'cccccc', 'opacity' => 0.65, 'hover_color' => 'cccccc', 'hover_opacity' => 0.40),
     );
     
     /**
@@ -74,9 +74,23 @@ class Develogic_ImageMapPro_Integration {
      */
     private function load_color_mapping() {
         $colors = get_option('develogic_imagemappro_colors', array());
-        
+
         if (!empty($colors) && is_array($colors)) {
-            $this->status_colors = array_merge($this->status_colors, $colors);
+            foreach ($colors as $status => $value) {
+                if (is_array($value)) {
+                    // New format
+                    $this->status_colors[$status] = $value;
+                } else {
+                    // Old format (plain hex string) — migrate to new format
+                    $hex = ltrim($value, '#');
+                    $this->status_colors[$status] = array(
+                        'color' => $hex,
+                        'opacity' => 0.65,
+                        'hover_color' => $hex,
+                        'hover_opacity' => 0.40,
+                    );
+                }
+            }
         }
     }
     
@@ -289,20 +303,20 @@ class Develogic_ImageMapPro_Integration {
             return false;
         }
         
-        // Get color for status
-        $color = $this->get_color_for_status($status);
-        
-        if (empty($color)) {
+        // Get color config for status
+        $color_config = $this->get_color_for_status($status);
+
+        if (empty($color_config)) {
             $this->log(sprintf('No color mapped for status "%s"', $status), 'warning');
             return false;
         }
-        
-        $this->log(sprintf('Updating shape "%s" to color #%s (status: %s)', $shape_title, $color, $status), 'info');
-        
+
+        $this->log(sprintf('Updating shape "%s" to color #%s (status: %s)', $shape_title, $color_config['color'], $status), 'info');
+
         $modified = false;
-        
+
         // Update shape color
-        if ($this->update_shape_color($shape, $color)) {
+        if ($this->update_shape_color($shape, $color_config)) {
             $modified = true;
             $this->log(sprintf('Successfully updated color for shape "%s"', $shape_title), 'success');
         }
@@ -440,16 +454,16 @@ class Develogic_ImageMapPro_Integration {
     }
     
     /**
-     * Get color for status
+     * Get color config for status
      *
      * @param string $status Status name
-     * @return string|null Hex color without #
+     * @return array|null Array with color, opacity, hover_color, hover_opacity
      */
     private function get_color_for_status($status) {
         if (isset($this->status_colors[$status])) {
-            return ltrim($this->status_colors[$status], '#');
+            return $this->status_colors[$status];
         }
-        
+
         return null;
     }
     
@@ -457,43 +471,37 @@ class Develogic_ImageMapPro_Integration {
      * Update shape color
      *
      * @param array &$shape Shape data (passed by reference)
-     * @param string $color Hex color without #
+     * @param array $config Array with color, opacity, hover_color, hover_opacity
      * @return bool True if color was updated
      */
-    private function update_shape_color(&$shape, $color) {
-        $updated = false;
-        
-        // Update default_style background_color
-        if (isset($shape['default_style']) && is_array($shape['default_style'])) {
-            $old_color = isset($shape['default_style']['background_color']) ? $shape['default_style']['background_color'] : '';
-            
-            // Only update if color is different
-            if ($old_color !== $color) {
-                $shape['default_style']['background_color'] = $color;
-                $updated = true;
-            }
+    private function update_shape_color(&$shape, $config) {
+        $color = ltrim($config['color'], '#');
+        $opacity = floatval($config['opacity']);
+        $hover_color = ltrim($config['hover_color'], '#');
+        $hover_opacity = floatval($config['hover_opacity']);
+
+        if (!isset($shape['default_style']) || !is_array($shape['default_style'])) {
+            $shape['default_style'] = array();
         }
-        
-        // Update mouseover_style to match color but with lighter opacity
-        if ($updated) {
-            if (!isset($shape['mouseover_style'])) {
-                $shape['mouseover_style'] = array();
-            }
-            
-            // Set same color as default_style
-            $shape['mouseover_style']['background_color'] = $color;
-            
-            // Get default opacity, or use 0.7 as default
-            $default_opacity = isset($shape['default_style']['background_opacity']) 
-                ? floatval($shape['default_style']['background_opacity']) 
-                : 0.7;
-            
-            // Reduce opacity by 0.2 to make it lighter on hover (but not less than 0.2)
-            $hover_opacity = max(0.2, $default_opacity - 0.2);
-            $shape['mouseover_style']['background_opacity'] = $hover_opacity;
+        if (!isset($shape['mouseover_style'])) {
+            $shape['mouseover_style'] = array();
         }
-        
-        return $updated;
+
+        $old_color = isset($shape['default_style']['background_color']) ? $shape['default_style']['background_color'] : '';
+        $old_opacity = isset($shape['default_style']['background_opacity']) ? floatval($shape['default_style']['background_opacity']) : -1;
+        $old_hover_color = isset($shape['mouseover_style']['background_color']) ? $shape['mouseover_style']['background_color'] : '';
+        $old_hover_opacity = isset($shape['mouseover_style']['background_opacity']) ? floatval($shape['mouseover_style']['background_opacity']) : -1;
+
+        if ($old_color === $color && $old_opacity === $opacity && $old_hover_color === $hover_color && $old_hover_opacity === $hover_opacity) {
+            return false;
+        }
+
+        $shape['default_style']['background_color'] = $color;
+        $shape['default_style']['background_opacity'] = $opacity;
+        $shape['mouseover_style']['background_color'] = $hover_color;
+        $shape['mouseover_style']['background_opacity'] = $hover_opacity;
+
+        return true;
     }
     
     /**
@@ -996,9 +1004,14 @@ class Develogic_ImageMapPro_Integration {
      * @param string $status Status name
      * @param string $color Hex color (with or without #)
      */
-    public function set_status_color($status, $color) {
-        $this->status_colors[$status] = ltrim($color, '#');
-        
+    public function set_status_color($status, $config) {
+        if (is_string($config)) {
+            // Legacy: plain hex string
+            $hex = ltrim($config, '#');
+            $config = array('color' => $hex, 'opacity' => 0.65, 'hover_color' => $hex, 'hover_opacity' => 0.40);
+        }
+        $this->status_colors[$status] = $config;
+
         // Save to options
         update_option('develogic_imagemappro_colors', $this->status_colors);
     }

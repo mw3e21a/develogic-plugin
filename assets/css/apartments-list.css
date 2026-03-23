@@ -3139,6 +3139,211 @@
 }
 
 /* ===========================
+   Inquiry Form (in configurator summary)
+   =========================== */
+.inquiry-form-wrapper {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 2px solid #e5e7eb;
+}
+
+.inquiry-form-title {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+}
+
+.inquiry-form-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.inquiry-form-fields {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.inquiry-form-row {
+    display: flex;
+    gap: 10px;
+}
+
+.inquiry-form-row .inquiry-form-field {
+    flex: 1;
+    min-width: 0;
+}
+
+.inquiry-form-field {
+    width: 100%;
+}
+
+.inquiry-form-action {
+    flex-shrink: 0;
+    align-self: flex-end;
+}
+
+.inquiry-form input,
+.inquiry-form select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1a1a1a;
+    background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.inquiry-form input::placeholder {
+    color: #9ca3af;
+}
+
+.inquiry-form input:focus,
+.inquiry-form select:focus {
+    outline: none;
+    border-color: var(--develogic-primary-color, #0066cc);
+    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.inquiry-form input.field-error,
+.inquiry-form select.field-error {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.inquiry-survey {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 4px;
+}
+
+.inquiry-survey-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.inquiry-survey-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.inquiry-survey-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+}
+
+.inquiry-survey-options--column {
+    flex-direction: column;
+    gap: 6px;
+}
+
+.inquiry-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #374151;
+    cursor: pointer;
+}
+
+.inquiry-survey-options--column .inquiry-checkbox {
+    white-space: normal;
+}
+
+.inquiry-checkbox input[type="checkbox"],
+.inquiry-checkbox input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    padding: 0;
+    margin: 0;
+    accent-color: var(--develogic-primary-color, #0066cc);
+    cursor: pointer;
+}
+
+.inquiry-inline-select {
+    padding: 2px 4px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #1a1a1a;
+    background: #fff;
+    margin-left: 4px;
+    cursor: pointer;
+    max-width: 120px;
+}
+
+.inquiry-inline-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.inquiry-inline-select:focus {
+    outline: none;
+    border-color: var(--develogic-primary-color, #0066cc);
+}
+
+.inquiry-form .summary-inquiry-btn {
+    white-space: nowrap;
+    margin-top: 0;
+}
+
+.inquiry-form .summary-inquiry-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.inquiry-form-message {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+}
+
+.inquiry-form-message.success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.inquiry-form-message.error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+@media (max-width: 600px) {
+    .inquiry-form-layout {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .inquiry-form-row {
+        flex-direction: column;
+    }
+
+    .inquiry-form .summary-inquiry-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ===========================
    Show Cart Button (in modal)
    =========================== */
 /* Wizard Cart Button (go to favorites list) */
