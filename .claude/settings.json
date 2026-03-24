@@ -14,7 +14,8 @@
       "Bash(node -e \"console.log\\(''ż''.normalize\\(''NFD''\\).split\\(''''\\).map\\(c => c.charCodeAt\\(0\\).toString\\(16\\)\\)\\)\")",
       "Bash(php -r \"echo json_encode\\([''name'' => ''przeszklony balkon \\(oranżeria\\)'']\\) . PHP_EOL; echo json_encode\\([''name'' => ''wyższa kondygnacja'']\\) . PHP_EOL;\")",
       "Bash(php -r \":*)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(grep -n get_all_develogic_locals /home/michal/own_projects/develogic-wp-plugin/includes/*.php /home/michal/own_projects/develogic-wp-plugin/public/*.php)"
     ]
   }
 }

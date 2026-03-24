@@ -158,7 +158,14 @@ class Develogic_ImageMapPro_Integration {
             }
         }
         
-        if ($updated_projects > 0) {
+        // Update availability counters
+        $counter_shapes = $this->update_availability_counters($locals, $projects);
+        if ($counter_shapes > 0) {
+            $updated_shapes += $counter_shapes;
+            $this->log(sprintf('Updated %d availability counter shapes', $counter_shapes), 'success');
+        }
+
+        if ($updated_projects > 0 || $counter_shapes > 0) {
             $message = sprintf(
                 __('Image Map Pro: zaktualizowano %d projektów, %d kształtów', 'develogic'),
                 $updated_projects,
@@ -274,6 +281,337 @@ class Develogic_ImageMapPro_Integration {
         return $result;
     }
     
+    /**
+     * Update availability counters on configured spots
+     *
+     * Reads counter config from options, counts available locals per floor/building,
+     * and updates the tooltip text of the configured spots.
+     *
+     * @param array $locals Array of Develogic locals
+     * @param array $projects Array of Image Map Pro project objects
+     * @return int Number of counter shapes updated
+     */
+    private function update_availability_counters($locals, $projects) {
+        $counters = get_option('develogic_imagemappro_counters', array());
+        if (empty($counters) || !is_array($counters)) {
+            return 0;
+        }
+
+        $this->log(sprintf('Processing %d availability counters', count($counters)), 'info');
+
+        // Pre-compute counts: [building_id][floor] => count of "Wolny" locals
+        $counts_by_floor = array();
+        $counts_by_building = array();
+
+        foreach ($locals as $local) {
+            $status = isset($local['status']) ? trim($local['status']) : '';
+            if ($status !== 'Wolny') {
+                continue;
+            }
+            $building_id = isset($local['buildingId']) ? trim($local['buildingId']) : '';
+            $raw_floor = isset($local['floor']) ? trim($local['floor']) : '';
+            $floor = $this->normalize_floor($raw_floor);
+
+            if (!empty($building_id)) {
+                if (!isset($counts_by_building[$building_id])) {
+                    $counts_by_building[$building_id] = 0;
+                }
+                $counts_by_building[$building_id]++;
+
+                $floor_key = $building_id . '_' . $floor;
+                if (!isset($counts_by_floor[$floor_key])) {
+                    $counts_by_floor[$floor_key] = 0;
+                }
+                $counts_by_floor[$floor_key]++;
+            }
+        }
+
+        $this->log(sprintf('Availability counts: %d buildings, building keys: [%s], floor keys: [%s]',
+            count($counts_by_building),
+            implode(', ', array_map(function($k, $v) { return $k . '=' . $v; }, array_keys($counts_by_building), $counts_by_building)),
+            implode(', ', array_map(function($k, $v) { return $k . '=' . $v; }, array_keys($counts_by_floor), $counts_by_floor))
+        ), 'info');
+
+        // Log counter config for debugging
+        foreach ($counters as $ci => $c) {
+            $this->log(sprintf('Counter config [%d]: shortcode=%s, spot=%s, mode=%s, building_id="%s", floor="%s"',
+                $ci, $c['shortcode'], $c['spot_id'], $c['mode'], $c['building_id'], $c['floor']
+            ), 'info');
+        }
+
+        // Log first few "Wolny" locals for debugging
+        $debug_count = 0;
+        foreach ($locals as $local) {
+            $status = isset($local['status']) ? trim($local['status']) : '';
+            if ($status === 'Wolny' && $debug_count < 5) {
+                $this->log(sprintf('Sample Wolny local: number=%s, buildingId="%s" (type=%s), floor="%s" (type=%s)',
+                    isset($local['number']) ? $local['number'] : '?',
+                    isset($local['buildingId']) ? $local['buildingId'] : 'MISSING',
+                    isset($local['buildingId']) ? gettype($local['buildingId']) : 'N/A',
+                    isset($local['floor']) ? $local['floor'] : 'MISSING',
+                    isset($local['floor']) ? gettype($local['floor']) : 'N/A'
+                ), 'info');
+                $debug_count++;
+            }
+        }
+
+        // Index projects by shortcode for quick lookup
+        $projects_by_shortcode = array();
+        foreach ($projects as $project) {
+            $projects_by_shortcode[$project->shortcode] = $project;
+        }
+
+        $updated = 0;
+
+        // Group counters by project shortcode to avoid re-decoding JSON multiple times
+        $counters_by_project = array();
+        foreach ($counters as $counter) {
+            $sc = $counter['shortcode'];
+            if (!isset($counters_by_project[$sc])) {
+                $counters_by_project[$sc] = array();
+            }
+            $counters_by_project[$sc][] = $counter;
+        }
+
+        foreach ($counters_by_project as $shortcode => $project_counters) {
+            if (!isset($projects_by_shortcode[$shortcode])) {
+                $this->log(sprintf('Counter: project "%s" not found', $shortcode), 'warning');
+                continue;
+            }
+
+            $project = $projects_by_shortcode[$shortcode];
+
+            // Re-read fresh JSON from database (colors may have been updated by update_project_colors)
+            $fresh_json = $this->get_project_json_from_db($project->id, isset($project->version) ? $project->version : 'new');
+            if (empty($fresh_json)) {
+                $fresh_json = $project->json;
+            }
+
+            $project_data = json_decode($fresh_json, true);
+            if (empty($project_data)) {
+                $this->log(sprintf('Counter: empty project data for "%s"', $shortcode), 'warning');
+                continue;
+            }
+
+            // Collect references to all spots (from spots array and/or artboards)
+            $all_spots_refs = array();
+            if (!empty($project_data['spots']) && is_array($project_data['spots'])) {
+                foreach ($project_data['spots'] as $sk => &$s) {
+                    $all_spots_refs[] = &$project_data['spots'][$sk];
+                }
+                unset($s);
+            }
+            if (!empty($project_data['artboards']) && is_array($project_data['artboards'])) {
+                foreach ($project_data['artboards'] as $ak => &$artboard) {
+                    if (!empty($artboard['children']) && is_array($artboard['children'])) {
+                        foreach ($artboard['children'] as $ck => &$child) {
+                            $all_spots_refs[] = &$project_data['artboards'][$ak]['children'][$ck];
+                        }
+                        unset($child);
+                    }
+                }
+                unset($artboard);
+            }
+
+            if (empty($all_spots_refs)) {
+                $this->log(sprintf('Counter: no spots in project "%s"', $shortcode), 'warning');
+                continue;
+            }
+
+            $version = isset($project->version) ? $project->version : 'new';
+            $project_modified = false;
+
+            foreach ($project_counters as $counter) {
+                $spot_id = $counter['spot_id'];
+                $mode = $counter['mode'];
+                $building_id = $counter['building_id'];
+                $floor = $counter['floor'];
+                $template = !empty($counter['template']) ? $counter['template'] : 'Ilość dostępnych mieszkań - {count}';
+
+                // Compute count
+                if ($mode === 'building') {
+                    $count = isset($counts_by_building[$building_id]) ? $counts_by_building[$building_id] : 0;
+                } else {
+                    $floor_key = $building_id . '_' . $floor;
+                    $count = isset($counts_by_floor[$floor_key]) ? $counts_by_floor[$floor_key] : 0;
+                }
+
+                // Find the spot in all spots (spots + artboards)
+                $spot_found = false;
+                foreach ($all_spots_refs as &$spot) {
+                    $sid = isset($spot['id']) ? $spot['id'] : '';
+                    if ($sid !== $spot_id) {
+                        continue;
+                    }
+
+                    $spot_found = true;
+                    $spot_name = isset($spot['title']) ? $spot['title'] : '';
+
+                    // Build the display text from template
+                    $display_text = str_replace(
+                        array('{name}', '{count}'),
+                        array($spot_name, $count),
+                        $template
+                    );
+
+                    $this->log(sprintf(
+                        'Counter: spot "%s" (%s) -> %s (mode=%s, building=%s, floor=%s, count=%d)',
+                        $spot_name, $spot_id, $display_text, $mode, $building_id, $floor, $count
+                    ), 'info');
+
+                    // Update tooltip content with the counter text
+                    if ($this->update_counter_tooltip($spot, $display_text)) {
+                        $project_modified = true;
+                        $updated++;
+                    }
+                    break;
+                }
+                unset($spot);
+
+                if (!$spot_found) {
+                    $this->log(sprintf('Counter: spot "%s" not found in project "%s"', $spot_id, $shortcode), 'warning');
+                }
+            }
+
+            // Save project if modified
+            if ($project_modified) {
+                $new_json = wp_json_encode($project_data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $this->save_project_json($project->id, $new_json, $version);
+            }
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Update tooltip of a counter spot with availability text
+     *
+     * Preserves the existing first container (heading) and adds/updates
+     * a second container (Paragraph) with the counter text.
+     *
+     * @param array &$spot Spot data (passed by reference)
+     * @param string $text Display text (e.g. "Ilość dostępnych mieszkań - 5")
+     * @return bool True if tooltip was modified
+     */
+    private function update_counter_tooltip(&$spot, $text) {
+        $old_tooltip = isset($spot['tooltip_content']) ? $spot['tooltip_content'] : null;
+        $use_new_structure = is_array($old_tooltip) && isset($old_tooltip['squares_settings']);
+
+        if ($use_new_structure) {
+            $containers = isset($old_tooltip['squares_settings']['containers'])
+                ? $old_tooltip['squares_settings']['containers']
+                : array();
+
+            // Find existing counter container (second container with Paragraph)
+            $counter_index = null;
+            $old_text = '';
+            for ($i = 1; $i < count($containers); $i++) {
+                $els = isset($containers[$i]['settings']['elements']) ? $containers[$i]['settings']['elements'] : array();
+                foreach ($els as $el) {
+                    $name = isset($el['settings']['name']) ? $el['settings']['name'] : '';
+                    if ($name === 'Paragraph') {
+                        $counter_index = $i;
+                        $old_text = isset($el['options']['text']['text']) ? $el['options']['text']['text'] : '';
+                        break 2;
+                    }
+                }
+            }
+
+            if ($old_text === $text) {
+                return false;
+            }
+
+            // Build the counter container
+            $counter_container_id = 'sq-container-counter-' . (isset($spot['id']) ? $spot['id'] : rand(1000, 9999));
+            if ($counter_index !== null && isset($containers[$counter_index]['id'])) {
+                $counter_container_id = $containers[$counter_index]['id'];
+            }
+
+            $counter_container = array(
+                'id' => $counter_container_id,
+                'settings' => array(
+                    'elements' => array(
+                        array(
+                            'settings' => array(
+                                'name' => 'Paragraph',
+                                'iconClass' => 'fa fa-paragraph',
+                            ),
+                            'options' => array(
+                                'text' => array('text' => $text),
+                                'font' => array('line_height' => '14'),
+                            ),
+                        ),
+                    ),
+                ),
+            );
+
+            if ($counter_index !== null) {
+                // Update existing counter container
+                $containers[$counter_index] = $counter_container;
+            } else {
+                // Append new counter container after the heading
+                $containers[] = $counter_container;
+            }
+
+            $spot['tooltip_content']['squares_settings']['containers'] = $containers;
+        } else {
+            // Old structure: array of tooltip elements
+            // Preserve first element, add/update second with counter text
+            $old_elements = is_array($old_tooltip) ? $old_tooltip : array();
+
+            $old_text = '';
+            if (isset($old_elements[1]['text'])) {
+                $old_text = $old_elements[1]['text'];
+            }
+            if ($old_text === $text) {
+                return false;
+            }
+
+            $counter_element = array(
+                'type'    => 'Paragraph',
+                'text'    => $text,
+                'heading' => '',
+                'other'   => array('id' => '', 'classes' => '', 'css' => ''),
+                'style'   => array(
+                    'fontFamily' => 'sans-serif',
+                    'fontSize'   => 14,
+                    'lineHeight' => '18',
+                    'fontWeight' => 'normal',
+                    'color'      => '#ffffff',
+                    'textAlign'  => 'center',
+                ),
+            );
+
+            if (isset($old_elements[1]['boxModel'])) {
+                $counter_element['boxModel'] = $old_elements[1]['boxModel'];
+            }
+
+            if (empty($old_elements)) {
+                // No tooltip at all — create heading + counter
+                $spot['tooltip_content'] = array(
+                    array(
+                        'type'    => 'Heading',
+                        'text'    => isset($spot['title']) ? $spot['title'] : '',
+                        'heading' => 'h3',
+                        'style'   => array(
+                            'fontFamily' => 'sans-serif',
+                            'fontSize'   => 18,
+                            'fontWeight' => 'bold',
+                            'color'      => '#ffffff',
+                            'textAlign'  => 'center',
+                        ),
+                    ),
+                    $counter_element,
+                );
+            } else {
+                // Keep first element (heading), set second as counter
+                $spot['tooltip_content'] = array($old_elements[0], $counter_element);
+            }
+        }
+
+        return true;
+    }
+
     /**
      * Process a single shape (spot/polygon)
      *
@@ -835,6 +1173,74 @@ class Develogic_ImageMapPro_Integration {
         }
     }
     
+    /**
+     * Normalize floor value to a simple number string
+     *
+     * Converts values like "4 piętro", "parter", "piwnica", "Piętro IV" etc. to "4", "0", "-1"
+     *
+     * @param string $floor Raw floor value from Develogic
+     * @return string Normalized floor number as string
+     */
+    private function normalize_floor($floor) {
+        $floor = trim($floor);
+        $lower = mb_strtolower($floor, 'UTF-8');
+
+        // Already a plain number
+        if (is_numeric($floor)) {
+            return (string) intval($floor);
+        }
+
+        // Special cases
+        if ($lower === 'parter' || $lower === 'ground' || $lower === 'parter/ground') {
+            return '0';
+        }
+        if ($lower === 'piwnica' || $lower === 'basement' || $lower === '-1 piętro') {
+            return '-1';
+        }
+
+        // "4 piętro", "4 pietro", "piętro 4", "pietro 4", "4. piętro" etc.
+        if (preg_match('/(\d+)/', $floor, $m)) {
+            return $m[1];
+        }
+
+        // Roman numerals: "Piętro IV", "IV piętro"
+        $roman_map = array(
+            'I' => '1', 'II' => '2', 'III' => '3', 'IV' => '4', 'V' => '5',
+            'VI' => '6', 'VII' => '7', 'VIII' => '8', 'IX' => '9', 'X' => '10',
+        );
+        foreach ($roman_map as $roman => $num) {
+            if (preg_match('/\b' . $roman . '\b/', $floor)) {
+                return $num;
+            }
+        }
+
+        // Fallback — return as-is
+        return $floor;
+    }
+
+    /**
+     * Get fresh project JSON from database
+     *
+     * @param string $project_id Project ID
+     * @param string $version Version ('old' or 'new')
+     * @return string|null JSON string or null
+     */
+    private function get_project_json_from_db($project_id, $version = 'new') {
+        global $wpdb;
+
+        if ($version === 'old') {
+            $old_options = get_option('image-map-pro-wordpress-admin-options', false);
+            if ($old_options && isset($old_options['saves'][$project_id]['json'])) {
+                return stripslashes($old_options['saves'][$project_id]['json']);
+            }
+            return null;
+        }
+
+        $table_name = $wpdb->prefix . 'image_map_pro_projects';
+        $json = $wpdb->get_var($wpdb->prepare("SELECT json FROM $table_name WHERE id = %s", $project_id));
+        return $json ? stripslashes($json) : null;
+    }
+
     /**
      * Get all Image Map Pro projects
      *

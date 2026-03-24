@@ -406,8 +406,8 @@
         let targetApartment = null;
         
         apartmentItems.forEach(item => {
-            const numberEl = item.querySelector('.apartment-number');
-            if (numberEl && numberEl.textContent.trim().toUpperCase() === apartmentNumber.toUpperCase()) {
+            const dataNumber = item.getAttribute('data-number');
+            if (dataNumber && dataNumber.trim().toUpperCase() === apartmentNumber.toUpperCase()) {
                 targetApartment = item;
             }
         });
@@ -667,20 +667,7 @@
         const checkPromotionsBtn = document.getElementById('checkPromotionsBtn');
         if (checkPromotionsBtn) {
             checkPromotionsBtn.addEventListener('click', function() {
-                // Find promo checkbox by feature name containing "promocj" (case-insensitive)
-                const allExtrasCheckboxes = document.querySelectorAll('.filter-extras input[type="checkbox"][data-feature-name]');
-                let promoCheckbox = null;
-                allExtrasCheckboxes.forEach(cb => {
-                    const name = (cb.getAttribute('data-feature-name') || '').toLowerCase();
-                    if (name.includes('promocj') || name.includes('promo')) {
-                        promoCheckbox = cb;
-                    }
-                });
-                if (promoCheckbox) {
-                    promoCheckbox.checked = !promoCheckbox.checked;
-                }
-                this.classList.toggle('active');
-                applyFilters();
+                window.location.href = '/dom-godny-polecenia/';
             });
         }
         
@@ -1135,6 +1122,17 @@
             }
         });
         
+        // If localType + floor combination yields no results, reset both filters and re-run
+        if (visibleCount === 0 && selectedLocalType !== 'all' && selectedFloor !== 'all') {
+            const localTypeFilter = document.getElementById('localTypeFilter');
+            const floorFilterEl = document.getElementById('floorFilter');
+            if (localTypeFilter) localTypeFilter.value = 'all';
+            if (floorFilterEl) floorFilterEl.value = 'all';
+            // Re-apply filters after reset (avoid infinite recursion by checking we actually changed something)
+            applyFilters();
+            return;
+        }
+
         // Show/hide no results message
         updateNoResultsMessage(visibleCount);
 

@@ -88,6 +88,10 @@ class Develogic_Admin_ImageMapPro {
                 $this->clear_mappings();
                 break;
                 
+            case 'save_counters':
+                $this->save_counters();
+                break;
+
             case 'trigger_update':
                 $this->trigger_manual_update();
                 break;
@@ -200,6 +204,50 @@ class Develogic_Admin_ImageMapPro {
     }
     
     /**
+     * Save availability counter settings
+     */
+    private function save_counters() {
+        if (!isset($_POST['counters']) || !is_array($_POST['counters'])) {
+            delete_option('develogic_imagemappro_counters');
+            add_settings_error(
+                'develogic_imagemappro',
+                'counters_saved',
+                __('Liczniki dostępności zostały zapisane.', 'develogic'),
+                'success'
+            );
+            return;
+        }
+
+        $counters = array();
+
+        foreach ($_POST['counters'] as $entry) {
+            if (!is_array($entry) || empty($entry['shortcode']) || empty($entry['spot_id'])) {
+                continue;
+            }
+
+            $counter = array(
+                'shortcode'   => sanitize_text_field($entry['shortcode']),
+                'spot_id'     => sanitize_text_field($entry['spot_id']),
+                'mode'        => in_array($entry['mode'], array('floor', 'building'), true) ? $entry['mode'] : 'floor',
+                'building_id' => !empty($entry['building_id']) ? sanitize_text_field($entry['building_id']) : '',
+                'floor'       => isset($entry['floor']) ? sanitize_text_field($entry['floor']) : '',
+                'template'    => !empty($entry['template']) ? sanitize_text_field($entry['template']) : 'Ilość dostępnych mieszkań - {count}',
+            );
+
+            $counters[] = $counter;
+        }
+
+        update_option('develogic_imagemappro_counters', $counters);
+
+        add_settings_error(
+            'develogic_imagemappro',
+            'counters_saved',
+            __('Liczniki dostępności zostały zapisane.', 'develogic'),
+            'success'
+        );
+    }
+
+    /**
      * Clear all mappings
      */
     private function clear_mappings() {
@@ -253,6 +301,7 @@ class Develogic_Admin_ImageMapPro {
         // Get current settings
         $colors = get_option('develogic_imagemappro_colors', array());
         $mappings = get_option('develogic_imagemappro_building_map', array());
+        $counters = get_option('develogic_imagemappro_counters', array());
         
         // Get available buildings
         $buildings = $this->get_buildings();
@@ -540,6 +589,111 @@ class Develogic_Admin_ImageMapPro {
                 <?php endif; ?>
             </div>
             
+            <!-- Availability Counters -->
+            <div class="card" style="max-width: 900px; margin-bottom: 20px;">
+                <h2><?php _e('Liczniki dostępnych lokali', 'develogic'); ?></h2>
+
+                <p class="description">
+                    <?php _e('Skonfiguruj automatyczne wyświetlanie liczby wolnych lokali na wybranych spotach (np. piętra na widoku budynku). Przy każdej synchronizacji tooltip wybranego spota zostanie zaktualizowany o liczbę dostępnych lokali.', 'develogic'); ?>
+                </p>
+
+                <div class="notice notice-info inline" style="margin: 10px 0;">
+                    <p>
+                        <strong><?php _e('Szablon:', 'develogic'); ?></strong>
+                        <?php _e('Użyj <code>{count}</code> = liczba wolnych lokali, <code>{name}</code> = nazwa spota. Np.: <code>Ilość dostępnych mieszkań - {count}</code> &rarr; "Ilość dostępnych mieszkań - 5". Nagłówek spota (np. "PIĘTRO 4") pozostaje bez zmian.', 'develogic'); ?>
+                    </p>
+                </div>
+
+                <?php if (empty($projects)): ?>
+                    <p><em><?php _e('Brak projektów Image Map Pro.', 'develogic'); ?></em></p>
+                <?php else: ?>
+                    <form method="post" action="">
+                        <?php wp_nonce_field('develogic_imagemappro_settings', 'develogic_imagemappro_nonce'); ?>
+                        <input type="hidden" name="develogic_imagemappro_action" value="save_counters">
+
+                        <?php
+                        // Build spots data for JS (shortcode => [{id, title, layerID}])
+                        $project_spots = $imagemappro_active ? $this->get_project_spots() : array();
+                        $spots_json = wp_json_encode($project_spots);
+                        ?>
+                        <script>var develogicProjectSpots = <?php echo $spots_json; ?>;</script>
+
+                        <div id="develogic-counters-container">
+                            <?php
+                            $counter_entries = !empty($counters) ? $counters : array();
+                            foreach ($counter_entries as $ci => $counter):
+                            ?>
+                            <div class="develogic-counter-row" style="margin-bottom: 12px; padding: 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 3px;">
+                                <div style="display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;">
+                                    <div style="min-width: 180px;">
+                                        <label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;"><?php _e('Projekt:', 'develogic'); ?></label>
+                                        <select name="counters[<?php echo $ci; ?>][shortcode]" class="develogic-counter-project" style="width: 100%;">
+                                            <option value=""><?php _e('— wybierz —', 'develogic'); ?></option>
+                                            <?php foreach ($projects as $p): ?>
+                                                <option value="<?php echo esc_attr($p->shortcode); ?>" <?php selected($p->shortcode, $counter['shortcode']); ?>>
+                                                    <?php echo esc_html($p->name); ?> (<?php echo esc_html($p->shortcode); ?>)
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div style="min-width: 180px;">
+                                        <label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;"><?php _e('Spot (kształt):', 'develogic'); ?></label>
+                                        <select name="counters[<?php echo $ci; ?>][spot_id]" class="develogic-counter-spot" style="width: 100%;">
+                                            <option value=""><?php _e('— wybierz —', 'develogic'); ?></option>
+                                            <?php if (!empty($counter['shortcode']) && isset($project_spots[$counter['shortcode']])): ?>
+                                                <?php foreach ($project_spots[$counter['shortcode']] as $spot): ?>
+                                                    <option value="<?php echo esc_attr($spot['id']); ?>" <?php selected($spot['id'], $counter['spot_id']); ?>>
+                                                        <?php echo esc_html($spot['title']); ?> (<?php echo esc_html($spot['id']); ?>)
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </select>
+                                    </div>
+                                    <div style="min-width: 120px;">
+                                        <label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;"><?php _e('Tryb:', 'develogic'); ?></label>
+                                        <select name="counters[<?php echo $ci; ?>][mode]" class="develogic-counter-mode" style="width: 100%;">
+                                            <option value="floor" <?php selected($counter['mode'], 'floor'); ?>><?php _e('Per piętro', 'develogic'); ?></option>
+                                            <option value="building" <?php selected($counter['mode'], 'building'); ?>><?php _e('Per budynek', 'develogic'); ?></option>
+                                        </select>
+                                    </div>
+                                    <div style="min-width: 150px;">
+                                        <label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;"><?php _e('Budynek:', 'develogic'); ?></label>
+                                        <select name="counters[<?php echo $ci; ?>][building_id]" class="develogic-counter-building" style="width: 100%;">
+                                            <option value=""><?php _e('— wybierz —', 'develogic'); ?></option>
+                                            <?php foreach ($buildings as $b): ?>
+                                                <option value="<?php echo esc_attr($b['id']); ?>" <?php selected($b['id'], $counter['building_id']); ?>>
+                                                    <?php echo esc_html($b['name']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="develogic-counter-floor-wrap" style="min-width: 80px; <?php echo $counter['mode'] === 'building' ? 'display:none;' : ''; ?>">
+                                        <label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;"><?php _e('Piętro:', 'develogic'); ?></label>
+                                        <input type="text" name="counters[<?php echo $ci; ?>][floor]" value="<?php echo esc_attr($counter['floor']); ?>" placeholder="np. 0, 1, 2..." style="width: 80px;">
+                                    </div>
+                                    <div style="min-width: 150px;">
+                                        <label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;"><?php _e('Szablon:', 'develogic'); ?></label>
+                                        <input type="text" name="counters[<?php echo $ci; ?>][template]" value="<?php echo esc_attr($counter['template']); ?>" placeholder="Ilość dostępnych mieszkań - {count}" style="width: 150px;">
+                                    </div>
+                                    <div style="padding-top: 18px;">
+                                        <button type="button" class="button button-small develogic-remove-counter" title="<?php _e('Usuń', 'develogic'); ?>">&times;</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <button type="button" class="button button-small" id="develogic-add-counter">+ <?php _e('Dodaj licznik', 'develogic'); ?></button>
+
+                        <p class="submit">
+                            <button type="submit" class="button button-primary">
+                                <?php _e('Zapisz liczniki', 'develogic'); ?>
+                            </button>
+                        </p>
+                    </form>
+                <?php endif; ?>
+            </div>
+
             <!-- Manual Update -->
             <div class="card" style="max-width: 800px;">
                 <h2><?php _e('Manualna aktualizacja', 'develogic'); ?></h2>
@@ -680,6 +834,82 @@ class Develogic_Admin_ImageMapPro {
                 $newRow.insertBefore($(this));
             });
 
+            // --- Availability Counters ---
+            var projectSpots = (typeof develogicProjectSpots !== 'undefined') ? develogicProjectSpots : {};
+
+            // When counter project changes, populate spots dropdown
+            $(document).on('change', '.develogic-counter-project', function() {
+                var $row = $(this).closest('.develogic-counter-row');
+                var $spotSelect = $row.find('.develogic-counter-spot');
+                var shortcode = $(this).val();
+                var spots = projectSpots[shortcode] || [];
+
+                $spotSelect.html('<option value="">— wybierz —</option>');
+                spots.forEach(function(spot) {
+                    $spotSelect.append('<option value="' + spot.id + '">' + spot.title + ' (' + spot.id + ')</option>');
+                });
+            });
+
+            // When mode changes, show/hide floor field
+            $(document).on('change', '.develogic-counter-mode', function() {
+                var $row = $(this).closest('.develogic-counter-row');
+                if ($(this).val() === 'building') {
+                    $row.find('.develogic-counter-floor-wrap').hide();
+                } else {
+                    $row.find('.develogic-counter-floor-wrap').show();
+                }
+            });
+
+            // Add counter row
+            $('#develogic-add-counter').on('click', function() {
+                var $container = $('#develogic-counters-container');
+                var idx = $container.find('.develogic-counter-row').length;
+
+                var projectOptions = '<option value="">— wybierz —</option>';
+                $('.develogic-counter-project:first option').each(function() {
+                    if ($(this).val()) {
+                        projectOptions += '<option value="' + $(this).val() + '">' + $(this).text() + '</option>';
+                    }
+                });
+                // If no existing rows, build from projects variable
+                if (!projectOptions.match(/value="[^"]+"/)) {
+                    <?php if (!empty($projects)): ?>
+                    <?php foreach ($projects as $p): ?>
+                    projectOptions += '<option value="<?php echo esc_js($p->shortcode); ?>"><?php echo esc_js($p->name . ' (' . $p->shortcode . ')'); ?></option>';
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                }
+
+                var buildingOptions = '<option value="">— wybierz —</option>';
+                <?php foreach ($buildings as $b): ?>
+                buildingOptions += '<option value="<?php echo esc_js($b['id']); ?>"><?php echo esc_js($b['name']); ?></option>';
+                <?php endforeach; ?>
+
+                var html = '<div class="develogic-counter-row" style="margin-bottom: 12px; padding: 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 3px;">' +
+                    '<div style="display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap;">' +
+                    '<div style="min-width: 180px;"><label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;">Projekt:</label>' +
+                    '<select name="counters[' + idx + '][shortcode]" class="develogic-counter-project" style="width: 100%;">' + projectOptions + '</select></div>' +
+                    '<div style="min-width: 180px;"><label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;">Spot (kształt):</label>' +
+                    '<select name="counters[' + idx + '][spot_id]" class="develogic-counter-spot" style="width: 100%;"><option value="">— wybierz —</option></select></div>' +
+                    '<div style="min-width: 120px;"><label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;">Tryb:</label>' +
+                    '<select name="counters[' + idx + '][mode]" class="develogic-counter-mode" style="width: 100%;"><option value="floor">Per piętro</option><option value="building">Per budynek</option></select></div>' +
+                    '<div style="min-width: 150px;"><label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;">Budynek:</label>' +
+                    '<select name="counters[' + idx + '][building_id]" class="develogic-counter-building" style="width: 100%;">' + buildingOptions + '</select></div>' +
+                    '<div class="develogic-counter-floor-wrap" style="min-width: 80px;"><label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;">Piętro:</label>' +
+                    '<input type="text" name="counters[' + idx + '][floor]" placeholder="np. 0, 1, 2..." style="width: 80px;"></div>' +
+                    '<div style="min-width: 150px;"><label style="font-weight: 600; font-size: 12px; display: block; margin-bottom: 3px;">Szablon:</label>' +
+                    '<input type="text" name="counters[' + idx + '][template]" placeholder="Ilość dostępnych mieszkań - {count}" value="Ilość dostępnych mieszkań - {count}" style="width: 150px;"></div>' +
+                    '<div style="padding-top: 18px;"><button type="button" class="button button-small develogic-remove-counter" title="Usuń">&times;</button></div>' +
+                    '</div></div>';
+
+                $container.append(html);
+            });
+
+            // Remove counter row
+            $(document).on('click', '.develogic-remove-counter', function() {
+                $(this).closest('.develogic-counter-row').remove();
+            });
+
             // Remove mapping row
             $(document).on('click', '.develogic-remove-row', function() {
                 var $container = $(this).closest('.develogic-mapping-entries');
@@ -772,6 +1002,90 @@ class Develogic_Admin_ImageMapPro {
         }
 
         return $projects;
+    }
+
+    /**
+     * Get spots for all Image Map Pro projects
+     *
+     * @return array Shortcode => array of spots [{id, title, layerID}]
+     */
+    private function get_project_spots() {
+        $spots_map = array();
+
+        $old_options = get_option('image-map-pro-wordpress-admin-options', false);
+        if ($old_options && isset($old_options['saves']) && is_array($old_options['saves'])) {
+            foreach ($old_options['saves'] as $project_id => $project_data) {
+                $shortcode = isset($project_data['meta']['shortcode']) ? $project_data['meta']['shortcode'] : '';
+                if (empty($shortcode) || empty($project_data['json'])) {
+                    continue;
+                }
+                $json = json_decode(stripslashes($project_data['json']), true);
+                if (!$json) {
+                    continue;
+                }
+                $spots_map[$shortcode] = $this->extract_spots_from_json($json);
+            }
+        }
+
+        // Also try new version table
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'image_map_pro_projects';
+        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") == $table_name) {
+            $table_projects = $wpdb->get_results("SELECT shortcode, json FROM $table_name");
+            if ($table_projects) {
+                foreach ($table_projects as $proj) {
+                    if (isset($spots_map[$proj->shortcode])) {
+                        continue;
+                    }
+                    $json = json_decode(stripslashes($proj->json), true);
+                    if (!$json) {
+                        continue;
+                    }
+                    $spots_map[$proj->shortcode] = $this->extract_spots_from_json($json);
+                }
+            }
+        }
+
+        return $spots_map;
+    }
+
+    /**
+     * Extract spots from project JSON (supports both spots array and artboards)
+     *
+     * @param array $json Decoded project JSON
+     * @return array Array of spots [{id, title, layerID}]
+     */
+    private function extract_spots_from_json($json) {
+        $spots = array();
+
+        // From spots array
+        if (!empty($json['spots']) && is_array($json['spots'])) {
+            foreach ($json['spots'] as $spot) {
+                $spots[] = array(
+                    'id'      => isset($spot['id']) ? $spot['id'] : '',
+                    'title'   => isset($spot['title']) ? $spot['title'] : '',
+                    'layerID' => isset($spot['layerID']) ? $spot['layerID'] : '',
+                );
+            }
+        }
+
+        // From artboards
+        if (!empty($json['artboards']) && is_array($json['artboards'])) {
+            foreach ($json['artboards'] as $artboard) {
+                if (empty($artboard['children']) || !is_array($artboard['children'])) {
+                    continue;
+                }
+                foreach ($artboard['children'] as $child) {
+                    $spots[] = array(
+                        'id'      => isset($child['id']) ? $child['id'] : '',
+                        'title'   => isset($child['title']) ? $child['title'] : '',
+                        'layerID' => isset($child['layerID']) ? $child['layerID'] : '',
+                    );
+                }
+            }
+        }
+
+        return $spots;
     }
 
     /**
