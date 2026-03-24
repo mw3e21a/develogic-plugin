@@ -433,10 +433,10 @@
             // Add highlight class
             targetApartment.classList.add('apartment-highlight');
             
-            // Remove highlight after 3 seconds
+            // Remove highlight after 10 seconds
             setTimeout(function() {
                 targetApartment.classList.remove('apartment-highlight');
-            }, 3000);
+            }, 10000);
         }, 500); // Delay to ensure filters are applied first
     }
     
