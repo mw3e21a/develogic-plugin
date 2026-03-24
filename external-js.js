@@ -92,7 +92,7 @@ jQuery(document).ready(function($) {
     }
 
     var basementHeadingHTML = 'Wybierz garaż lub komórkę lokatorską' +
-        '<br><small style="font-size: 0.6em; font-weight: normal; line-height: 1.4; display: block; margin-top: 0.5em;">' +
+        '<br><small style="font-size: 0.45em; font-weight: normal; line-height: 1.3; display: block; margin-top: 0.4em;">' +
         'UWAGA! Zakup garażu jedynie łącznie z mieszkaniem ' +
         '(Ceny podane w tabeli dotyczą garażu przynależnego do mieszkania! ' +
         'W przypadku zakupu mieszkania i garażu samodzielnego należy doliczyć ' +

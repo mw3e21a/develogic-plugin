@@ -1057,7 +1057,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
         </div>
         <?php if ($show_quote_btn): ?>
         <div class="inquiry-form-wrapper" id="inquiryFormWrapper">
-            <h4 class="inquiry-form-title">Wyślij zapytanie o szczegóły</h4>
+            <h4 class="inquiry-form-title" style="color: #0066cc;">Chcesz uzyskać rabat specjalny i ofertę dopasowaną do Ciebie? Odpowiedz na kilka pytań i ciesz się niższą ceną!</h4>
             <form class="inquiry-form" id="inquiryForm" novalidate>
                 <div class="inquiry-form-layout">
                     <div class="inquiry-form-fields">
@@ -1107,7 +1107,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                                 </div>
                             </div>
                             <div class="inquiry-survey-section">
-                                <span class="inquiry-survey-label"><strong>Aby przedstawić najbardziej dopasowaną promocję, zaznacz pasujące odpowiedzi:</strong></span>
+                                <span class="inquiry-survey-label inquiry-survey-label--large"><strong>W celu uzyskania oferty specjalnej zaznacz jedno lub kilka z poniższych zdań, które najbardziej pasuje do Ciebie:</strong></span>
                                 <div class="inquiry-survey-options inquiry-survey-options--column">
                                     <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="służby mundurowe"> Jestem pracownikiem tzw. służb mundurowych</label>
                                     <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="ślub 2025/2026"> Wziąłem/wzięłam ślub w 2025 lub 2026 roku</label>
@@ -1133,9 +1133,9 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         </div>
                     </div>
                     <div class="inquiry-rodo-consent">
-                        <label class="inquiry-checkbox inquiry-rodo-label">
+                        <label class="inquiry-rodo-btn" id="inquiryRodoLabel">
                             <input type="checkbox" id="inquiryRodoConsent" required>
-                            <span class="inquiry-rodo-text">Wyrażam zgodę na przetwarzanie moich danych osobowych zgodnie z <a href="/polityka-bezpieczenstwa/" target="_blank">Polityką Prywatności</a> w celu otrzymania odpowiedzi na zapytanie.</span>
+                            <span class="inquiry-rodo-btn-text">Wyrażam zgodę na przetwarzanie moich danych osobowych zgodnie z <a href="/polityka-bezpieczenstwa/" target="_blank">Polityką Prywatności</a></span>
                         </label>
                     </div>
                     <div class="inquiry-form-action">
@@ -1144,7 +1144,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                                 <rect x="3" y="5" width="18" height="14" rx="2"/>
                                 <path d="M3 7l9 6 9-6"/>
                             </svg>
-                            Wyślij zapytanie o szczegóły
+                            Wyślij zapytanie
                         </button>
                     </div>
                 </div>

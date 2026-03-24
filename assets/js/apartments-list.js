@@ -2692,6 +2692,10 @@
                 f.classList.remove('field-error');
             });
             if (rodoWrapper) rodoWrapper.classList.remove('field-error');
+            // Clear survey section errors
+            form.querySelectorAll('.inquiry-survey-section').forEach(function(s) {
+                s.classList.remove('field-error');
+            });
             messageEl.style.display = 'none';
 
             // Validate
@@ -2700,12 +2704,32 @@
             if (!emailField.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value.trim())) {
                 emailField.classList.add('field-error'); hasError = true;
             }
+
+            // Validate first 4 survey questions (required)
+            var requiredSurveys = ['survey_area', 'survey_rooms', 'survey_purchase_status', 'survey_age'];
+            requiredSurveys.forEach(function(name) {
+                var checked = form.querySelector('input[name="' + name + '"]:checked');
+                if (!checked) {
+                    var section = form.querySelector('input[name="' + name + '"]');
+                    if (section) {
+                        var sectionWrapper = section.closest('.inquiry-survey-section');
+                        if (sectionWrapper) sectionWrapper.classList.add('field-error');
+                    }
+                    hasError = true;
+                }
+            });
+
             if (rodoCheckbox && !rodoCheckbox.checked) {
                 if (rodoWrapper) rodoWrapper.classList.add('field-error');
                 hasError = true;
             }
 
-            if (hasError) return;
+            if (hasError) {
+                messageEl.style.display = 'block';
+                messageEl.className = 'inquiry-form-message error';
+                messageEl.textContent = 'Uzupełnij brakujące informacje.';
+                return;
+            }
 
             // Check if configurator has only 1 item - suggest adding more for better offer
             if (hasOnlyOneItemInFavorites()) {
