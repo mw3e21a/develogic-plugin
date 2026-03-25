@@ -3147,7 +3147,7 @@
 
 .summary-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     margin-top: 12px;
     padding-top: 12px;
 }
@@ -3256,8 +3256,9 @@
 
 .inquiry-form-action {
     flex-shrink: 0;
-    align-self: flex-end;
+    align-self: stretch;
     display: flex;
+    justify-content: space-between;
     gap: 12px;
     align-items: center;
 }

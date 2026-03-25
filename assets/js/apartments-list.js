@@ -482,6 +482,22 @@
      * Usage: scrollToApartment('M18')
      */
     window.develogicScrollToApartment = function(apartmentNumber) {
+        // Close wizard modal if it's open
+        var wizardModal = document.getElementById('wizardModal');
+        if (wizardModal && wizardModal.classList.contains('visible')) {
+            closeWizardModal();
+        }
+
+        // Switch to "all" view if currently in favorites or watched view
+        var apartmentList = document.querySelector('.apartment-list');
+        if (apartmentList && (apartmentList.classList.contains('hide-favorites') || apartmentList.classList.contains('hide-watched'))) {
+            switchToAllView();
+        }
+
+        // Reset filters so the target apartment is not hidden by localType/floor/etc.
+        resetFilters();
+        applyFilters();
+
         const url = new URL(window.location.href);
         url.searchParams.set('mieszkanie', apartmentNumber);
         window.history.pushState({}, '', url.toString());
@@ -1585,11 +1601,26 @@
             <div class="toast-icon toast-icon-watched"></div>
             <div class="toast-content">
                 <div class="toast-title">Dodano do obserwowanych</div>
-                <span class="toast-link" onclick="document.querySelector('.favorites-toggle-btn[data-toggle-view=\\'watched\\']').click()">Zobacz listę</span>
+                <span class="toast-link" id="toastWatchedLink">Zobacz listę</span>
             </div>
         `;
 
         container.appendChild(toast);
+
+        // Setup click handler for the "Zobacz listę" link
+        const toastWatchedLink = toast.querySelector('#toastWatchedLink');
+        if (toastWatchedLink) {
+            toastWatchedLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Close detail modal if open
+                closeApartmentModal();
+                // Switch to watched view
+                const watchedBtn = document.querySelector('.favorites-toggle-btn[data-toggle-view="watched"]');
+                if (watchedBtn) {
+                    watchedBtn.click();
+                }
+            });
+        }
 
         setTimeout(() => {
             toast.classList.add('show');
@@ -2639,6 +2670,8 @@
         if (toastLink) {
             toastLink.addEventListener('click', function(e) {
                 e.preventDefault();
+                // Close detail modal if open
+                closeApartmentModal();
                 // Switch to favorites view
                 const favoritesBtn = document.querySelector('.favorites-toggle-btn[data-toggle-view="favorites"]');
                 if (favoritesBtn) {
@@ -3612,6 +3645,9 @@
     function closeWizardModal() {
         const wizardModal = document.getElementById('wizardModal');
         if (!wizardModal) return;
+
+        // Close detail modal if open (wizard can appear on top of details)
+        closeApartmentModal();
 
         wizardModal.classList.remove('visible');
         document.body.style.overflow = '';

@@ -1327,23 +1327,23 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
         <div class="modal-header">
             <h2 class="modal-title"></h2>
             <div class="action-buttons">
-                <?php if ($show_email_btn): ?>
+                <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
+                <button class="icon-btn" data-action="favorite-modal" aria-label="<?php esc_attr_e('Dodaj do konfiguratora oferty', 'develogic'); ?>" title="Dodaj do konfiguratora oferty">
+                    <svg viewBox="0 0 24 24">
+                        <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+                    </svg>
+                </button>
+                <?php endif; ?>
                 <button class="icon-btn" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o nieruchomość">
                     <svg viewBox="0 0 24 24">
                         <rect x="3" y="5" width="18" height="14" rx="2"/>
                         <path d="M3 7l9 6 9-6"/>
                     </svg>
                 </button>
-                <?php endif; ?>
                 <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
                 <button class="icon-btn" data-action="watched-modal" aria-label="<?php esc_attr_e('Obserwuj', 'develogic'); ?>" title="Dodaj do obserwowanych">
                     <svg viewBox="0 0 24 24">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                    </svg>
-                </button>
-                <button class="icon-btn" data-action="favorite-modal" aria-label="<?php esc_attr_e('Dodaj do konfiguratora oferty', 'develogic'); ?>" title="Dodaj do konfiguratora oferty">
-                    <svg viewBox="0 0 24 24">
-                        <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
                     </svg>
                 </button>
                 <?php endif; ?>
@@ -1491,6 +1491,17 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     <div class="omnibus-value"></div>
                 </div>
 
+                <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
+                <!-- Show Cart Button -->
+                <button class="show-cart-btn" id="modalShowCartBtn" style="display: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
+                    </svg>
+                    <span class="show-cart-btn-text">Pokaż konfigurator</span>
+                    <span class="show-cart-btn-count" id="modalCartCount"></span>
+                </button>
+                <?php endif; ?>
+
                 <!-- Price history section -->
                 <div class="detail-price-history">
                     <div class="price-history-label">Historia ceny</div>
@@ -1508,17 +1519,6 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         <div class="price-history-empty" style="display:none;"></div>
                     </div>
                 </div>
-
-                <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
-                <!-- Show Cart Button -->
-                <button class="show-cart-btn" id="modalShowCartBtn" style="display: none;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>
-                    </svg>
-                    <span class="show-cart-btn-text">Pokaż konfigurator</span>
-                    <span class="show-cart-btn-count" id="modalCartCount"></span>
-                </button>
-                <?php endif; ?>
 
         </div>
     </div>
