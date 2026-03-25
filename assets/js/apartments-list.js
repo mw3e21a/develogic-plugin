@@ -36,6 +36,7 @@
         setupWatched();
         setupEmailButtons();
         setupApartmentClicks();
+        setup3dTooltip();
         setupModal();
         setupFavoritesViewToggle();
         setupInquiryForm();
@@ -389,7 +390,9 @@
     // ===========================
     // URL Filters functionality
     // ===========================
-    
+
+    var highlightTimer = null;
+
     /**
      * Scroll to specific apartment from URL parameter
      */
@@ -423,20 +426,30 @@
             return;
         }
         
+        // Clear any existing highlight
+        document.querySelectorAll('.apartment-item.apartment-highlight').forEach(function(el) {
+            el.classList.remove('apartment-highlight');
+        });
+        if (highlightTimer) {
+            clearTimeout(highlightTimer);
+            highlightTimer = null;
+        }
+
         // Scroll to apartment with smooth behavior
         setTimeout(function() {
-            targetApartment.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'center' 
+            targetApartment.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
             });
-            
+
             // Add highlight class
             targetApartment.classList.add('apartment-highlight');
-            
-            // Remove highlight after 10 seconds
-            setTimeout(function() {
+
+            // Remove highlight after 15 seconds
+            highlightTimer = setTimeout(function() {
                 targetApartment.classList.remove('apartment-highlight');
-            }, 10000);
+                highlightTimer = null;
+            }, 15000);
         }, 500); // Delay to ensure filters are applied first
     }
     
@@ -844,17 +857,20 @@
             }
         }
         
-        // Only auto-select floor if current value is "all" AND we have KL/PG/Garaż type selected
-        // This way we don't override explicit floor selections from shortcode
-        if (currentFloorValue === 'all' && typesWithAutoFloor.includes(selectedLocalType)) {
-            // If only one floor exists for KL/PG/Garaż, auto-select it
+        // Auto-select floor when KL/PG/Garaż type is selected
+        // Always switch to the correct floor for these types (they only exist on specific floors)
+        if (typesWithAutoFloor.includes(selectedLocalType)) {
             if (klPgFloors.length === 1) {
                 const targetFloor = String(klPgFloors[0]);
-                
-                // Check if this floor option exists in the select (it should now)
                 const floorOption = Array.from(floorFilter.options).find(opt => opt.value === targetFloor);
                 if (floorOption) {
                     floorFilter.value = targetFloor;
+                }
+            } else if (klPgFloors.length > 1) {
+                // Multiple KL/PG floors — check if current floor is one of them, if not reset to 'all'
+                const currentInKlPg = klPgFloors.some(f => String(f) === currentFloorValue);
+                if (!currentInKlPg) {
+                    floorFilter.value = 'all';
                 }
             }
         }
@@ -1734,7 +1750,78 @@
             });
         });
     }
-    
+
+    // ===========================
+    // Desktop 3D Floor Plan Tooltip
+    // ===========================
+    function setup3dTooltip() {
+        const tooltip = document.getElementById('apartment3dTooltip');
+        if (!tooltip) return;
+
+        // Move to body so it's not clipped by overflow containers
+        document.body.appendChild(tooltip);
+
+        const tooltipImg = tooltip.querySelector('img');
+        let showTimeout = null;
+        let currentItem = null;
+
+        document.querySelectorAll('.apartment-item[data-marketing-img]').forEach(item => {
+            item.addEventListener('mouseenter', function(e) {
+                if (isMobileView()) return;
+
+                const imgUrl = this.getAttribute('data-marketing-img');
+                if (!imgUrl) return;
+
+                currentItem = this;
+
+                showTimeout = setTimeout(() => {
+                    tooltipImg.src = imgUrl;
+                    tooltip.classList.add('visible');
+                    positionTooltipBelowRow();
+                }, 300);
+            });
+
+            item.addEventListener('mouseleave', function() {
+                clearTimeout(showTimeout);
+                tooltip.classList.remove('visible');
+                currentItem = null;
+            });
+        });
+
+        function positionTooltipBelowRow() {
+            if (!currentItem) return;
+
+            const rowRect = currentItem.getBoundingClientRect();
+            const tooltipWidth = 560;
+            const margin = 8;
+
+            // Position below the row
+            let top = rowRect.bottom + margin;
+            // Center horizontally relative to the row
+            let left = rowRect.left + (rowRect.width - tooltipWidth) / 2;
+
+            // Keep within viewport horizontally
+            if (left < margin) {
+                left = margin;
+            }
+            if (left + tooltipWidth > window.innerWidth - margin) {
+                left = window.innerWidth - tooltipWidth - margin;
+            }
+
+            // If not enough space below, check if tooltip fits in remaining viewport
+            const tooltipHeight = tooltip.offsetHeight || 400;
+            if (top + tooltipHeight > window.innerHeight - margin) {
+                top = window.innerHeight - tooltipHeight - margin;
+            }
+            if (top < rowRect.bottom + margin) {
+                top = rowRect.bottom + margin;
+            }
+
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+        }
+    }
+
     // ===========================
     // Modal functionality
     // ===========================
@@ -3028,6 +3115,165 @@
         totalPriceEl.textContent = totalPrice > 0 ? totalPrice.toLocaleString('pl-PL') + ' zł' : '0 zł';
         summary.classList.add('visible');
     }
+
+    // ===========================
+    // Configurator PDF Export
+    // ===========================
+    (function() {
+        var pdfBtn = document.getElementById('configuratorPdfBtn');
+        if (!pdfBtn) return;
+
+        pdfBtn.addEventListener('click', function() {
+            var favorites = getFavoritesOnPage();
+            if (favorites.length === 0) return;
+
+            var items = [];
+            var totalPrice = 0;
+
+            favorites.forEach(function(localId) {
+                document.querySelectorAll('.apartment-item').forEach(function(el) {
+                    try {
+                        var data = JSON.parse(el.getAttribute('data-modal') || '{}');
+                        if (String(data.localId) === String(localId)) {
+                            var price = data.priceGross ? Number(data.priceGross) : 0;
+                            items.push({
+                                number: data.number || localId,
+                                building: data.building || '',
+                                localType: data.localType || '',
+                                floor: data.floorDisplay || data.floor || '',
+                                area: data.area ? Number(data.area).toLocaleString('pl-PL', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m\u00B2' : '',
+                                rooms: data.rooms || '',
+                                price: price,
+                                priceFormatted: price > 0 ? price.toLocaleString('pl-PL') + ' z\u0142' : '-',
+                                priceM2: data.priceM2 ? Number(data.priceM2).toLocaleString('pl-PL') + ' z\u0142/m\u00B2' : ''
+                            });
+                            totalPrice += price;
+                        }
+                    } catch(e) {}
+                });
+            });
+
+            var today = new Date();
+            var dateStr = today.toLocaleDateString('pl-PL', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            var rows = '';
+            items.forEach(function(item, i) {
+                rows += '<tr>' +
+                    '<td>' + (i + 1) + '</td>' +
+                    '<td>' + item.localType + '</td>' +
+                    '<td><strong>' + item.number + '</strong></td>' +
+                    '<td>' + item.building + '</td>' +
+                    '<td>' + item.floor + '</td>' +
+                    '<td>' + item.area + '</td>' +
+                    '<td>' + item.rooms + '</td>' +
+                    '<td style="text-align:right;">' + item.priceFormatted + '</td>' +
+                    '</tr>';
+            });
+
+            // Collect survey answers for PDF
+            var surveyHtml = '';
+            var form = document.getElementById('inquiryForm');
+            if (form) {
+                var surveyRows = [];
+
+                // Contact fields
+                var nameField = document.getElementById('inquiryName');
+                var emailField = document.getElementById('inquiryEmail');
+                var phoneField = document.getElementById('inquiryPhone');
+                if (nameField && nameField.value.trim()) surveyRows.push({q: 'Imi\u0119 i nazwisko', a: nameField.value.trim()});
+                if (emailField && emailField.value.trim()) surveyRows.push({q: 'Email', a: emailField.value.trim()});
+                if (phoneField && phoneField.value.trim()) surveyRows.push({q: 'Telefon', a: phoneField.value.trim()});
+
+                // Radio questions
+                var areaRadio = form.querySelector('input[name="survey_area"]:checked');
+                if (areaRadio) surveyRows.push({q: 'Jaki metra\u017c wybranego mieszkania Ci\u0119 interesuje?', a: areaRadio.value});
+                var roomsRadio = form.querySelector('input[name="survey_rooms"]:checked');
+                if (roomsRadio) surveyRows.push({q: 'Ile pokoi ma mie\u0107 Twoje wymarzone mieszkanie?', a: roomsRadio.value});
+                var purchaseRadio = form.querySelector('input[name="survey_purchase_status"]:checked');
+                if (purchaseRadio) surveyRows.push({q: 'Czy kupowa\u0142e\u015b od firmy Dom E\u0142cki?', a: purchaseRadio.value});
+                var ageRadio = form.querySelector('input[name="survey_age"]:checked');
+                if (ageRadio) surveyRows.push({q: 'Do kt\u00f3rej grupy wiekowej nale\u017cysz?', a: ageRadio.value});
+
+                // Promo checkboxes
+                var promoChecked = Array.from(form.querySelectorAll('input[name="survey_promo[]"]:checked'));
+                if (promoChecked.length) {
+                    var promoVals = [];
+                    promoChecked.forEach(function(cb) {
+                        var val = cb.value;
+                        if (val === 's\u0142u\u017cby mundurowe') {
+                            val = 'Pracownik s\u0142u\u017cb mundurowych';
+                        } else if (val === '\u015blub 2025/2026') {
+                            val = '\u015alub w 2025 lub 2026 roku';
+                        } else if (val === 'dzieci') {
+                            var countSel = form.querySelector('select[name="survey_children_count"]');
+                            var count = countSel ? countSel.value : '';
+                            val = 'Dzieci: ' + (count || 'nie podano liczby');
+                        } else if (val === 'promocja specjalna') {
+                            var promoSel = form.querySelector('select[name="survey_special_promo"]');
+                            var promo = promoSel ? promoSel.value : '';
+                            val = 'Promocja specjalna: ' + (promo || 'nie wybrano');
+                        } else if (val === 'rezerwacja 7 dni') {
+                            val = 'Rezerwacja wybranych lokali na 7 dni';
+                        }
+                        promoVals.push(val);
+                    });
+                    surveyRows.push({q: 'Oferta specjalna', a: promoVals.join('; ')});
+                }
+
+                if (surveyRows.length > 0) {
+                    surveyHtml = '<h2 style="font-size:16px;color:#0066cc;margin-top:30px;margin-bottom:10px;">Ankieta</h2>' +
+                        '<table><tbody>';
+                    surveyRows.forEach(function(row) {
+                        surveyHtml += '<tr><td style="font-weight:600;width:50%;">' + row.q + '</td><td>' + row.a + '</td></tr>';
+                    });
+                    surveyHtml += '</tbody></table>';
+                }
+            }
+
+            var htmlContent = '<!DOCTYPE html>' +
+                '<html lang="pl"><head><meta charset="UTF-8">' +
+                '<title>Oferta - Konfigurator</title>' +
+                '<style>' +
+                'body { font-family: Arial, Helvetica, sans-serif; color: #333; margin: 40px; font-size: 14px; }' +
+                '.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }' +
+                '.header-url { font-size: 12px; color: #888; text-align: right; }' +
+                'h1 { font-size: 22px; color: #0066cc; margin: 0; }' +
+                '.date { color: #888; font-size: 13px; margin-bottom: 30px; }' +
+                'table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }' +
+                'th { background: #0066cc; color: #fff; padding: 10px 12px; text-align: left; font-size: 13px; }' +
+                'td { padding: 9px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }' +
+                'tr:nth-child(even) td { background: #f8f9fa; }' +
+                '.total-row td { border-top: 2px solid #0066cc; font-weight: 700; font-size: 15px; background: none !important; }' +
+                '.footer { margin-top: 40px; font-size: 12px; color: #999; border-top: 1px solid #e5e7eb; padding-top: 12px; }' +
+                '@media print { body { margin: 20px; } }' +
+                '</style></head><body>' +
+                '<div class="header"><h1>Konfigurator oferty</h1><div class="header-url">' + window.location.hostname + '</div></div>' +
+                '<div class="date">' + dateStr + '</div>' +
+                '<table>' +
+                '<thead><tr>' +
+                '<th>Lp.</th><th>Typ</th><th>Numer</th><th>Budynek</th><th>Pi\u0119tro</th><th>Powierzchnia</th><th>Pokoje</th><th style="text-align:right;">Cena brutto</th>' +
+                '</tr></thead>' +
+                '<tbody>' + rows +
+                '<tr class="total-row"><td colspan="7" style="text-align:right;">\u0141\u0105czna cena:</td>' +
+                '<td style="text-align:right;">' + (totalPrice > 0 ? totalPrice.toLocaleString('pl-PL') + ' z\u0142' : '0 z\u0142') + '</td></tr>' +
+                '</tbody></table>' +
+                surveyHtml +
+                '<div class="footer">Niniejszy dokument ma charakter informacyjny i nie stanowi oferty w rozumieniu Kodeksu Cywilnego.<br>' +
+                'Ceny mog\u0105 ulec zmianie.</div>' +
+                '</body></html>';
+
+            var pdfWindow = window.open('', '_blank');
+            if (!pdfWindow) {
+                alert('Odblokuj wyskakuj\u0105ce okna w przegl\u0105darce, aby pobra\u0107 PDF.');
+                return;
+            }
+            pdfWindow.document.write(htmlContent);
+            pdfWindow.document.close();
+            pdfWindow.onload = function() {
+                pdfWindow.print();
+            };
+        });
+    })();
 
     // ===========================
     // Modal Cart Button

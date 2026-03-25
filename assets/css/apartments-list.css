@@ -577,26 +577,10 @@
     background: #f9f9f9;
 }
 
-/* Highlight animation for apartment scroll-to */
+/* Highlight for apartment scroll-to */
 .apartment-item.apartment-highlight {
-    animation: highlightPulse 5s ease-in-out;
-    background: #fffbf0;
-    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.5);
-}
-
-@keyframes highlightPulse {
-    0% {
-        background: #fffbf0;
-        box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.5);
-    }
-    40% {
-        background: #fffef8;
-        box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.4);
-    }
-    100% {
-        background: white;
-        box-shadow: none;
-    }
+    background: #fff3cd !important;
+    box-shadow: 0 0 0 3px #ffc107;
 }
 
 .apartment-item[style*="display: none"] {
@@ -1075,6 +1059,51 @@
 .icon-btn[title]:hover::before,
 .icon-btn-3d[title]:hover::before {
     opacity: 1;
+}
+
+/* ===========================
+   Desktop 3D Floor Plan Tooltip
+   =========================== */
+.apartment-3d-tooltip {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    max-width: 560px;
+}
+
+.apartment-3d-tooltip.visible {
+    display: block;
+    opacity: 1;
+}
+
+.apartment-3d-tooltip .tooltip-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #666;
+    text-align: center;
+    padding: 0 4px 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.apartment-3d-tooltip img {
+    display: block;
+    width: 540px;
+    height: auto;
+    border-radius: 6px;
+}
+
+@media (max-width: 992px) {
+    .apartment-3d-tooltip {
+        display: none !important;
+    }
 }
 
 /* ===========================
@@ -2532,6 +2561,13 @@
     white-space: nowrap;
 }
 
+.share-label--configurator {
+    white-space: normal;
+    font-size: 15px;
+    color: #333;
+    line-height: 1.4;
+}
+
 .share-btn {
     width: 36px;
     height: 36px;
@@ -3109,12 +3145,43 @@
     color: var(--develogic-primary-color, #0066cc);
 }
 
+.summary-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
+.configurator-pdf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #fff;
+    color: var(--develogic-primary-color, #0066cc);
+    border: 2px solid var(--develogic-primary-color, #0066cc);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.configurator-pdf-btn:hover {
+    background: var(--develogic-primary-color, #0066cc);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3);
+}
+
+.configurator-pdf-btn svg {
+    flex-shrink: 0;
+}
+
 .summary-inquiry-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    align-self: flex-end;
-    margin-top: 16px;
     padding: 10px 20px;
     background: var(--develogic-primary-color, #0066cc);
     color: #fff;
@@ -3154,6 +3221,11 @@
     color: #1a1a1a;
 }
 
+.inquiry-form-title--large {
+    font-size: 20px;
+    line-height: 1.4;
+}
+
 .inquiry-form-layout {
     display: flex;
     flex-direction: column;
@@ -3185,6 +3257,9 @@
 .inquiry-form-action {
     flex-shrink: 0;
     align-self: flex-end;
+    display: flex;
+    gap: 12px;
+    align-items: center;
 }
 
 .inquiry-form input,
@@ -3352,6 +3427,16 @@
     }
 
     .inquiry-form .summary-inquiry-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .inquiry-form-action {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .inquiry-form-action .configurator-pdf-btn {
         width: 100%;
         justify-content: center;
     }

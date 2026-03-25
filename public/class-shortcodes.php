@@ -543,8 +543,8 @@ class Develogic_Shortcodes {
                                 $building_floors_map[$building][] = $floor_normalized;
                             }
                         }
-                        // For KL and PG, collect all floors (they may not have buildings)
-                        elseif (in_array($local_type, array('Komórka lokatorska', 'Pomieszczenie gospodarcze'))) {
+                        // For KL, PG and Garaż, collect all floors (they may not have buildings)
+                        elseif (in_array($local_type, array('Komórka lokatorska', 'Pomieszczenie gospodarcze', 'Garaż'))) {
                             if (!in_array($floor_normalized, $kl_pg_floors)) {
                                 $kl_pg_floors[] = $floor_normalized;
                             }

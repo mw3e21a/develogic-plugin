@@ -124,6 +124,10 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         if (!empty($atts['local_types'])) {
                             $shortcode_types = array_map('trim', explode(',', $atts['local_types']));
                             foreach ($shortcode_types as $type) {
+                                // Apply the same remapping as for data-driven types
+                                if ($type === 'Pomieszczenie gospodarcze') {
+                                    $type = 'Komórka lokatorska';
+                                }
                                 if (!in_array($type, $available_types)) {
                                     $available_types[] = $type;
                                 }
@@ -448,23 +452,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
         </button>
 
         <div class="favorites-share-container" id="favoritesShareContainer" style="display: none;">
-            <span class="share-label">Udostępnij listę na:</span>
-            <button class="share-btn share-twitter" data-share="twitter" title="Twitter">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/>
-                </svg>
-            </button>
-            <button class="share-btn share-facebook" data-share="facebook" title="Facebook">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
-                </svg>
-            </button>
-            <button class="share-btn share-email" data-share="email" title="E-mail">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="5" width="18" height="14" rx="2"/>
-                    <path d="M3 7l9 6 9-6"/>
-                </svg>
-            </button>
+            <span class="share-label share-label--configurator">Aby uzyskać dopasowaną ofertę i najlepsze rabaty skorzystaj z <strong>&bdquo;Konfiguratora oferty&rdquo;</strong></span>
         </div>
     </div>
     <?php else: ?>
@@ -855,7 +843,8 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                  data-has-promo="<?php echo $has_package_promo ? 'true' : 'false'; ?>"
                  data-status-class="<?php echo esc_attr($status_class); ?>"
                  data-attributes="<?php echo esc_attr(json_encode($all_attributes)); ?>"
-                 data-modal='<?php echo esc_attr(json_encode($modal_data)); ?>'>
+                 data-modal='<?php echo esc_attr(json_encode($modal_data)); ?>'
+                 <?php if (!empty($marketing_image_url)): ?>data-marketing-img="<?php echo esc_url($marketing_image_url); ?>"<?php endif; ?>>
                 <div class="apartment-info">
                     <div class="apartment-number"><span class="building-name"><?php echo esc_html($local['building']); ?></span> <?php echo esc_html($local['number']); ?></div>
                 </div>
@@ -1055,9 +1044,17 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             <span class="summary-label">Łączna cena</span>
             <span class="summary-value" id="configuratorTotalPrice">0 zł</span>
         </div>
+        <?php if (!$show_quote_btn): ?>
+        <div class="summary-actions">
+            <button type="button" class="configurator-pdf-btn" id="configuratorPdfBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Zapisz, wydrukuj i umów się na spotkanie
+            </button>
+        </div>
+        <?php endif; ?>
         <?php if ($show_quote_btn): ?>
         <div class="inquiry-form-wrapper" id="inquiryFormWrapper">
-            <h4 class="inquiry-form-title" style="color: #0066cc;">Chcesz uzyskać rabat specjalny i ofertę dopasowaną do Ciebie? Odpowiedz na kilka pytań i ciesz się niższą ceną!</h4>
+            <h3 class="inquiry-form-title inquiry-form-title--large" style="color: #0066cc;">Chcesz uzyskać rabat specjalny i ofertę dopasowaną do Ciebie? Odpowiedz na kilka pytań i ciesz się niższą ceną!</h3>
             <form class="inquiry-form" id="inquiryForm" novalidate>
                 <div class="inquiry-form-layout">
                     <div class="inquiry-form-fields">
@@ -1128,6 +1125,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                                             <option value="szpachlowanie z malowaniem gratis">szpachlowanie z malowaniem gratis</option>
                                         </select>
                                     </label>
+                                    <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="rezerwacja 7 dni"> Zarezerwuj wybrane lokale na 7 dni (rezerwacja jest bezpłatna)</label>
                                 </div>
                             </div>
                         </div>
@@ -1139,12 +1137,16 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                         </label>
                     </div>
                     <div class="inquiry-form-action">
+                        <button type="button" class="configurator-pdf-btn" id="configuratorPdfBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                            Zapisz, wydrukuj i umów się na spotkanie
+                        </button>
                         <button type="submit" class="summary-inquiry-btn" id="summaryInquiryBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="5" width="18" height="14" rx="2"/>
                                 <path d="M3 7l9 6 9-6"/>
                             </svg>
-                            Wyślij zapytanie
+                            Wyślij formularz i umów się na spotkanie
                         </button>
                     </div>
                 </div>
@@ -1276,14 +1278,14 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </svg>
             </div>
             <h3>Czy chcesz uzyskać szczegóły oferty?</h3>
-            <p>Twoja lista jest gotowa. Wyślij zapytanie, aby uzyskać szczegóły oferty, lub wróć do listy i dodaj więcej lokali.</p>
+            <p>Twoja lista jest gotowa. Wyślij formularz i umów się na spotkanie, aby uzyskać szczegóły oferty, lub wróć do listy i dodaj więcej lokali.</p>
             <div class="wizard-btn-group">
                 <button class="wizard-btn wizard-btn-primary" data-wizard-action="send-inquiry">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="5" width="18" height="14" rx="2"/>
                         <path d="M3 7l9 6 9-6"/>
                     </svg>
-                    Wyślij zapytanie
+                    Wyślij formularz i umów się na spotkanie
                 </button>
                 <button class="wizard-btn wizard-btn-secondary" data-wizard-action="back-to-list">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1304,6 +1306,12 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
     </div>
 </div>
 <?php endif; ?>
+
+<!-- Desktop 3D Floor Plan Tooltip -->
+<div class="apartment-3d-tooltip" id="apartment3dTooltip">
+    <div class="tooltip-label">Rzut 3D</div>
+    <img src="" alt="Rzut 3D">
+</div>
 
 <!-- Apartment Detail Modal -->
 <div id="apartment-detail-modal" class="apartment-detail-modal">

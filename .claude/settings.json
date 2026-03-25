@@ -15,7 +15,16 @@
       "Bash(php -r \"echo json_encode\\([''name'' => ''przeszklony balkon \\(oranżeria\\)'']\\) . PHP_EOL; echo json_encode\\([''name'' => ''wyższa kondygnacja'']\\) . PHP_EOL;\")",
       "Bash(php -r \":*)",
       "Bash(node -e \":*)",
-      "Bash(grep -n get_all_develogic_locals /home/michal/own_projects/develogic-wp-plugin/includes/*.php /home/michal/own_projects/develogic-wp-plugin/public/*.php)"
+      "Bash(grep -n get_all_develogic_locals /home/michal/own_projects/develogic-wp-plugin/includes/*.php /home/michal/own_projects/develogic-wp-plugin/public/*.php)",
+      "Bash(find /home/michal/own_projects/develogic-wp-plugin -type f \\\\\\(-name *.php -o -name *.js -o -name *.css -o -name *.html \\\\\\))",
+      "Bash(grep -r \"inquiryForm\\\\|surveyData\" /home/michal/own_projects/develogic-wp-plugin --include=*.php --include=*.js --include=*.html)",
+      "Bash(find /home/michal/own_projects/develogic-wp-plugin -type f \\\\\\(-name *.php -o -name *.js -o -name *.css \\\\\\) ! -path */.git/*)",
+      "Bash(grep -r \"pdfUrl\\\\|pdf_url\\\\|pdfSource\\\\|pdf_source\\\\|download.*pdf\" /home/michal/own_projects/develogic-wp-plugin/assets/js --include=*.js)",
+      "Bash(grep -r \"configurator\\\\|inquiry\\\\|survey\\\\|ankiet\" /home/michal/own_projects/develogic-wp-plugin/assets/css --include=*.css)",
+      "Bash(grep -r \"configuratorPdf\\\\|pdf\" /home/michal/own_projects/develogic-wp-plugin/assets/js --include=*.js)",
+      "Bash(grep -r \"send_inquiry\\\\|inquiry\\\\|survey\" /home/michal/own_projects/develogic-wp-plugin/includes --include=*.php)",
+      "Bash(find /home/michal/own_projects/develogic-wp-plugin -maxdepth 1 -name *.md -type f)",
+      "Bash(grep -l \"configurator\\\\|inquiry\\\\|ankiet\\\\|survey\" /home/michal/own_projects/develogic-wp-plugin/*.md)"
     ]
   }
 }
