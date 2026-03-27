@@ -1033,7 +1033,14 @@
         }
     }
     
+    function collapseAllMobileExpanded() {
+        document.querySelectorAll('.apartment-item.mobile-expanded').forEach(function(item) {
+            item.classList.remove('mobile-expanded');
+        });
+    }
+
     function applyFilters() {
+        collapseAllMobileExpanded();
         const apartmentItems = document.querySelectorAll('.apartment-item');
         const container = document.querySelector('.develogic-apartments-container');
         
@@ -2445,6 +2452,7 @@
             document.body.style.overflow = '';
             // Re-fix sticky ancestors after modal close (overflow changes may break position:sticky)
             fixStickyAncestors();
+            collapseAllMobileExpanded();
         }
     }
     
@@ -2552,9 +2560,29 @@
     // ===========================
     // Price history
     // ===========================
+    function setupPriceHistoryToggle() {
+        var toggleBtn = document.querySelector('.price-history-toggle');
+        if (!toggleBtn) return;
+        toggleBtn.addEventListener('click', function() {
+            var content = this.nextElementSibling;
+            var isExpanded = this.getAttribute('aria-expanded') === 'true';
+            this.setAttribute('aria-expanded', !isExpanded);
+            if (content) {
+                content.classList.toggle('price-history-collapsed', isExpanded);
+            }
+        });
+    }
+    setupPriceHistoryToggle();
+
     function loadPriceHistory(localId) {
         const historyContainer = document.querySelector('.detail-price-history');
         if (!historyContainer) return;
+
+        var toggleBtn = historyContainer.querySelector('.price-history-toggle');
+        var contentEl = historyContainer.querySelector('.price-history-content');
+        if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+        if (contentEl) contentEl.classList.add('price-history-collapsed');
+
         const listEl = historyContainer.querySelector('.price-history-list');
         const emptyEl = historyContainer.querySelector('.price-history-empty');
         const loaderEl = historyContainer.querySelector('.price-history-loader');
@@ -2719,6 +2747,8 @@
 
                 // Notify quote button about view change
                 document.dispatchEvent(new CustomEvent('develogic:view_changed', { detail: { view: view } }));
+
+                collapseAllMobileExpanded();
 
                 // Clear all view classes first
                 apartmentList.classList.remove('hide-favorites', 'has-no-favorites', 'hide-watched', 'has-no-watched');
@@ -3263,6 +3293,12 @@
                 }
             }
 
+            var pdfContactPhone = (typeof develogicApartmentsData !== 'undefined' && develogicApartmentsData.contact_phone) ? develogicApartmentsData.contact_phone : '';
+            var contactPhoneHtml = '';
+            if (pdfContactPhone) {
+                contactPhoneHtml = '<div class="contact-info"><strong>Kontakt w celu om\u00f3wienia oferty:</strong> tel. ' + pdfContactPhone + '</div>';
+            }
+
             var htmlContent = '<!DOCTYPE html>' +
                 '<html lang="pl"><head><meta charset="UTF-8">' +
                 '<title>Oferta - Konfigurator</title>' +
@@ -3277,6 +3313,7 @@
                 'td { padding: 9px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }' +
                 'tr:nth-child(even) td { background: #f8f9fa; }' +
                 '.total-row td { border-top: 2px solid #0066cc; font-weight: 700; font-size: 15px; background: none !important; }' +
+                '.contact-info { margin-top: 24px; padding: 16px 20px; background: #f0f7ff; border-left: 4px solid #0066cc; border-radius: 4px; font-size: 15px; color: #333; }' +
                 '.footer { margin-top: 40px; font-size: 12px; color: #999; border-top: 1px solid #e5e7eb; padding-top: 12px; }' +
                 '@media print { body { margin: 20px; } }' +
                 '</style></head><body>' +
@@ -3291,6 +3328,7 @@
                 '<td style="text-align:right;">' + (totalPrice > 0 ? totalPrice.toLocaleString('pl-PL') + ' z\u0142' : '0 z\u0142') + '</td></tr>' +
                 '</tbody></table>' +
                 surveyHtml +
+                contactPhoneHtml +
                 '<div class="footer">Niniejszy dokument ma charakter informacyjny i nie stanowi oferty w rozumieniu Kodeksu Cywilnego.<br>' +
                 'Ceny mog\u0105 ulec zmianie.</div>' +
                 '</body></html>';

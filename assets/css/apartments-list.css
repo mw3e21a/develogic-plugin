@@ -1224,6 +1224,25 @@
     font-weight: 600;
 }
 
+.contact-email-desktop {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: var(--develogic-primary-color, #0066cc);
+    font-weight: 500;
+    padding: 8px 12px;
+    background: #f0f7ff;
+    border-radius: 6px;
+    white-space: nowrap;
+    text-decoration: none;
+    transition: background 0.2s ease;
+}
+
+.contact-email-desktop:hover {
+    background: #e0efff;
+    text-decoration: underline;
+}
+
 .modal-body {
     display: grid;
     grid-template-columns: 1fr 400px;
@@ -1602,20 +1621,53 @@
    Price History
    =========================== */
 .detail-price-history {
-    padding: 12px 0;
+    padding: 0;
     border-top: 1px solid #e5e5e5;
+}
+
+.price-history-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.price-history-toggle:hover {
+    opacity: 0.8;
 }
 
 .price-history-label {
     font-size: 13px;
     color: #666;
-    margin-bottom: 8px;
     font-weight: 600;
+}
+
+.price-history-chevron {
+    transition: transform 0.3s ease;
+    color: #666;
+}
+
+.price-history-toggle[aria-expanded="true"] .price-history-chevron {
+    transform: rotate(180deg);
 }
 
 .price-history-content {
     position: relative;
-    min-height: 60px;
+    min-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    max-height: 500px;
+    opacity: 1;
+}
+
+.price-history-content.price-history-collapsed {
+    max-height: 0;
+    opacity: 0;
 }
 
 .price-history-table {
@@ -2568,6 +2620,13 @@
     line-height: 1.4;
 }
 
+.configurator-promo-text {
+    margin-left: auto;
+    padding-left: 20px;
+    display: flex;
+    align-items: center;
+}
+
 .share-btn {
     width: 36px;
     height: 36px;
@@ -3147,6 +3206,9 @@
 
 .summary-actions {
     display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
     justify-content: flex-start;
     margin-top: 12px;
     padding-top: 12px;
@@ -3175,6 +3237,33 @@
 }
 
 .configurator-pdf-btn svg {
+    flex-shrink: 0;
+}
+
+.configurator-phone-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: #28a745;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.configurator-phone-link:hover {
+    background: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    color: #fff;
+    text-decoration: none;
+}
+
+.configurator-phone-link svg {
     flex-shrink: 0;
 }
 
@@ -3440,6 +3529,12 @@
     .inquiry-form-action .configurator-pdf-btn {
         width: 100%;
         justify-content: center;
+    }
+
+    .inquiry-form-action .configurator-phone-link {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
     }
 }
 

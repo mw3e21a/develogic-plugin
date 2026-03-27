@@ -451,8 +451,10 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             Sprawdź aktualne promocje
         </button>
 
-        <div class="favorites-share-container" id="favoritesShareContainer" style="display: none;">
+        <div class="configurator-promo-text">
             <span class="share-label share-label--configurator">Aby uzyskać dopasowaną ofertę i najlepsze rabaty skorzystaj z <strong>&bdquo;Konfiguratora oferty&rdquo;</strong></span>
+        </div>
+        <div class="favorites-share-container" id="favoritesShareContainer" style="display: none;">
         </div>
     </div>
     <?php else: ?>
@@ -1050,6 +1052,23 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                 Zapisz, wydrukuj i umów się na spotkanie
             </button>
+            <?php
+            $cfg_contact_phone_nq = develogic()->get_setting('contact_phone', '');
+            if (!empty($cfg_contact_phone_nq)):
+                $cfg_phone_digits_nq = preg_replace('/[^\d]/', '', $cfg_contact_phone_nq);
+                $cfg_formatted_phone_nq = '';
+                for ($i = 0; $i < strlen($cfg_phone_digits_nq); $i++) {
+                    if ($i > 0 && $i % 3 == 0) $cfg_formatted_phone_nq .= '-';
+                    $cfg_formatted_phone_nq .= $cfg_phone_digits_nq[$i];
+                }
+            ?>
+            <a href="tel:<?php echo esc_attr(preg_replace('/[^\d\+]/', '', $cfg_contact_phone_nq)); ?>" class="configurator-phone-link">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+                Umów się na spotkanie: <?php echo esc_html($cfg_formatted_phone_nq); ?>
+            </a>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
         <?php if ($show_quote_btn): ?>
@@ -1141,12 +1160,29 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                             Zapisz, wydrukuj i umów się na spotkanie
                         </button>
+                        <?php
+                        $cfg_contact_phone = develogic()->get_setting('contact_phone', '');
+                        if (!empty($cfg_contact_phone)):
+                            $cfg_phone_digits = preg_replace('/[^\d]/', '', $cfg_contact_phone);
+                            $cfg_formatted_phone = '';
+                            for ($i = 0; $i < strlen($cfg_phone_digits); $i++) {
+                                if ($i > 0 && $i % 3 == 0) $cfg_formatted_phone .= '-';
+                                $cfg_formatted_phone .= $cfg_phone_digits[$i];
+                            }
+                        ?>
+                        <a href="tel:<?php echo esc_attr(preg_replace('/[^\d\+]/', '', $cfg_contact_phone)); ?>" class="configurator-phone-link">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                            </svg>
+                            Umów się na spotkanie: <?php echo esc_html($cfg_formatted_phone); ?>
+                        </a>
+                        <?php endif; ?>
                         <button type="submit" class="summary-inquiry-btn" id="summaryInquiryBtn">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="5" width="18" height="14" rx="2"/>
                                 <path d="M3 7l9 6 9-6"/>
                             </svg>
-                            Wyślij formularz i umów się na spotkanie
+                            Wyślij formularz
                         </button>
                     </div>
                 </div>
@@ -1278,14 +1314,14 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </svg>
             </div>
             <h3>Czy chcesz uzyskać szczegóły oferty?</h3>
-            <p>Twoja lista jest gotowa. Wyślij formularz i umów się na spotkanie, aby uzyskać szczegóły oferty, lub wróć do listy i dodaj więcej lokali.</p>
+            <p>Twoja lista jest gotowa. Wyślij formularz, aby uzyskać szczegóły oferty, lub wróć do listy i dodaj więcej lokali.</p>
             <div class="wizard-btn-group">
                 <button class="wizard-btn wizard-btn-primary" data-wizard-action="send-inquiry">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="5" width="18" height="14" rx="2"/>
                         <path d="M3 7l9 6 9-6"/>
                     </svg>
-                    Wyślij formularz i umów się na spotkanie
+                    Wyślij formularz
                 </button>
                 <button class="wizard-btn wizard-btn-secondary" data-wizard-action="back-to-list">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1334,12 +1370,20 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     </svg>
                 </button>
                 <?php endif; ?>
-                <button class="icon-btn" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o nieruchomość">
+                <button class="icon-btn mobile-only" data-action="email-modal" aria-label="<?php esc_attr_e('Wyślij email', 'develogic'); ?>" title="Zapytaj o nieruchomość">
                     <svg viewBox="0 0 24 24">
                         <rect x="3" y="5" width="18" height="14" rx="2"/>
                         <path d="M3 7l9 6 9-6"/>
                     </svg>
                 </button>
+                <?php
+                $modal_contact_email = develogic()->get_setting('contact_email', '');
+                if (!empty($modal_contact_email)):
+                ?>
+                <a href="mailto:<?php echo esc_attr($modal_contact_email); ?>" class="contact-email-desktop desktop-only" title="<?php echo esc_attr($modal_contact_email); ?>">
+                    <?php echo esc_html($modal_contact_email); ?>
+                </a>
+                <?php endif; ?>
                 <?php if ($atts['show_favorite'] === 'true' || $atts['show_favorite'] === true): ?>
                 <button class="icon-btn" data-action="watched-modal" aria-label="<?php esc_attr_e('Obserwuj', 'develogic'); ?>" title="Dodaj do obserwowanych">
                     <svg viewBox="0 0 24 24">
@@ -1502,10 +1546,15 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 </button>
                 <?php endif; ?>
 
-                <!-- Price history section -->
+                <!-- Price history section (collapsible) -->
                 <div class="detail-price-history">
-                    <div class="price-history-label">Historia ceny</div>
-                    <div class="price-history-content">
+                    <button type="button" class="price-history-toggle" aria-expanded="false">
+                        <span class="price-history-label">Historia ceny</span>
+                        <svg class="price-history-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                    <div class="price-history-content price-history-collapsed">
                         <div class="price-history-loader" style="display:none;"></div>
                         <table class="price-history-table" style="display:none;">
                             <thead>
