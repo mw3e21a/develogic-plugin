@@ -26,7 +26,11 @@
       "Bash(find /home/michal/own_projects/develogic-wp-plugin -maxdepth 1 -name *.md -type f)",
       "Bash(grep -l \"configurator\\\\|inquiry\\\\|ankiet\\\\|survey\" /home/michal/own_projects/develogic-wp-plugin/*.md)",
       "Bash(composer init:*)",
-      "Bash(composer require:*)"
+      "Bash(composer require:*)",
+      "Bash(find /home/michal/own_projects/develogic-wp-plugin -type f \\\\\\( -name \"*.js\" -o -name \"*.php\" \\\\\\) -exec grep -l \"imageMapProGoToFloor\" {} \\\\;)",
+      "Bash(grep -r \"jQuery.fn.imageMapProGoToFloor\\\\|imageMapProGoToFloor.*function\\\\|\\\\$\\\\.imageMapProGoToFloor\\\\s*=\" /home/michal/own_projects/develogic-wp-plugin --include=\"*.js\" --include=\"*.php\")",
+      "Bash(find /home/michal/own_projects/develogic-wp-plugin -type f -name \"*.php\" -exec grep -l \"imageMapProGoToFloor\\\\|jQuery.*imageMapPro\" {} \\\\;)",
+      "Bash(find /home/michal/own_projects/develogic-wp-plugin -type f \\\\\\( -name \"*.css\" -o -name \"*.scss\" \\\\\\) -exec grep -l \"tippy\\\\|tooltip\" {} \\\\;)"
     ]
   }
 }

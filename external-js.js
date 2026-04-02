@@ -309,6 +309,17 @@ jQuery(document).ready(function($) {
         }
     }, 300);
 
+    // Reset Image Map Pro to default view when reset filters button is clicked
+    var resetBtn = document.getElementById('resetFilters');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            clearButtonStyles();
+            $.imageMapProGoToFloor('Budynki IJKL', 'Budynek I');
+            lastArtboard = 'Budynek I';
+            updateHeading(false);
+        });
+    }
+
     document.querySelector('#piwnica-i').addEventListener('click', function(e) {
         e.preventDefault();
         $.imageMapProGoToFloor('Budynki IJKL', 'Piwnica');

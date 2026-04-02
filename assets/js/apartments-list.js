@@ -3752,8 +3752,13 @@
         // Re-fix sticky ancestors after modal close
         fixStickyAncestors();
 
+        // Scroll to top of apartments container after modal closes
         setTimeout(function() {
             wizardModal.style.display = 'none';
+            const container = document.querySelector('.develogic-apartments-container');
+            if (container) {
+                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }, 300);
     }
 
@@ -3777,8 +3782,7 @@
             const options = Array.from(localTypeFilter.options).map(o => o.value);
             if (options.includes(value)) {
                 localTypeFilter.value = value;
-                autoSelectFloorForKLPG();
-                applyFilters();
+                localTypeFilter.dispatchEvent(new Event('change'));
             }
         }
     }

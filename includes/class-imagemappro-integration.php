@@ -659,7 +659,7 @@ class Develogic_ImageMapPro_Integration {
             $this->log(sprintf('Successfully updated color for shape "%s"', $shape_title), 'success');
         }
         
-        // Update tooltip content
+        // Update tooltip content and style
         if ($this->update_shape_tooltip($shape, $local)) {
             $modified = true;
             $this->log(sprintf('Successfully updated tooltip for shape "%s"', $shape_title), 'success');
@@ -919,11 +919,18 @@ class Develogic_ImageMapPro_Integration {
                 $tooltip_html_parts[] = '<div>balkon ' . esc_html($balcony_formatted) . ' m²</div>';
             }
         } else {
-            // For non-apartments: just show the name
+            // For non-apartments (garages, storage rooms, utility rooms): show name and area
             $display_name = !empty($local_name) ? $local_name : (!empty($local_number) ? $local_number : '');
-            
+
             if (!empty($display_name)) {
                 $tooltip_html_parts[] = '<div>' . esc_html($display_name) . '</div>';
+            }
+
+            // Area
+            $area = isset($local['area']) ? floatval($local['area']) : 0;
+            if ($area > 0) {
+                $area_formatted = number_format($area, 2, ',', '');
+                $tooltip_html_parts[] = '<div>pow. ' . esc_html($area_formatted) . ' m²</div>';
             }
         }
         
@@ -1098,15 +1105,15 @@ class Develogic_ImageMapPro_Integration {
             $shape['tooltip_content'] = $tooltip_content;
             $structure_type = $use_new_structure ? 'new' : 'old';
             $action = $tooltip_was_disabled ? 'enabled and updated' : 'updated';
-            $this->log(sprintf('Tooltip %s for shape "%s" with %s structure, content: %s', 
+            $this->log(sprintf('Tooltip %s for shape "%s" with %s structure, content: %s',
                 $action,
-                $shape_title, 
+                $shape_title,
                 $structure_type,
                 substr($tooltip_html, 0, 100)
             ), 'success');
             return true;
         }
-        
+
         return false;
     }
     
