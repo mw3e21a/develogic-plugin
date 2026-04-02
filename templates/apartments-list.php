@@ -443,13 +443,15 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
         </div>
         
         
-        <button class="header-promo-btn" id="checkPromotionsBtn" title="Sprawdź aktualne promocje dla tego budynku">
+        <?php if (!empty($atts['promo_url'])): ?>
+        <a class="header-promo-btn" id="checkPromotionsBtn" href="<?php echo esc_url($atts['promo_url']); ?>" title="Sprawdź aktualne promocje dla tego budynku">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
                 <line x1="7" y1="7" x2="7.01" y2="7"/>
             </svg>
             Sprawdź aktualne promocje
-        </button>
+        </a>
+        <?php endif; ?>
 
         <div class="configurator-promo-text">
             <span class="share-label share-label--configurator">Aby uzyskać dopasowaną ofertę i najlepsze rabaty skorzystaj z <strong>&bdquo;Konfiguratora oferty&rdquo;</strong></span>
@@ -458,15 +460,17 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
         </div>
     </div>
     <?php else: ?>
+    <?php if (!empty($atts['promo_url'])): ?>
     <div class="promo-btn-standalone" style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
-        <button class="header-promo-btn" id="checkPromotionsBtn" title="Sprawdź aktualne promocje dla tego budynku">
+        <a class="header-promo-btn" id="checkPromotionsBtn" href="<?php echo esc_url($atts['promo_url']); ?>" title="Sprawdź aktualne promocje dla tego budynku">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
                 <line x1="7" y1="7" x2="7.01" y2="7"/>
             </svg>
             Sprawdź aktualne promocje
-        </button>
+        </a>
     </div>
+    <?php endif; ?>
     <?php endif; ?>
 
     <div class="apartment-list-mobile-header">

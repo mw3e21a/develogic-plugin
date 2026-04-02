@@ -28,6 +28,7 @@ class Develogic_Shortcodes {
         add_shortcode('develogic_price_history', array($this, 'render_price_history'));
         add_shortcode('develogic_investments', array($this, 'render_investments'));
         add_shortcode('develogic_local_types', array($this, 'render_local_types'));
+        add_shortcode('develogic_count', array($this, 'render_count'));
     }
     
     /**
@@ -48,6 +49,7 @@ class Develogic_Shortcodes {
             'sort_dir' => develogic()->get_setting('default_sort_dir', 'asc'),
             'per_page' => '12',
             'gallery' => 'true',
+            'promo_url' => '',
         ), $atts, 'develogic_offers_a1');
         
         // Enqueue assets
@@ -155,6 +157,7 @@ class Develogic_Shortcodes {
             'show_quote_btn' => 'false',
             'quote_email' => '',
             'quote_subject' => 'Wycena mieszkań z listy obserwowanych',
+            'promo_url' => '',
         ), $atts, 'develogic_apartments_list');
         
         // Enqueue assets
@@ -845,6 +848,65 @@ class Develogic_Shortcodes {
         return ob_get_clean();
     }
     
+    /**
+     * Render count shortcode - displays count of locals matching criteria
+     *
+     * Usage:
+     *   [develogic_count building="Budynek I" local_type="Lokal mieszkalny" status="Wolny"]
+     *   [develogic_count investment="JeziornaTowers" building="Budynek I" status="Wolny,Rezerwacja"]
+     */
+    public function render_count($atts) {
+        $atts = shortcode_atts(array(
+            'investment_id' => '',
+            'investment' => '',
+            'building_id' => '',
+            'building' => '',
+            'local_type' => '',
+            'local_type_id' => '',
+            'status' => '',
+        ), $atts, 'develogic_count');
+
+        // Get locals from CPT
+        $filters = array();
+
+        if (!empty($atts['investment_id'])) {
+            $filters['investmentId'] = absint($atts['investment_id']);
+        } elseif (!empty($atts['investment'])) {
+            $term = get_term_by('name', trim($atts['investment']), 'develogic_investment');
+            if ($term && !is_wp_error($term)) {
+                $filters['investmentId'] = $term->term_id;
+            }
+        }
+
+        if (!empty($atts['local_type_id'])) {
+            $filters['localTypeId'] = absint($atts['local_type_id']);
+        }
+
+        $locals = Develogic_Local_Query::get_locals($filters);
+
+        // Apply additional filters
+        $filter_criteria = array();
+
+        if (!empty($atts['building_id'])) {
+            $filter_criteria['building_id'] = absint($atts['building_id']);
+        }
+        if (!empty($atts['building'])) {
+            $filter_criteria['building'] = $atts['building'];
+        }
+        if (!empty($atts['local_type'])) {
+            $filter_criteria['local_type'] = $atts['local_type'];
+        }
+        if (!empty($atts['status'])) {
+            $filter_criteria['status'] = array_map('trim', explode(',', $atts['status']));
+        }
+
+        if (!empty($filter_criteria)) {
+            $locals = Develogic_Filter_Sort::filter_locals($locals, $filter_criteria);
+        }
+
+        return (string) count($locals);
+    }
+
     /**
      * Load template
      */

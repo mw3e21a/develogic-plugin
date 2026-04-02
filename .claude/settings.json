@@ -24,7 +24,9 @@
       "Bash(grep -r \"configuratorPdf\\\\|pdf\" /home/michal/own_projects/develogic-wp-plugin/assets/js --include=*.js)",
       "Bash(grep -r \"send_inquiry\\\\|inquiry\\\\|survey\" /home/michal/own_projects/develogic-wp-plugin/includes --include=*.php)",
       "Bash(find /home/michal/own_projects/develogic-wp-plugin -maxdepth 1 -name *.md -type f)",
-      "Bash(grep -l \"configurator\\\\|inquiry\\\\|ankiet\\\\|survey\" /home/michal/own_projects/develogic-wp-plugin/*.md)"
+      "Bash(grep -l \"configurator\\\\|inquiry\\\\|ankiet\\\\|survey\" /home/michal/own_projects/develogic-wp-plugin/*.md)",
+      "Bash(composer init:*)",
+      "Bash(composer require:*)"
     ]
   }
 }

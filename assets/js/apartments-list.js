@@ -494,9 +494,67 @@
             switchToAllView();
         }
 
-        // Reset filters so the target apartment is not hidden by localType/floor/etc.
-        resetFilters();
-        applyFilters();
+        // Find the target apartment element
+        var targetItem = null;
+        document.querySelectorAll('.apartment-item').forEach(function(item) {
+            var dataNumber = item.getAttribute('data-number');
+            if (dataNumber && dataNumber.trim().toUpperCase() === apartmentNumber.toUpperCase()) {
+                targetItem = item;
+            }
+        });
+
+        if (targetItem && targetItem.style.display === 'none') {
+            // Apartment is hidden by filters - selectively adjust filters to show it
+            // without resetting everything (preserve building filter, etc.)
+            var targetFloor = targetItem.getAttribute('data-floor');
+            var targetLocalType = targetItem.getAttribute('data-local-type');
+            var targetRooms = targetItem.getAttribute('data-rooms');
+
+            // Reset floor filter if it hides the apartment
+            var floorFilter = document.getElementById('floorFilter');
+            if (floorFilter && floorFilter.value !== 'all') {
+                if (floorFilter.value !== targetFloor) {
+                    floorFilter.value = 'all';
+                }
+            }
+
+            // Reset local type filter if it hides the apartment
+            var localTypeFilter = document.getElementById('localTypeFilter');
+            if (localTypeFilter && localTypeFilter.value !== 'all') {
+                if (localTypeFilter.value !== targetLocalType) {
+                    localTypeFilter.value = 'all';
+                }
+            }
+
+            // Reset room chips if they hide the apartment
+            var activeRoomChip = document.querySelector('#roomsFilter .filter-chip.active');
+            if (activeRoomChip && activeRoomChip.getAttribute('data-value') !== 'all') {
+                if (activeRoomChip.getAttribute('data-value') !== targetRooms) {
+                    var roomChips = document.querySelectorAll('#roomsFilter .filter-chip');
+                    roomChips.forEach(function(chip) {
+                        chip.classList.toggle('active', chip.getAttribute('data-value') === 'all');
+                    });
+                }
+            }
+
+            // Clear range inputs that may hide the apartment
+            var areaMin = document.getElementById('areaMin');
+            var areaMax = document.getElementById('areaMax');
+            var priceMin = document.getElementById('priceMin');
+            var priceMax = document.getElementById('priceMax');
+            if (areaMin) areaMin.value = '';
+            if (areaMax) areaMax.value = '';
+            if (priceMin) priceMin.value = '';
+            if (priceMax) priceMax.value = '';
+
+            // Clear additional options checkboxes
+            var additionalOptionFilters = document.querySelectorAll('.filter-extras input[type="checkbox"][data-feature-name]');
+            additionalOptionFilters.forEach(function(filter) {
+                filter.checked = false;
+            });
+
+            applyFilters();
+        }
 
         const url = new URL(window.location.href);
         url.searchParams.set('mieszkanie', apartmentNumber);
@@ -692,13 +750,7 @@
             resetBtn.addEventListener('click', resetFilters);
         }
 
-        // Check promotions button - toggles promo filter for current building
-        const checkPromotionsBtn = document.getElementById('checkPromotionsBtn');
-        if (checkPromotionsBtn) {
-            checkPromotionsBtn.addEventListener('click', function() {
-                window.location.href = '/dom-godny-polecenia/';
-            });
-        }
+        // Promotions button is now a native <a> link with href set from shortcode promo_url attribute
         
         // Show more filters button (mobile)
         const showMoreBtn = document.getElementById('showMoreFilters');
@@ -1723,7 +1775,11 @@
 
                 // On mobile, toggle expand instead of opening modal
                 if (isMobileView()) {
-                    this.classList.toggle('mobile-expanded');
+                    var wasExpanded = this.classList.contains('mobile-expanded');
+                    collapseAllMobileExpanded();
+                    if (!wasExpanded) {
+                        this.classList.add('mobile-expanded');
+                    }
                     return;
                 }
 
@@ -1745,7 +1801,11 @@
                 e.stopPropagation();
                 var item = this.closest('.apartment-item');
                 if (item) {
-                    item.classList.toggle('mobile-expanded');
+                    var wasExpanded = item.classList.contains('mobile-expanded');
+                    collapseAllMobileExpanded();
+                    if (!wasExpanded) {
+                        item.classList.add('mobile-expanded');
+                    }
                 }
             });
         });
