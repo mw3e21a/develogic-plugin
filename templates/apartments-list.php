@@ -719,7 +719,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                 }
                 
                 // Check if apartment has promotion (do this once and reuse)
-                $has_promo = (!empty($local['maxDiscountPercent']) && $local['maxDiscountPercent'] > 0);
+                $has_promo = $has_package_promo || (!empty($local['maxDiscountPercent']) && $local['maxDiscountPercent'] > 0);
                 if (!$has_promo && !empty($all_attributes)) {
                     foreach ($all_attributes as $attr_name) {
                         $attr_lower = strtolower(trim($attr_name));
@@ -728,6 +728,12 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                             break;
                         }
                     }
+                }
+
+                // Expose promotion as a filterable attribute so the "W promocji" checkbox matches
+                if ($has_promo) {
+                    $all_attributes[] = 'W promocji';
+                    $all_attributes[] = 'Promocja';
                 }
                 
                 // Prepare modal data
