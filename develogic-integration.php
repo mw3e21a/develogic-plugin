@@ -205,7 +205,7 @@ final class Develogic_Integration {
         
         // Schedule cron job if enabled
         if (!wp_next_scheduled('develogic_sync_cron')) {
-            wp_schedule_event(time(), 'every_5_minutes', 'develogic_sync_cron');
+            wp_schedule_event(time(), 'every_30_minutes', 'develogic_sync_cron');
         }
         
         // Flush rewrite rules
@@ -267,13 +267,13 @@ final class Develogic_Integration {
      * @return array Modified schedules
      */
     public function add_cron_schedules($schedules) {
-        if (!isset($schedules['every_5_minutes'])) {
-            $schedules['every_5_minutes'] = array(
-                'interval' => 5 * 60, // 5 minutes in seconds
-                'display'  => __('Co 5 minut', 'develogic'),
+        if (!isset($schedules['every_30_minutes'])) {
+            $schedules['every_30_minutes'] = array(
+                'interval' => 30 * 60, // 30 minutes in seconds
+                'display'  => __('Co 30 minut', 'develogic'),
             );
         }
-        
+
         return $schedules;
     }
     

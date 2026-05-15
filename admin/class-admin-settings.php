@@ -313,7 +313,7 @@ class Develogic_Admin_Settings {
             if ($new_cron_enabled) {
                 // Enable cron - schedule if not already scheduled
                 if (!wp_next_scheduled('develogic_sync_cron')) {
-                    wp_schedule_event(time(), 'every_5_minutes', 'develogic_sync_cron');
+                    wp_schedule_event(time(), 'every_30_minutes', 'develogic_sync_cron');
                 }
             } else {
                 // Disable cron - unschedule if scheduled
