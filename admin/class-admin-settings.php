@@ -88,7 +88,7 @@ class Develogic_Admin_Settings {
             array($this, 'render_number_field'),
             'develogic',
             'develogic_api_section',
-            array('field' => 'api_timeout', 'min' => 5, 'max' => 360, 'default' => 30)
+            array('field' => 'api_timeout', 'min' => 5, 'max' => 1800, 'default' => 30)
         );
         
         add_settings_field(
