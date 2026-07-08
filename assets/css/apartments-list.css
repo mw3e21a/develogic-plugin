@@ -2290,7 +2290,9 @@
     position: fixed;
     top: 24px;
     right: 24px;
-    z-index: 100000;
+    /* Above every modal/overlay (detail modal 99999, fullscreen gallery
+       1000000) so success toasts are visible when fired from within a modal. */
+    z-index: 1000001;
 }
 
 .toast {

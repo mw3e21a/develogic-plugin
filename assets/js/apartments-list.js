@@ -1736,7 +1736,7 @@
     }
 
     function showWatchedToast() {
-        const container = document.getElementById('toastContainer');
+        const container = getToastContainer();
         if (!container) return;
 
         const toast = document.createElement('div');
@@ -2816,10 +2816,22 @@
     // ===========================
     // Toast notification
     // ===========================
-    function showToast() {
+    // Ensure the toast container lives directly on <body>. Inside the plugin
+    // container it can end up in a stacking context below the detail modal
+    // (position:fixed, z-index:99999), so toasts fired from the modal render
+    // hidden behind it. Moving it to <body> makes its z-index count globally.
+    function getToastContainer() {
         const container = document.getElementById('toastContainer');
+        if (container && container.parentElement !== document.body) {
+            document.body.appendChild(container);
+        }
+        return container;
+    }
+
+    function showToast() {
+        const container = getToastContainer();
         if (!container) return;
-        
+
         // Create toast element
         const toast = document.createElement('div');
         toast.className = 'toast';
@@ -2830,7 +2842,7 @@
                 <span class="toast-link" id="toastFavoritesLink">Zobacz listę</span>
             </div>
         `;
-        
+
         container.appendChild(toast);
         
         // Show toast with animation
@@ -3643,7 +3655,7 @@
             
             // Show a message
             setTimeout(() => {
-                const container = document.getElementById('toastContainer');
+                const container = getToastContainer();
                 if (container) {
                     const toast = document.createElement('div');
                     toast.className = 'toast';
