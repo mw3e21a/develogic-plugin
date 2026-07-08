@@ -6,7 +6,12 @@
 
 (function() {
     'use strict';
-    
+
+    // Full set of #localTypeFilter options as originally rendered. Image Map Pro
+    // narrows this to "Lokal mieszkalny" on floor views; the configurator needs
+    // the full list back to switch to Garaż/Komórka/etc. Shared at module scope.
+    let originalLocalTypeOptions = null;
+
     // Monitor URL changes made by pushState/replaceState
     const originalPushState = history.pushState;
     const originalReplaceState = history.replaceState;
@@ -138,48 +143,128 @@
     // Sticky Offset for sorting bar
     // ===========================
     function setupStickyOffset() {
-        function getStickyHeaderHeight() {
-            var height = 0;
+        // Dynamically measure how far from the top of the viewport the table
+        // header must stick, so it lands just BELOW any fixed/sticky element
+        // pinned to the top (site menu, WP admin bar, Elementor sticky header,
+        // etc.) that sits above it in stacking order. Works with any theme —
+        // no hard-coded selectors — by scanning the actual rendered layout.
+        // Track which top bars we've attached observers to, so a bar that
+        // changes height (e.g. an Elementor sticky header collapsing on scroll
+        // down / expanding on scroll up) re-triggers the offset recalculation.
+        var observedBars = new WeakSet();
+        var sizeObserver = ('ResizeObserver' in window)
+            ? new ResizeObserver(function() { scheduleUpdate(); })
+            : null;
 
-            // WP admin bar
-            var adminBar = document.getElementById('wpadminbar');
-            if (adminBar) {
-                height += adminBar.offsetHeight;
+        // Returns the top-pinned bars above our header, and records their
+        // combined bottom edge as the needed offset.
+        function findTopBars() {
+            var tableHeader = document.querySelector('.apartment-list-header');
+            var ourZ = 50; // our header's z-index
+            var viewportW = window.innerWidth || document.documentElement.clientWidth;
+
+            // Pass 1: collect every wide top-region bar stacked above us. These
+            // bars often CASCADE (e.g. WP admin bar at top:0, then a sticky site
+            // header pinned at top:32 right below it), so we can't require
+            // top≈0 — we allow any bar whose top starts within the top portion
+            // of the viewport and resolve the stack in pass 2.
+            var candidates = [];
+            var all = document.querySelectorAll('body *');
+            for (var i = 0; i < all.length; i++) {
+                var el = all[i];
+                if (el === tableHeader) continue;
+                if (el.closest && el.closest('.develogic-apartments-container') &&
+                    (el.classList.contains('apartment-list-header') ||
+                     el.classList.contains('apartment-list-mobile-header'))) {
+                    continue;
+                }
+
+                var cs = window.getComputedStyle(el);
+                if (cs.position !== 'fixed' && cs.position !== 'sticky') continue;
+                if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) continue;
+
+                var rect = el.getBoundingClientRect();
+                if (rect.height === 0 || rect.width === 0) continue;
+                if (rect.bottom <= 0) continue;
+                // Bar must start in the top region of the viewport (not a footer
+                // bar, not a mid-page sticky sidebar). 150px covers admin bar +
+                // a stacked site header.
+                if (rect.top > 150) continue;
+                if (rect.height >= window.innerHeight * 0.9) continue;  // skip modals
+                if (rect.width < viewportW * 0.5) continue;             // skip side/dropdown menus
+
+                var z = parseInt(cs.zIndex, 10);
+                if (!isNaN(z) && z < ourZ) continue;   // only bars stacked above us
+
+                candidates.push({ el: el, top: rect.top, bottom: rect.bottom });
             }
 
-            // Site header: pick whichever is visible (desktop hidden on mobile and vice versa)
-            var headerDesktop = document.querySelector('.header-desktop');
-            var headerMobile = document.querySelector('.header-mobile');
-            var siteHeader = (headerDesktop && headerDesktop.offsetHeight > 0) ? headerDesktop
-                           : (headerMobile && headerMobile.offsetHeight > 0) ? headerMobile
-                           : null;
-            if (siteHeader) {
-                height += siteHeader.offsetHeight;
-            } else {
-                // Fallback: scan for sticky/fixed elements near top
-                var candidates = document.querySelectorAll(
-                    '.is-fixed, .is-stuck, [data-elementor-type="header"], .site-header, #masthead'
-                );
-                var maxBottom = 0;
-                candidates.forEach(function(el) {
-                    if (el.offsetHeight > 0) {
-                        maxBottom = Math.max(maxBottom, el.offsetTop + el.offsetHeight);
-                    }
-                });
-                height = Math.max(height, maxBottom);
+            // Pass 2: build the contiguous stack from the very top downward. Sort
+            // by top edge, then keep extending the covered band while the next
+            // bar starts at (or before) the current bottom + a small tolerance.
+            candidates.sort(function(a, b) { return a.top - b.top; });
+            var bars = [];
+            var coveredBottom = 0;
+            for (var j = 0; j < candidates.length; j++) {
+                var c = candidates[j];
+                // The first bar must actually touch the top; later bars must
+                // adjoin the running band (allow an 8px gap for borders/margins).
+                if (c.top <= coveredBottom + 8) {
+                    bars.push(c.el);
+                    if (c.bottom > coveredBottom) coveredBottom = c.bottom;
+                }
             }
 
-            return height;
+            return { bars: bars, bottom: Math.round(coveredBottom) };
         }
 
+        var rafPending = false;
         function updateStickyTop() {
-            var h = getStickyHeaderHeight();
-            document.documentElement.style.setProperty('--develogic-sticky-top', h + 'px');
+            var result = findTopBars();
+            document.documentElement.style.setProperty('--develogic-sticky-top', result.bottom + 'px');
+
+            // Observe any newly seen bar so its height changes (Elementor
+            // collapse/expand animation) recalculate the offset in real time.
+            if (sizeObserver) {
+                result.bars.forEach(function(bar) {
+                    if (!observedBars.has(bar)) {
+                        observedBars.add(bar);
+                        sizeObserver.observe(bar);
+                    }
+                });
+            }
+        }
+        function scheduleUpdate() {
+            if (rafPending) return;
+            rafPending = true;
+            window.requestAnimationFrame(function() {
+                rafPending = false;
+                updateStickyTop();
+            });
+        }
+
+        // Recalculate repeatedly for the duration of a CSS transition — the
+        // Elementor header changes height with an animation, so a single
+        // measurement on scroll catches an intermediate (wrong) value.
+        function updateThroughTransition() {
+            updateStickyTop();
+            [80, 180, 320, 500].forEach(function(delay) {
+                setTimeout(updateStickyTop, delay);
+            });
         }
 
         updateStickyTop();
         fixStickyAncestors();
-        window.addEventListener('resize', updateStickyTop);
+        // Sticky bars appear/disappear and change height on scroll & resize.
+        window.addEventListener('resize', scheduleUpdate);
+        window.addEventListener('scroll', updateThroughTransition, { passive: true });
+        // Catch the end of the Elementor sticky expand/collapse animation.
+        document.addEventListener('transitionend', function(e) {
+            if (e.propertyName === 'transform' || e.propertyName === 'height' ||
+                e.propertyName === 'top' || e.propertyName === 'margin-top') {
+                updateStickyTop();
+            }
+        }, true);
         window.addEventListener('load', function() {
             updateStickyTop();
             fixStickyAncestors();
@@ -190,9 +275,9 @@
     // Image Map Pro Artboard Logging
     // ===========================
     function setupImageMapProArtboardLogging() {
-        // Store original localType options for restoration
-        let originalLocalTypeOptions = null;
-        
+        // originalLocalTypeOptions is declared at module scope so the configurator
+        // can restore the full type list after Image Map Pro narrows it.
+
         // Wait for Image Map Pro API to be available
         function initImageMapProLogging() {
             if (typeof ImageMapPro !== 'undefined' && ImageMapPro.subscribe) {
@@ -3620,7 +3705,7 @@
             closeWizardModal();
 
             switchToAllView();
-            setLocalTypeFilter('Garaż');
+            selectTypeAndFloorForWizard('Garaż');
         });
 
         // Step 2: Find parking button
@@ -3632,7 +3717,7 @@
                 closeWizardModal();
 
                 switchToAllView();
-                setLocalTypeFilter('Miejsce postojowe');
+                selectTypeAndFloorForWizard('Miejsce postojowe');
             });
         }
 
@@ -3641,15 +3726,8 @@
             closeWizardModal();
 
             switchToAllView();
-
-            // Set filter to Komórka lokatorska
-            const localTypeFilter = document.getElementById('localTypeFilter');
-            if (localTypeFilter) {
-                const options = Array.from(localTypeFilter.options).map(o => o.value);
-                if (options.includes('Komórka lokatorska')) {
-                    setLocalTypeFilter('Komórka lokatorska');
-                }
-            }
+            // Set filter to Komórka lokatorska + best-matching floor.
+            selectTypeAndFloorForWizard('Komórka lokatorska');
         });
 
         // Step 3: Send inquiry
@@ -3784,6 +3862,80 @@
                 localTypeFilter.value = value;
                 localTypeFilter.dispatchEvent(new Event('change'));
             }
+        }
+    }
+
+    // Configurator: switch to a local type AND intelligently pick the floor.
+    // - Sets #localTypeFilter to `type` (if the option exists).
+    // - Looks at where locals of that type actually live (from the DOM) and,
+    //   when they're all on a SINGLE floor (e.g. garages only in the basement),
+    //   sets #floorFilter to that floor. If they span multiple floors, it falls
+    //   back to "all" so the user can choose. Respects an active building filter.
+    function selectTypeAndFloorForWizard(type) {
+        const localTypeFilter = document.getElementById('localTypeFilter');
+        const floorFilter = document.getElementById('floorFilter');
+        if (!localTypeFilter) return;
+
+        // Image Map Pro narrows #localTypeFilter to "Lokal mieszkalny" while on a
+        // floor view. Restore the full type list first, otherwise Garaż/Komórka/
+        // Miejsce postojowe aren't selectable and the click does nothing.
+        restoreAllLocalTypeOptions();
+
+        // Bail out if the type still isn't selectable (not present in the offer).
+        const typeOptions = Array.from(localTypeFilter.options).map(o => o.value);
+        if (!typeOptions.includes(type)) return;
+
+        // Collect the distinct floors (as normalized numbers) where this type exists.
+        const selectedBuilding = document.getElementById('buildingFilter')?.value || 'all';
+        const floorsForType = new Set();
+        document.querySelectorAll('.apartment-item').forEach(function(item) {
+            if ((item.getAttribute('data-local-type') || '') !== type) return;
+            if (selectedBuilding !== 'all') {
+                const itemBuilding = item.getAttribute('data-building') || '';
+                if (itemBuilding && itemBuilding !== selectedBuilding) return;
+            }
+            const floorNum = parseFloorToNumber(item.getAttribute('data-floor-number'));
+            if (floorNum !== null) floorsForType.add(floorNum);
+        });
+
+        // Decide the target floor: single floor -> that floor, otherwise "all".
+        let targetFloorValue = 'all';
+        if (floorFilter && floorsForType.size === 1) {
+            const only = String(floorsForType.values().next().value);
+            // Only use it if the floor filter actually offers that option.
+            const hasOption = Array.from(floorFilter.options).some(o => o.value === only);
+            if (hasOption) targetFloorValue = only;
+        }
+
+        // Apply floor first (silently), then type — the type change triggers
+        // applyFilters last so the list reflects both settings.
+        if (floorFilter && floorFilter.value !== targetFloorValue) {
+            floorFilter.value = targetFloorValue;
+        }
+        setLocalTypeFilter(type);
+    }
+
+    // Restore the full #localTypeFilter option list (undoing Image Map Pro's
+    // floor-view narrowing to "Lokal mieszkalny"), preserving current selection.
+    function restoreAllLocalTypeOptions() {
+        const localTypeFilter = document.getElementById('localTypeFilter');
+        if (!localTypeFilter || !originalLocalTypeOptions) return;
+
+        const currentValue = localTypeFilter.value;
+        const currentValues = Array.from(localTypeFilter.options).map(o => o.value);
+        const fullValues = originalLocalTypeOptions.map(o => o.value);
+        // Nothing to do if the full list is already present.
+        if (currentValues.length === fullValues.length) return;
+
+        localTypeFilter.innerHTML = '';
+        originalLocalTypeOptions.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            localTypeFilter.appendChild(option);
+        });
+        if (fullValues.includes(currentValue)) {
+            localTypeFilter.value = currentValue;
         }
     }
 

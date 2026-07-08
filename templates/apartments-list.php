@@ -133,6 +133,22 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                                 }
                             }
                         }
+
+                        // Add every type present anywhere in the offer (computed in the
+                        // shortcode from the pre-filter data). This keeps e.g. "Garaż"
+                        // selectable even when the current floor filter narrows the list
+                        // to apartments only — otherwise the configurator's "Wybierz garaż"
+                        // button would have no option to switch to.
+                        if (isset($all_local_types) && is_array($all_local_types)) {
+                            foreach ($all_local_types as $type) {
+                                if ($type === 'Pomieszczenie gospodarcze') {
+                                    $type = 'Komórka lokatorska';
+                                }
+                                if (!in_array($type, $available_types)) {
+                                    $available_types[] = $type;
+                                }
+                            }
+                        }
                         
                         // Define display order for types
                         $type_order = array('Lokal mieszkalny', 'Garaż', 'Komórka lokatorska', 'Miejsce postojowe');
@@ -243,26 +259,29 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     <select class="filter-select" id="floorFilter">
                         <?php 
                         $default_floor = isset($atts['floor']) && $atts['floor'] !== '' ? $atts['floor'] : 'all';
-                        
-                        // Get all available floors from KL/PG if they exist
-                        $available_floors = array('0', '1', '2', '3', '4'); // Default floors
-                        
-                        // Check if kl_pg_floors is defined and not empty
-                        if (isset($kl_pg_floors) && !empty($kl_pg_floors) && is_array($kl_pg_floors)) {
-                            // Add KL/PG floors to available floors
-                            foreach ($kl_pg_floors as $floor) {
-                                // Ensure floor is a string for comparison
-                                $floor_str = (string) $floor;
-                                if (!in_array($floor_str, $available_floors)) {
-                                    $available_floors[] = $floor_str;
+
+                        // Prefer floors actually present in the data (computed in the
+                        // shortcode as normalized, sorted values). This makes the
+                        // dropdown match the real dataset — floors V-VII and beyond
+                        // appear automatically when such locals exist.
+                        if (isset($available_floors_in_data) && !empty($available_floors_in_data) && is_array($available_floors_in_data)) {
+                            $available_floors = $available_floors_in_data;
+                        } else {
+                            // Fallback (backwards compatibility): hard-coded range + KL/PG floors
+                            $available_floors = array('0', '1', '2', '3', '4');
+                            if (isset($kl_pg_floors) && !empty($kl_pg_floors) && is_array($kl_pg_floors)) {
+                                foreach ($kl_pg_floors as $floor) {
+                                    $floor_str = (string) $floor;
+                                    if (!in_array($floor_str, $available_floors)) {
+                                        $available_floors[] = $floor_str;
+                                    }
                                 }
+                                usort($available_floors, function($a, $b) {
+                                    return intval($a) <=> intval($b);
+                                });
                             }
-                            // Sort floors numerically
-                            usort($available_floors, function($a, $b) {
-                                return intval($a) <=> intval($b);
-                            });
                         }
-                        
+
                         // Floor labels mapping
                         $floor_labels = array(
                             '-1' => 'Piwnica',
@@ -273,6 +292,10 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                             '4' => 'Piętro IV',
                             '5' => 'Piętro V',
                             '6' => 'Piętro VI',
+                            '7' => 'Piętro VII',
+                            '8' => 'Piętro VIII',
+                            '9' => 'Piętro IX',
+                            '10' => 'Piętro X',
                         );
                         ?>
                         <option value="all" <?php echo ($default_floor === 'all') ? 'selected' : ''; ?>>Wszystkie piętra</option>
@@ -1284,6 +1307,7 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
             <h3>Gratulacje!</h3>
             <p>Świetny wybór! Teraz uzupełnij swoją ofertę o garaż, komórkę lokatorską lub miejsce postojowe na zewnątrz.</p>
             <div class="wizard-btn-group">
+                <?php if (!empty($wizard_has_garage)): ?>
                 <button class="wizard-btn wizard-btn-primary" data-wizard-action="find-garage">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="1" y="3" width="15" height="13"/>
@@ -1293,6 +1317,8 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     </svg>
                     Wybierz garaż
                 </button>
+                <?php endif; ?>
+                <?php if (!empty($wizard_has_parking)): ?>
                 <button class="wizard-btn wizard-btn-primary" data-wizard-action="find-parking">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="18" height="18" rx="2"/>
@@ -1300,12 +1326,15 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                     </svg>
                     Wybierz miejsce postojowe na zewnątrz
                 </button>
+                <?php endif; ?>
+                <?php if (!empty($wizard_has_storage)): ?>
                 <button class="wizard-btn wizard-btn-primary" data-wizard-action="find-storage">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
                     </svg>
                     Wybierz komórkę lokatorską lub pom. gospodarcze
                 </button>
+                <?php endif; ?>
                 <button class="wizard-btn wizard-btn-cart wizard-go-to-cart" data-wizard-action="go-to-cart" style="display: none;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>

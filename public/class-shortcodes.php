@@ -147,6 +147,9 @@ class Develogic_Shortcodes {
             'hide_price_filter' => 'false',
             'hide_building_filter' => 'false',
             'hide_extras' => 'false',
+            'hide_wizard_garage' => 'false',
+            'hide_wizard_parking' => 'false',
+            'hide_wizard_storage' => 'false',
             'extras' => '',
             'default_local_type' => '',
             'show_features' => 'true',
@@ -457,6 +460,11 @@ class Develogic_Shortcodes {
         $hide_price_filter = ($atts['hide_price_filter'] === 'true' || $atts['hide_price_filter'] === true);
         $hide_building_filter = ($atts['hide_building_filter'] === 'true' || $atts['hide_building_filter'] === true);
         $hide_extras = ($atts['hide_extras'] === 'true' || $atts['hide_extras'] === true);
+        // Manual override for the wizard (configurator) buttons — force-hide a
+        // button regardless of whether such locals exist in the data.
+        $hide_wizard_garage = ($atts['hide_wizard_garage'] === 'true' || $atts['hide_wizard_garage'] === true);
+        $hide_wizard_parking = ($atts['hide_wizard_parking'] === 'true' || $atts['hide_wizard_parking'] === true);
+        $hide_wizard_storage = ($atts['hide_wizard_storage'] === 'true' || $atts['hide_wizard_storage'] === true);
 
         // Parse extras parameter - allows overriding additional options from shortcode
         $shortcode_extras = null;
@@ -584,6 +592,73 @@ class Develogic_Shortcodes {
         // Resolve investment ID for template (needed for localStorage scoping)
         $resolved_investment_id = !empty($filters['investmentId']) ? $filters['investmentId'] : '';
 
+        // Build the list of floors that actually exist in the displayed locals.
+        // This drives the #floorFilter options so the dropdown always matches the
+        // data (e.g. floors V-VII appear automatically when such locals exist),
+        // instead of relying on a hard-coded 0-4 range in the template.
+        $available_floors_in_data = array();
+        foreach ($locals as $local) {
+            $floor = isset($local['floor']) ? $local['floor'] : '';
+            $floor_normalized = self::normalize_floor_value($floor);
+            if ($floor_normalized !== null && !in_array($floor_normalized, $available_floors_in_data, true)) {
+                $available_floors_in_data[] = $floor_normalized;
+            }
+        }
+        usort($available_floors_in_data, function ($a, $b) {
+            return intval($a) <=> intval($b);
+        });
+
+        // Determine which non-apartment local types actually exist in the offer.
+        // Drives the wizard (configurator) buttons — a button is hidden when no
+        // such local exists (e.g. an investment with no garages). Uses the
+        // pre-filter snapshot so building/type filtering of the listing doesn't
+        // wrongly hide an available option.
+        $wizard_source_locals = isset($original_locals_for_floors) && is_array($original_locals_for_floors)
+            ? $original_locals_for_floors
+            : $locals;
+        $has_garage = false;
+        $has_parking = false;
+        $has_storage = false;
+        // All local types present anywhere in the offer (pre-filter). Drives the
+        // #localTypeFilter options so e.g. "Garaż" stays selectable even when the
+        // current floor filter shows only apartments.
+        //
+        // When the shortcode restricts types via local_types, honour that
+        // whitelist — otherwise types the shortcode deliberately excluded (e.g.
+        // "Miejsce postojowe", "Plac manewrowy") would leak back into the select.
+        $local_types_whitelist = array();
+        if (!empty($atts['local_types'])) {
+            $local_types_whitelist = array_map('trim', explode(',', $atts['local_types']));
+        }
+        $all_local_types = array();
+        foreach ($wizard_source_locals as $local) {
+            $local_type = isset($local['localType']) ? trim($local['localType']) : '';
+            if ($local_type === '') {
+                continue;
+            }
+            // Respect the shortcode's local_types whitelist when present.
+            if (!empty($local_types_whitelist) && !in_array($local_type, $local_types_whitelist, true)) {
+                continue;
+            }
+            if (!in_array($local_type, $all_local_types, true)) {
+                $all_local_types[] = $local_type;
+            }
+            if ($local_type === 'Garaż') {
+                $has_garage = true;
+            } elseif ($local_type === 'Miejsce postojowe') {
+                $has_parking = true;
+            } elseif ($local_type === 'Komórka lokatorska' || $local_type === 'Pomieszczenie gospodarcze') {
+                $has_storage = true;
+            }
+        }
+
+        // A button shows only when such locals exist in the data AND it wasn't
+        // manually disabled via shortcode
+        // (hide_wizard_garage / hide_wizard_parking / hide_wizard_storage).
+        $wizard_has_garage = $has_garage && !$hide_wizard_garage;
+        $wizard_has_parking = $has_parking && !$hide_wizard_parking;
+        $wizard_has_storage = $has_storage && !$hide_wizard_storage;
+
         // Load template
         ob_start();
         $this->load_template('apartments-list', array(
@@ -591,6 +666,11 @@ class Develogic_Shortcodes {
             'investment_id' => $resolved_investment_id,
             'page_id' => get_the_ID(),
             'atts' => $atts,
+            'available_floors_in_data' => $available_floors_in_data,
+            'all_local_types' => $all_local_types,
+            'wizard_has_garage' => $wizard_has_garage,
+            'wizard_has_parking' => $wizard_has_parking,
+            'wizard_has_storage' => $wizard_has_storage,
             'kl_pg_floors' => $kl_pg_floors,
             'default_floor_kl_pg' => $default_floor_kl_pg,
             'locals' => $locals,
