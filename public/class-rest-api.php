@@ -113,6 +113,41 @@ class Develogic_REST_API {
                 ),
             ),
         ));
+
+        // Configurator "meeting request" — same payload as /inquiry but also
+        // emails the company a CSV attachment of the selected locals.
+        register_rest_route(self::NAMESPACE, '/configurator-meeting', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'send_configurator_meeting'),
+            'permission_callback' => '__return_true',
+            'args' => array(
+                'name' => array(
+                    'type' => 'string',
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+                'email' => array(
+                    'type' => 'string',
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_email',
+                ),
+                'phone' => array(
+                    'type' => 'string',
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+                'survey_data' => array(
+                    'type' => 'string',
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+                // JSON array of selected locals (structured, for the CSV).
+                'apartments_json' => array(
+                    'type' => 'string',
+                    'required' => true,
+                ),
+            ),
+        ));
     }
     
     /**
@@ -353,6 +388,145 @@ class Develogic_REST_API {
         return new WP_REST_Response(array(
             'success' => true,
             'message' => __('Zapytanie zostało wysłane pomyślnie', 'develogic'),
+        ), 200);
+    }
+
+    /**
+     * Send a "meeting request" from the configurator's PDF button.
+     * Emails the company the same data as the configurator PDF, but with a CSV
+     * attachment of the selected locals plus a note requesting a meeting.
+     */
+    public function send_configurator_meeting($request) {
+        $name  = $request->get_param('name');
+        $email = $request->get_param('email');
+        $phone = $request->get_param('phone');
+        $survey_data = $request->get_param('survey_data');
+        $apartments_json = $request->get_param('apartments_json');
+
+        if (!is_email($email)) {
+            return new WP_Error('invalid_email', __('Nieprawidłowy adres email', 'develogic'), array('status' => 400));
+        }
+
+        $apartments = json_decode(wp_unslash($apartments_json), true);
+        if (empty($name) || !is_array($apartments) || empty($apartments)) {
+            return new WP_Error('missing_fields', __('Wypełnij wszystkie wymagane pola', 'develogic'), array('status' => 400));
+        }
+
+        $survey = array();
+        if (!empty($survey_data)) {
+            $decoded = json_decode(wp_unslash($survey_data), true);
+            if (is_array($decoded)) {
+                $survey = $decoded;
+            }
+        }
+
+        // Recipient (company)
+        $to = develogic()->get_setting('contact_email', '');
+        if (empty($to)) {
+            $to = get_option('admin_email');
+        }
+
+        // --- Build CSV file (UTF-8 with BOM so Excel reads Polish chars) ------
+        $csv_rows = array();
+        $csv_rows[] = array('Lp.', 'Typ', 'Numer', 'Budynek', 'Piętro', 'Powierzchnia', 'Pokoje', 'Cena brutto');
+        $total = 0.0;
+        $i = 0;
+        foreach ($apartments as $apt) {
+            $i++;
+            $price = isset($apt['price']) ? (float) $apt['price'] : 0;
+            $total += $price;
+            $csv_rows[] = array(
+                $i,
+                isset($apt['localType']) ? $apt['localType'] : '',
+                isset($apt['number']) ? $apt['number'] : '',
+                isset($apt['building']) ? $apt['building'] : '',
+                isset($apt['floor']) ? $apt['floor'] : '',
+                isset($apt['area']) ? $apt['area'] : '',
+                isset($apt['rooms']) ? $apt['rooms'] : '',
+                $price > 0 ? number_format($price, 2, ',', ' ') . ' zł' : '-',
+            );
+        }
+        $csv_rows[] = array('', '', '', '', '', '', 'Łączna cena:', number_format($total, 2, ',', ' ') . ' zł');
+
+        // Contact + survey block appended below the table.
+        $csv_rows[] = array();
+        $csv_rows[] = array('Dane kontaktowe');
+        $csv_rows[] = array('Imię i nazwisko', $name);
+        $csv_rows[] = array('Email', $email);
+        $csv_rows[] = array('Telefon', !empty($phone) ? $phone : '-');
+        if (!empty($survey)) {
+            $csv_rows[] = array();
+            $csv_rows[] = array('Ankieta');
+            foreach ($survey as $q => $a) {
+                $csv_rows[] = array($q, $a);
+            }
+        }
+
+        $fh = fopen('php://temp', 'r+');
+        fputs($fh, "\xEF\xBB\xBF"); // UTF-8 BOM
+        foreach ($csv_rows as $row) {
+            fputcsv($fh, $row, ';');
+        }
+        rewind($fh);
+        $csv_content = stream_get_contents($fh);
+        fclose($fh);
+
+        // Write the CSV to a temp file for wp_mail attachment. wp_mail uses the
+        // file's basename as the attachment name shown to the recipient, so we
+        // give it a readable name (client's surname + date). Uniqueness on disk
+        // is guaranteed by a random sub-directory, not by the visible filename.
+        $upload = wp_upload_dir();
+        $tmp_dir = trailingslashit($upload['basedir']) . 'develogic-tmp/' . wp_generate_password(12, false);
+        wp_mkdir_p($tmp_dir);
+
+        $safe_name = sanitize_file_name($name);          // "Jan Kowalski" -> "Jan-Kowalski"
+        if ($safe_name === '') {
+            $safe_name = 'klient';
+        }
+        $filename = 'konfigurator-' . $safe_name . '-' . date('Y-m-d') . '.csv';
+        $filepath = trailingslashit($tmp_dir) . $filename;
+        file_put_contents($filepath, $csv_content);
+
+        // --- Email --------------------------------------------------------------
+        $subject = sprintf('Prośba o spotkanie z konfiguratora - %s', $name);
+
+        $body  = "Nowa prośba o spotkanie z konfiguratora oferty.\n\n";
+        $body .= "Klient prosi o kontakt i umówienie spotkania.\n\n";
+        $body .= "Imię i nazwisko: " . $name . "\n";
+        $body .= "Email: " . $email . "\n";
+        $body .= "Telefon: " . (!empty($phone) ? $phone : '-') . "\n\n";
+        if (!empty($survey)) {
+            $body .= "Ankieta:\n";
+            foreach ($survey as $q => $a) {
+                $body .= "  " . $q . ": " . $a . "\n";
+            }
+            $body .= "\n";
+        }
+        $body .= "Wybrane lokale (" . $i . ") — szczegóły w załączonym pliku CSV.\n";
+        $body .= "Łączna cena: " . number_format($total, 2, ',', ' ') . " zł\n";
+
+        $headers = array(
+            'Content-Type: text/plain; charset=UTF-8',
+            'Reply-To: ' . $name . ' <' . $email . '>',
+        );
+
+        $sent = wp_mail($to, $subject, $body, $headers, array($filepath));
+
+        // Clean up the temp attachment and its random sub-directory.
+        if (file_exists($filepath)) {
+            @unlink($filepath);
+        }
+        if (is_dir($tmp_dir)) {
+            @rmdir($tmp_dir);
+        }
+
+        if (!$sent) {
+            return new WP_Error('mail_error', __('Nie udało się wysłać wiadomości do firmy.', 'develogic'), array('status' => 500));
+        }
+
+        return new WP_REST_Response(array(
+            'success' => true,
+            'message' => __('Prośba o spotkanie została wysłana', 'develogic'),
         ), 200);
     }
 }

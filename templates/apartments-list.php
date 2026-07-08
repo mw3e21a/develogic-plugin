@@ -28,6 +28,36 @@ foreach ($locals as $local) {
 }
 $has_multiple_floors = count($unique_floors_in_data) > 1;
 ?>
+<?php
+// Critical inline CSS: applied immediately, before the external stylesheet
+// loads, to prevent a flash of unstyled content (FOUC). It keeps the list
+// content hidden and shows a centered loading overlay from the very first
+// paint. The external CSS then takes over the full styling. Printed once.
+if (!defined('DEVELOGIC_CRITICAL_CSS_PRINTED')) {
+    define('DEVELOGIC_CRITICAL_CSS_PRINTED', true);
+    ?>
+    <style id="develogic-critical-css">
+        .develogic-apartments-container { position: relative; min-height: 400px; }
+        /* Hide raw content until JS marks the container as loaded. */
+        .develogic-apartments-container .container { opacity: 0; }
+        .develogic-apartments-container.loaded .container { opacity: 1; transition: opacity .3s ease; }
+        /* Loading overlay covering everything from the first paint. */
+        .develogic-loading-overlay {
+            position: absolute; inset: 0; width: 100%; min-height: 400px;
+            background: #fff; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .develogic-loading-overlay.hidden { opacity: 0; visibility: hidden; }
+        /* Safety net: if JS never runs, reveal content after 5s so the list
+           is never permanently hidden. JS hides the overlay far sooner. */
+        @keyframes develogic-failsafe-reveal { to { opacity: 1; } }
+        .develogic-apartments-container:not(.loaded) .container {
+            animation: develogic-failsafe-reveal 0s linear 5s forwards;
+        }
+    </style>
+    <?php
+}
+?>
 <div class="develogic-apartments-container"
      <?php if ($is_residential_local && !empty($building_floors_map)): ?>
      data-building-floors-map="<?php echo esc_attr(json_encode($building_floors_map)); ?>"
@@ -1160,23 +1190,27 @@ $has_multiple_floors = count($unique_floors_in_data) > 1;
                                 <div class="inquiry-survey-options inquiry-survey-options--column">
                                     <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="służby mundurowe"> Jestem pracownikiem tzw. służb mundurowych</label>
                                     <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="ślub 2025/2026"> Wziąłem/wzięłam ślub w 2025 lub 2026 roku</label>
-                                    <label class="inquiry-checkbox">
-                                        <input type="checkbox" name="survey_promo[]" value="dzieci" id="surveyPromoChildren"> Posiadam dwójkę lub większą liczbę dzieci do 18 roku życia (lub do 26 r.ż. w przypadku dzieci uczących się):
-                                        <select name="survey_children_count" class="inquiry-inline-select" disabled>
+                                    <div class="inquiry-checkbox-with-select">
+                                        <label class="inquiry-checkbox">
+                                            <input type="checkbox" name="survey_promo[]" value="dzieci" id="surveyPromoChildren"> Posiadam dwójkę lub większą liczbę dzieci do 18 roku życia (lub do 26 r.ż. w przypadku dzieci uczących się):
+                                        </label>
+                                        <select name="survey_children_count" class="inquiry-inline-select no-selectmenu no-fancy-select" data-no-selectmenu="true" disabled>
                                             <option value="">—</option>
                                             <option value="2">2</option>
                                             <option value="3">3</option>
                                             <option value="4+">4+</option>
                                         </select>
-                                    </label>
-                                    <label class="inquiry-checkbox">
-                                        <input type="checkbox" name="survey_promo[]" value="promocja specjalna" id="surveyPromoSpecial"> W ramach promocji specjalnej wolałbym otrzymać:
-                                        <select name="survey_special_promo" class="inquiry-inline-select" disabled>
+                                    </div>
+                                    <div class="inquiry-checkbox-with-select">
+                                        <label class="inquiry-checkbox">
+                                            <input type="checkbox" name="survey_promo[]" value="promocja specjalna" id="surveyPromoSpecial"> W ramach promocji specjalnej wolałbym otrzymać:
+                                        </label>
+                                        <select name="survey_special_promo" class="inquiry-inline-select no-selectmenu no-fancy-select" data-no-selectmenu="true" disabled>
                                             <option value="">—</option>
                                             <option value="klimatyzacja gratis">klimatyzację gratis</option>
                                             <option value="szpachlowanie z malowaniem gratis">szpachlowanie z malowaniem gratis</option>
                                         </select>
-                                    </label>
+                                    </div>
                                     <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="rezerwacja 7 dni"> Zarezerwuj wybrane lokale na 7 dni (rezerwacja jest bezpłatna)</label>
                                 </div>
                             </div>

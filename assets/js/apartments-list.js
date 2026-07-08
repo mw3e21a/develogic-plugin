@@ -2962,9 +2962,64 @@
     // ===========================
     // Inquiry form (in configurator summary)
     // ===========================
+    // Prevent the theme's jQuery UI Selectmenu (or similar select-beautifiers)
+    // from hijacking our form's <select> elements, which breaks them inside the
+    // modal. Destroys any existing widget, tags the selects so common scripts
+    // skip them, and watches for re-initialization to undo it.
+    function keepNativeSelects(scope) {
+        var selects = scope.querySelectorAll('select');
+        var $ = window.jQuery;
+
+        function restore(sel) {
+            // Tell common beautifiers to leave this select alone.
+            sel.classList.add('no-selectmenu', 'no-fancy-select');
+            sel.setAttribute('data-no-selectmenu', 'true');
+            // Destroy an already-created jQuery UI Selectmenu widget.
+            if ($ && $.fn && $.fn.selectmenu) {
+                try {
+                    var $sel = $(sel);
+                    if ($sel.hasClass('ui-selectmenu-menu') || $sel.data('ui-selectmenu') ||
+                        (sel.id && document.getElementById(sel.id + '-button'))) {
+                        $sel.selectmenu('destroy');
+                    }
+                } catch (e) {}
+            }
+            // Make sure the native control is visible/usable (widgets hide it).
+            sel.style.display = '';
+        }
+
+        selects.forEach(restore);
+
+        // jQuery UI may initialize AFTER us; re-run shortly and observe changes.
+        setTimeout(function () { selects.forEach(restore); }, 300);
+        setTimeout(function () { selects.forEach(restore); }, 1000);
+
+        if ('MutationObserver' in window) {
+            var busy = false;
+            var observer = new MutationObserver(function () {
+                if (busy) return;          // ignore our own DOM edits
+                busy = true;
+                selects.forEach(restore);
+                busy = false;
+            });
+            // Watch each select's parent for an added widget wrapper/button.
+            selects.forEach(function (sel) {
+                if (sel.parentElement) {
+                    observer.observe(sel.parentElement, { childList: true });
+                }
+            });
+        }
+    }
+
     function setupInquiryForm() {
         var form = document.getElementById('inquiryForm');
         if (!form) return;
+
+        // The theme (or another plugin) turns every native <select> into a
+        // jQuery UI Selectmenu widget. That widget renders its dropdown at the
+        // end of <body>, outside our modal, so it ends up unclickable — and it
+        // also breaks our disabled/enable toggling. Keep OUR selects native.
+        keepNativeSelects(form);
 
         // Toggle inline selects when their parent checkbox is checked/unchecked
         var childrenCheckbox = document.getElementById('surveyPromoChildren');
@@ -2982,37 +3037,35 @@
             });
         }
 
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        // Shared validation for the inquiry form. Used both by the form's own
+        // submit and by the configurator PDF button ("Zapisz, wydrukuj i umów
+        // się na spotkanie"), so both enforce identical rules. Marks invalid
+        // fields and shows the message. Returns true when the form is valid.
+        window.validateInquiryFormShared = function() {
+            var form = document.getElementById('inquiryForm');
+            if (!form) return false;
 
             var nameField = document.getElementById('inquiryName');
             var emailField = document.getElementById('inquiryEmail');
-            var phoneField = document.getElementById('inquiryPhone');
-            var submitBtn = document.getElementById('summaryInquiryBtn');
             var messageEl = document.getElementById('inquiryFormMessage');
             var rodoCheckbox = document.getElementById('inquiryRodoConsent');
             var rodoWrapper = rodoCheckbox ? rodoCheckbox.closest('.inquiry-rodo-consent') : null;
 
-            // Clear previous errors
             [nameField, emailField].forEach(function(f) {
-                f.classList.remove('field-error');
+                if (f) f.classList.remove('field-error');
             });
             if (rodoWrapper) rodoWrapper.classList.remove('field-error');
-            // Clear survey section errors
             form.querySelectorAll('.inquiry-survey-section').forEach(function(s) {
                 s.classList.remove('field-error');
             });
-            messageEl.style.display = 'none';
+            if (messageEl) messageEl.style.display = 'none';
 
-            // Validate
             var hasError = false;
-            if (!nameField.value.trim()) { nameField.classList.add('field-error'); hasError = true; }
-            if (!emailField.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value.trim())) {
-                emailField.classList.add('field-error'); hasError = true;
+            if (!nameField || !nameField.value.trim()) { if (nameField) nameField.classList.add('field-error'); hasError = true; }
+            if (!emailField || !emailField.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailField.value.trim())) {
+                if (emailField) emailField.classList.add('field-error'); hasError = true;
             }
 
-            // Validate first 4 survey questions (required)
             var requiredSurveys = ['survey_area', 'survey_rooms', 'survey_purchase_status', 'survey_age'];
             requiredSurveys.forEach(function(name) {
                 var checked = form.querySelector('input[name="' + name + '"]:checked');
@@ -3031,10 +3084,26 @@
                 hasError = true;
             }
 
-            if (hasError) {
+            if (hasError && messageEl) {
                 messageEl.style.display = 'block';
                 messageEl.className = 'inquiry-form-message error';
                 messageEl.textContent = 'Uzupełnij brakujące informacje.';
+            }
+            return !hasError;
+        };
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            var nameField = document.getElementById('inquiryName');
+            var emailField = document.getElementById('inquiryEmail');
+            var phoneField = document.getElementById('inquiryPhone');
+            var submitBtn = document.getElementById('summaryInquiryBtn');
+            var messageEl = document.getElementById('inquiryFormMessage');
+
+            // Validate (shared with the configurator PDF button)
+            if (!window.validateInquiryFormShared()) {
                 return;
             }
 
@@ -3347,6 +3416,14 @@
             var favorites = getFavoritesOnPage();
             if (favorites.length === 0) return;
 
+            // Same validation as the inquiry form — the button also sends a
+            // meeting request to the company, so require the same fields.
+            if (typeof window.validateInquiryFormShared === 'function') {
+                if (!window.validateInquiryFormShared()) {
+                    return;
+                }
+            }
+
             var items = [];
             var totalPrice = 0;
 
@@ -3490,6 +3567,10 @@
                 'Ceny mog\u0105 ulec zmianie.</div>' +
                 '</body></html>';
 
+            // Send the meeting request + CSV to the company (in parallel with
+            // opening the PDF). Reuses the survey answers already gathered above.
+            sendMeetingRequest(items, surveyRows);
+
             var pdfWindow = window.open('', '_blank');
             if (!pdfWindow) {
                 alert('Odblokuj wyskakuj\u0105ce okna w przegl\u0105darce, aby pobra\u0107 PDF.');
@@ -3501,6 +3582,68 @@
                 pdfWindow.print();
             };
         });
+
+        // Emails the company a meeting request with a CSV of the selected locals.
+        // Fire-and-forget: never blocks the user's PDF from opening.
+        function sendMeetingRequest(items, surveyRows) {
+            var nameField = document.getElementById('inquiryName');
+            var emailField = document.getElementById('inquiryEmail');
+            var phoneField = document.getElementById('inquiryPhone');
+
+            var name = nameField ? nameField.value.trim() : '';
+            var email = emailField ? emailField.value.trim() : '';
+            var phone = phoneField ? phoneField.value.trim() : '';
+
+            // Survey answers -> {question: answer} for the email/CSV.
+            var surveyData = {};
+            (surveyRows || []).forEach(function(row) {
+                // Skip the contact fields already sent as name/email/phone.
+                if (row.q === 'Imi\u0119 i nazwisko' || row.q === 'Email' || row.q === 'Telefon') return;
+                surveyData[row.q] = row.a;
+            });
+
+            var restUrl = (typeof develogicApartmentsData !== 'undefined' && develogicApartmentsData.restUrl) ? develogicApartmentsData.restUrl : '/wp-json/develogic/v1';
+            var nonce = (typeof develogicApartmentsData !== 'undefined' && develogicApartmentsData.nonce) ? develogicApartmentsData.nonce : '';
+
+            var messageEl = document.getElementById('inquiryFormMessage');
+            function showMsg(cls, text) {
+                if (!messageEl) return;
+                messageEl.style.display = 'block';
+                messageEl.className = 'inquiry-form-message ' + cls;
+                messageEl.textContent = text;
+                messageEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            fetch(restUrl + '/configurator-meeting', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': nonce },
+                body: JSON.stringify({
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    survey_data: JSON.stringify(surveyData),
+                    apartments_json: JSON.stringify(items)
+                })
+            })
+            .then(function(response) { return response.json().then(function(data) { return { ok: response.ok, data: data }; }); })
+            .then(function(result) {
+                if (result.ok && result.data && result.data.success) {
+                    showMsg('success', 'Dzi\u0119kujemy! Twoja oferta zosta\u0142a wys\u0142ana do nas \u2014 wkr\u00f3tce skontaktujemy si\u0119 w sprawie spotkania.');
+                    // Clear the form on success, same as the regular inquiry submit.
+                    var form = document.getElementById('inquiryForm');
+                    if (form) {
+                        form.reset();
+                        // reset() re-enables inline selects \u2014 disable them again.
+                        form.querySelectorAll('.inquiry-inline-select').forEach(function(s) { s.disabled = true; });
+                    }
+                } else {
+                    showMsg('error', 'Nie uda\u0142o si\u0119 wys\u0142a\u0107 pro\u015bby o spotkanie. Zadzwo\u0144 do nas lub spr\u00f3buj ponownie.');
+                }
+            })
+            .catch(function() {
+                showMsg('error', 'Nie uda\u0142o si\u0119 wys\u0142a\u0107 pro\u015bby o spotkanie. Zadzwo\u0144 do nas lub spr\u00f3buj ponownie.');
+            });
+        }
     })();
 
     // ===========================

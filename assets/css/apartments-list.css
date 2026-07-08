@@ -3443,6 +3443,19 @@
     white-space: normal;
 }
 
+/* Checkbox + inline select kept as siblings (the select must NOT sit inside
+   the <label>, otherwise clicking it toggles the checkbox instead of opening
+   the dropdown). Lay them out on one line, wrapping on narrow screens. */
+.inquiry-checkbox-with-select {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.inquiry-checkbox-with-select .inquiry-checkbox {
+    display: inline-flex;
+}
+
 .inquiry-checkbox input[type="checkbox"],
 .inquiry-checkbox input[type="radio"] {
     width: 16px;
