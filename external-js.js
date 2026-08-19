@@ -320,39 +320,17 @@ jQuery(document).ready(function($) {
         });
     }
 
-    document.querySelector('#piwnica-i').addEventListener('click', function(e) {
-        e.preventDefault();
-        $.imageMapProGoToFloor('Budynki IJKL', 'Piwnica');
-        setActiveFloor('#piwnica-i', 'button');
-    });
-    document.querySelector('#miejsca-postojowe-i').addEventListener('click', function(e) {
-        e.preventDefault();
-        $.imageMapProGoToFloor('Budynki IJKL', 'Miejsca postojowe');
-        setActiveFloor('#miejsca-postojowe-i', 'button');
-    });
-    document.querySelector('#parter-i').addEventListener('click', function(e) {
-        e.preventDefault();
-        $.imageMapProGoToFloor('Budynki IJKL', 'Parter');
-        setActiveFloor('#parter-i', 'button');
-    });
-    document.querySelector('#pietro-i-1').addEventListener('click', function(e) {
-        e.preventDefault();
-        $.imageMapProGoToFloor('Budynki IJKL', 'Pietro 1');
-        setActiveFloor('#pietro-i-1', 'button');
-    });
-    document.querySelector('#pietro-i-2').addEventListener('click', function(e) {
-        e.preventDefault();
-        $.imageMapProGoToFloor('Budynki IJKL', 'Pietro 2');
-        setActiveFloor('#pietro-i-2', 'button');
-    });
-    document.querySelector('#pietro-i-3').addEventListener('click', function(e) {
-        e.preventDefault();
-        $.imageMapProGoToFloor('Budynki IJKL', 'Pietro 3');
-        setActiveFloor('#pietro-i-3', 'button');
-    });
-    document.querySelector('#pietro-i-4').addEventListener('click', function(e) {
-        e.preventDefault();
-        $.imageMapProGoToFloor('Budynki IJKL', 'Pietro 4');
-        setActiveFloor('#pietro-i-4', 'button');
+    // Floor buttons exist only on pages that render them (budynek I). On other
+    // pages querySelector returns null, so bind only what's actually present.
+    Object.keys(artboardToSelector).forEach(function(artboard) {
+        var selector = artboardToSelector[artboard];
+        var el = document.querySelector(selector);
+        if (!el) return;
+
+        el.addEventListener('click', function(e) {
+            e.preventDefault();
+            $.imageMapProGoToFloor('Budynki IJKL', artboard);
+            setActiveFloor(selector, 'button');
+        });
     });
 });

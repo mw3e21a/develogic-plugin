@@ -3838,14 +3838,23 @@
         const wizardModal = document.getElementById('wizardModal');
         if (!wizardModal) return;
 
+        // Buttons below are rendered conditionally in PHP (garage/parking/storage
+        // depend on what the building actually offers), so bind defensively.
+        function onWizardClick(selector, handler) {
+            var el = wizardModal.querySelector(selector);
+            if (el) {
+                el.addEventListener('click', handler);
+            }
+        }
+
         // Close button
-        wizardModal.querySelector('.wizard-modal-close').addEventListener('click', closeWizardModal);
+        onWizardClick('.wizard-modal-close', closeWizardModal);
 
         // Overlay click to close
-        wizardModal.querySelector('.wizard-modal-overlay').addEventListener('click', closeWizardModal);
+        onWizardClick('.wizard-modal-overlay', closeWizardModal);
 
         // Step 1: Find apartment button
-        wizardModal.querySelector('[data-wizard-action="find-apartment"]').addEventListener('click', function() {
+        onWizardClick('[data-wizard-action="find-apartment"]', function() {
             closeWizardModal();
 
             // Switch to "Wszystkie" view
@@ -3856,7 +3865,7 @@
         });
 
         // Step 2: Find garage button
-        wizardModal.querySelector('[data-wizard-action="find-garage"]').addEventListener('click', function() {
+        onWizardClick('[data-wizard-action="find-garage"]', function() {
             closeWizardModal();
 
             switchToAllView();
@@ -3864,20 +3873,17 @@
         });
 
         // Step 2: Find parking button
-        var parkingBtn = wizardModal.querySelector('[data-wizard-action="find-parking"]');
-        if (parkingBtn) {
-            parkingBtn.addEventListener('click', function() {
-                wizardState = 'finding_storage';
+        onWizardClick('[data-wizard-action="find-parking"]', function() {
+            wizardState = 'finding_storage';
 
-                closeWizardModal();
+            closeWizardModal();
 
-                switchToAllView();
-                selectTypeAndFloorForWizard('Miejsce postojowe');
-            });
-        }
+            switchToAllView();
+            selectTypeAndFloorForWizard('Miejsce postojowe');
+        });
 
         // Step 2: Find storage/cellar button
-        wizardModal.querySelector('[data-wizard-action="find-storage"]').addEventListener('click', function() {
+        onWizardClick('[data-wizard-action="find-storage"]', function() {
             closeWizardModal();
 
             switchToAllView();
@@ -3886,7 +3892,7 @@
         });
 
         // Step 3: Send inquiry
-        wizardModal.querySelector('[data-wizard-action="send-inquiry"]').addEventListener('click', function() {
+        onWizardClick('[data-wizard-action="send-inquiry"]', function() {
             closeWizardModal();
 
             // Switch to favorites view and scroll to inquiry form
@@ -3901,7 +3907,7 @@
         });
 
         // Step 3: Back to list
-        wizardModal.querySelector('[data-wizard-action="back-to-list"]').addEventListener('click', function() {
+        onWizardClick('[data-wizard-action="back-to-list"]', function() {
             closeWizardModal();
 
             switchToAllView();
