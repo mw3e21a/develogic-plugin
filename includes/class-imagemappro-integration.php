@@ -1189,36 +1189,23 @@ class Develogic_ImageMapPro_Integration {
      * @return string Normalized floor number as string
      */
     private function normalize_floor($floor) {
-        $floor = trim($floor);
-        $lower = mb_strtolower($floor, 'UTF-8');
+        $floor = trim((string) $floor);
 
-        // Already a plain number
-        if (is_numeric($floor)) {
-            return (string) intval($floor);
+        // Wspólna normalizacja dla całej wtyczki — lokalna kopia gubiła minus
+        // w "piwnica -1" / "piwnica -2" i liczniki dostępności dla kondygnacji
+        // podziemnych trafiały na piętra 1 i 2.
+        $normalized = Develogic_Data_Formatter::normalize_floor($floor);
+        if ($normalized !== null) {
+            return $normalized;
         }
 
-        // Special cases
-        if ($lower === 'parter' || $lower === 'ground' || $lower === 'parter/ground') {
+        // Warianty angielskie, których wspólny normalizator nie zna.
+        $lower = mb_strtolower($floor, 'UTF-8');
+        if ($lower === 'ground' || $lower === 'parter/ground') {
             return '0';
         }
-        if ($lower === 'piwnica' || $lower === 'basement' || $lower === '-1 piętro') {
+        if ($lower === 'basement') {
             return '-1';
-        }
-
-        // "4 piętro", "4 pietro", "piętro 4", "pietro 4", "4. piętro" etc.
-        if (preg_match('/(\d+)/', $floor, $m)) {
-            return $m[1];
-        }
-
-        // Roman numerals: "Piętro IV", "IV piętro"
-        $roman_map = array(
-            'I' => '1', 'II' => '2', 'III' => '3', 'IV' => '4', 'V' => '5',
-            'VI' => '6', 'VII' => '7', 'VIII' => '8', 'IX' => '9', 'X' => '10',
-        );
-        foreach ($roman_map as $roman => $num) {
-            if (preg_match('/\b' . $roman . '\b/', $floor)) {
-                return $num;
-            }
         }
 
         // Fallback — return as-is

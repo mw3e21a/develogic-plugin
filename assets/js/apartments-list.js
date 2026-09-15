@@ -274,6 +274,35 @@
     // ===========================
     // Image Map Pro Artboard Logging
     // ===========================
+
+    /**
+     * Zwraca CZYTELNĄ nazwę artboardu ("PIWNICA -2", "PIĘTRO VII").
+     *
+     * Image Map Pro 6 przekazuje w payloadzie zdarzenia identyfikator artboardu
+     * (UUID), a nie jego nazwę. Puszczenie takiego ciągu przez parseFloorToNumber()
+     * dawało przypadkowe piętra — parseInt("7bd5d074-bd2e-...") to 7, więc klik w
+     * "Piwnica -2" przestawiał listę na VII piętro, a "15463922-..." dawało wartość
+     * spoza opcji i filtr resetował się na wszystkie piętra. Nazwę bierzemy więc z
+     * menu warstw mapy (zawsze pokazuje bieżący artboard), a payload traktujemy
+     * tylko jako zapas — starsze wersje IMP podawały tam nazwę wprost.
+     *
+     * @param {string} rawArtboard Wartość z action.payload.artboard
+     * @return {string} Nazwa artboardu albo '' gdy nie da się jej ustalić
+     */
+    function resolveArtboardName(rawArtboard) {
+        const layerSelect = document.querySelector('.imp-ui-layers-select');
+        if (layerSelect && layerSelect.selectedIndex >= 0 && layerSelect.options[layerSelect.selectedIndex]) {
+            const text = (layerSelect.options[layerSelect.selectedIndex].text || '').trim();
+            if (text) return text;
+        }
+
+        const raw = String(rawArtboard || '').trim();
+        if (!raw || raw === 'unknown' || raw === 'default-id') return '';
+        // Samo ID (UUID) nazwą piętra nie jest — lepiej nie zgadywać.
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return '';
+        return raw;
+    }
+
     function setupImageMapProArtboardLogging() {
         // originalLocalTypeOptions is declared at module scope so the configurator
         // can restore the full type list after Image Map Pro narrows it.
@@ -284,8 +313,9 @@
                 // Subscribe to Image Map Pro events
                 ImageMapPro.subscribe(function(action) {
                     if (action.type === 'artboardChange') {
-                        const artboardName = action.payload && action.payload.artboard ? action.payload.artboard : 'unknown';
-                        console.log('Image Map Pro - Artboard changed:', artboardName);
+                        const rawArtboard = action.payload && action.payload.artboard ? action.payload.artboard : 'unknown';
+                        const artboardName = resolveArtboardName(rawArtboard);
+                        console.log('Image Map Pro - Artboard changed:', rawArtboard, '->', artboardName || '(nieznana nazwa)');
                         
                         const localTypeFilter = document.getElementById('localTypeFilter');
                         const floorFilter = document.getElementById('floorFilter');
@@ -299,11 +329,27 @@
                             }));
                         }
                         
-                        // Check if artboard is "Budynek E" (or default-id) vs specific floor
-                        const isBuildingView = artboardName === 'Budynek E' || artboardName === 'default-id';
-                        
+                        // Widok całego budynku: nazwa typu "Budynek E" albo ID
+                        // domyślnego artboardu. Porównanie po samej nazwie nie
+                        // wystarcza, bo IMP 6 podaje w payloadzie UUID.
+                        const isBuildingView = /^budynek\b/i.test(artboardName)
+                            || rawArtboard === 'default-id';
+
+                        // Poziomy podziemne (piwnica, garaż -1/-2) to widoki, na
+                        // których mieszkań nie ma w ogóle — są tam wyłącznie
+                        // garaże, komórki i pomieszczenia gospodarcze. Zawężanie
+                        // typu lokalu do "Lokal mieszkalny" (jak na piętrach
+                        // mieszkalnych) czyściło wtedy listę i użytkownik nie miał
+                        // jak wrócić do garaży, bo select miał już tylko jedną opcję.
+                        const artboardFloorNumber = artboardName !== 'unknown'
+                            ? parseFloorToNumber(artboardName)
+                            : null;
+                        const isUndergroundView = !isBuildingView
+                            && artboardFloorNumber !== null
+                            && artboardFloorNumber < 0;
+
                         if (localTypeFilter) {
-                            if (isBuildingView) {
+                            if (isBuildingView || isUndergroundView) {
                                 // Restore all options when on building view
                                 if (originalLocalTypeOptions) {
                                     const currentValue = localTypeFilter.value;
@@ -345,7 +391,7 @@
                         if (floorFilter && artboardName !== 'unknown' && !isBuildingView) {
                             // Extract floor value from artboard name (e.g., "PIĘTRO I" -> "I piętro" or "1")
                             // Try to normalize the artboard name to a floor value
-                            const normalizedFloor = parseFloorToNumber(artboardName);
+                            const normalizedFloor = artboardFloorNumber;
                             
                             if (normalizedFloor !== null) {
                                 const normalizedValue = String(normalizedFloor);
@@ -353,13 +399,19 @@
                                 
                                 if (option) {
                                     floorFilter.value = normalizedValue;
+                                    // Typy lokali muszą pasować do nowego piętra —
+                                    // na piwnicy nie ma mieszkań, na piętrach garaży.
+                                    syncLocalTypeOptionsToFloor();
                                     // Trigger filter update
                                     applyFilters();
                                     console.log('Image Map Pro - Artboard changed:', artboardName, '-> Floor filter:', normalizedValue);
                                 } else {
-                                    console.log('Image Map Pro - Floor value', normalizedValue, 'not available in filter options. Setting to all floors.');
-                                    floorFilter.value = 'all';
-                                    applyFilters();
+                                    // Nie ma takiej opcji — zostawiamy filtr w spokoju.
+                                    // Wcześniej lądował tu reset na "wszystkie piętra",
+                                    // który kasował wybór zrobiony przed chwilą przez
+                                    // użytkownika (przyciskiem pod mapą), bo to zdarzenie
+                                    // przychodzi asynchronicznie, już po jego kliknięciu.
+                                    console.log('Image Map Pro - Floor value', normalizedValue, 'not available in filter options. Leaving filter as-is.');
                                 }
                             }
                         } else if (isBuildingView) {
@@ -792,6 +844,7 @@
         if (buildingFilter) {
             buildingFilter.addEventListener('change', function() {
                 updateFloorOptions();
+                syncLocalTypeOptionsToFloor();
                 applyFilters();
             });
         }
@@ -801,6 +854,7 @@
         if (floorFilter) {
             floorFilter.addEventListener('change', function() {
                 resetLocalTypeIfEmptyOnFloor();
+                syncLocalTypeOptionsToFloor();
                 applyFilters();
             });
         }
@@ -810,6 +864,10 @@
         
         // Ensure floor options are available for KL/PG/Garaż on initial load
         autoSelectFloorForKLPG();
+
+        // Dopasuj listę typów lokali do piętra wybranego na starcie (shortcode
+        // może ustawić floor="-1", a wtedy mieszkania nie mają tam czego szukać).
+        syncLocalTypeOptionsToFloor();
         
         // Area range filters (select dropdowns)
         const areaMin = document.getElementById('areaMin');
@@ -870,6 +928,75 @@
         }
     }
     
+    /**
+     * Ogranicza opcje #localTypeFilter do typów, które faktycznie występują na
+     * wybranym piętrze (z uwzględnieniem filtra budynku).
+     *
+     * Lista typów jest renderowana raz, z całej oferty, więc na kondygnacjach
+     * podziemnych dało się wybrać "Lokal mieszkalny", mimo że mieszkań tam nie
+     * ma — wybór kończył się pustą tabelką. Odwrotnie też: na piętrze
+     * mieszkalnym widoczne były garaże i komórki.
+     *
+     * Pełna lista zostaje zapamiętana w originalLocalTypeOptions, więc
+     * restoreAllLocalTypeOptions() (konfigurator, widok całego budynku) potrafi
+     * ją w każdej chwili przywrócić.
+     */
+    function syncLocalTypeOptionsToFloor() {
+        const localTypeFilter = document.getElementById('localTypeFilter');
+        if (!localTypeFilter) return;
+
+        if (!originalLocalTypeOptions) {
+            originalLocalTypeOptions = Array.from(localTypeFilter.options).map(opt => ({
+                value: opt.value,
+                text: opt.text,
+                selected: opt.selected
+            }));
+        }
+
+        const floorFilter = document.getElementById('floorFilter');
+        const selectedFloor = floorFilter ? floorFilter.value : 'all';
+        const selectedBuilding = document.getElementById('buildingFilter')?.value || 'all';
+        const selectedFloorNum = (selectedFloor === 'all') ? null : parseFloorToNumber(selectedFloor);
+
+        // Typy obecne na tym piętrze — czytane z wyrenderowanych wierszy listy.
+        const present = new Set();
+        document.querySelectorAll('.apartment-item').forEach(item => {
+            if (selectedFloorNum !== null) {
+                const itemFloorNum = parseFloorToNumber(item.getAttribute('data-floor-number'));
+                if (itemFloorNum !== selectedFloorNum) return;
+            }
+            if (selectedBuilding !== 'all') {
+                const itemBuilding = item.getAttribute('data-building') || '';
+                if (itemBuilding && itemBuilding !== selectedBuilding) return;
+            }
+            const itemType = item.getAttribute('data-local-type') || '';
+            if (itemType) present.add(itemType);
+        });
+
+        // Nic nie znaleziono (np. wszystko odcięte innym filtrem) — nie zawężamy,
+        // bo użytkownik zostałby z samym "Wszystkie" i bez wyjścia.
+        const allowed = originalLocalTypeOptions.filter(opt =>
+            opt.value === 'all' || present.size === 0 || present.has(opt.value)
+        );
+
+        const currentValues = Array.from(localTypeFilter.options).map(o => o.value);
+        const nextValues = allowed.map(o => o.value);
+        if (currentValues.length === nextValues.length &&
+            currentValues.every((v, i) => v === nextValues[i])) {
+            return; // lista bez zmian — nie ruszamy selecta
+        }
+
+        const currentValue = localTypeFilter.value;
+        localTypeFilter.innerHTML = '';
+        allowed.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            localTypeFilter.appendChild(option);
+        });
+        localTypeFilter.value = nextValues.includes(currentValue) ? currentValue : 'all';
+    }
+
     /**
      * When the user changes the floor filter, check if any apartments of the
      * currently selected local type exist on that floor. If not, reset the
@@ -2644,6 +2771,10 @@
         // Handle special cases
         if (floorStr === '0' || floorStr === 'Parter' || floorStr.toLowerCase() === 'parter') return 0;
         if (floorStr === '-1' || floorStr === 'Piwnica' || floorStr.toLowerCase() === 'piwnica') return -1;
+
+        // Artboardy/nazwy pięter garażowych bez cyfry, np. "GARAŻ", "HALA GARAŻOWA"
+        // traktujemy jak poziom -1. Z cyfrą ("GARAŻ -2") obsługuje je reguła niżej.
+        if (!floorStr.match(/\d/) && /gara[żz]/i.test(floorStr)) return -1;
         
         // Try direct parseInt first
         const directParse = parseInt(floorStr);
@@ -2667,8 +2798,10 @@
             }
         }
         
-        // Try to extract Arabic number from text
-        const numberMatch = floorStr.match(/\d+/);
+        // Try to extract Arabic number from text.
+        // Minus musi być częścią dopasowania — bez tego "GARAŻ -1" / "POZIOM -2"
+        // parsowały się jako piętro 1 i 2 (czyli piętra mieszkalne).
+        const numberMatch = floorStr.match(/-?\d+/);
         if (numberMatch) {
             return parseInt(numberMatch[0]);
         }
@@ -2682,7 +2815,13 @@
         const floorStr = String(floor);
         if (floorStr === '0') return 'Parter';
         if (floorStr === '-1') return 'Piwnica';
-        const floorNum = parseInt(floor);
+        const floorNum = parseFloorToNumber(floor);
+        if (floorNum === null) return floorStr;
+        if (floorNum === 0) return 'Parter';
+        if (floorNum === -1) return 'Piwnica';
+        // Kondygnacje podziemne poniżej -1 ("piwnica -2") rozróżniamy numerem —
+        // tak samo jak PHP w Develogic_Data_Formatter::format_floor().
+        if (floorNum < -1) return 'Piwnica ' + floorNum;
         if (floorNum > 0) {
             // Format as "Piętro I", "Piętro II", etc.
             const romanNumerals = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
@@ -3154,6 +3293,10 @@
             if (!favorites.length) return;
 
             var lines = [];
+            // Dane strukturalne dla załącznika CSV — ta sama postać, jakiej
+            // używa "Umów się na spotkanie", żeby firma dostawała identyczne
+            // zestawienie niezależnie od tego, którym przyciskiem klient wysłał.
+            var items = [];
             favorites.forEach(function(localId) {
                 var found = null;
                 document.querySelectorAll('.apartment-item').forEach(function(el) {
@@ -3169,8 +3312,19 @@
                     var area = found.area ? Number(found.area).toLocaleString('pl-PL', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' m²' : '-';
                     var localType = found.localType || 'Lokal';
                     lines.push(localType + ' ' + (found.number || localId) + ' | ' + (found.building || '') + ' | Piętro: ' + (found.floorDisplay || found.floor || '-') + ' | Pow.: ' + area + ' | Cena: ' + price);
+                    items.push({
+                        localType: localType,
+                        number: found.number || String(localId),
+                        building: found.building || '',
+                        floor: found.floor || '',
+                        floorDisplay: found.floorDisplay || found.floor || '',
+                        area: found.area || '',
+                        rooms: found.rooms || '',
+                        price: found.priceGross || 0
+                    });
                 } else {
                     lines.push('ID: ' + localId);
+                    items.push({ localType: '', number: String(localId), building: '', floor: '', area: '', rooms: '', price: 0 });
                 }
             });
 
@@ -3194,7 +3348,8 @@
                     email: emailField.value.trim(),
                     phone: phoneField.value.trim(),
                     survey_data: JSON.stringify(surveyData),
-                    apartments: lines.join('\n')
+                    apartments: lines.join('\n'),
+                    apartments_json: JSON.stringify(items)
                 })
             })
             .then(function(response) { return response.json().then(function(data) { return { ok: response.ok, data: data }; }); })

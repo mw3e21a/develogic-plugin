@@ -111,6 +111,13 @@ class Develogic_REST_API {
                     'required' => true,
                     'sanitize_callback' => 'sanitize_textarea_field',
                 ),
+                // JSON array of selected locals (structured, for the CSV).
+                // Opcjonalny: starszy, zakeszowany JS potrafi go nie wysłać —
+                // wtedy mail idzie bez załącznika, ale idzie.
+                'apartments_json' => array(
+                    'type' => 'string',
+                    'required' => false,
+                ),
             ),
         ));
 
@@ -335,6 +342,7 @@ class Develogic_REST_API {
         $phone = $request->get_param('phone');
         $survey_data = $request->get_param('survey_data');
         $apartments = $request->get_param('apartments');
+        $apartments_json = $request->get_param('apartments_json');
 
         // Validate email
         if (!is_email($email)) {
@@ -361,15 +369,19 @@ class Develogic_REST_API {
             "Telefon: " . (!empty($phone) ? $phone : '-') . "\n\n";
 
         // Add survey answers
+        $survey = array();
         if (!empty($survey_data)) {
-            $survey = json_decode(wp_unslash($survey_data), true);
-            if (is_array($survey) && !empty($survey)) {
-                $body .= "Ankieta:\n";
-                foreach ($survey as $question => $answer) {
-                    $body .= "  " . $question . ": " . $answer . "\n";
-                }
-                $body .= "\n";
+            $decoded = json_decode(wp_unslash($survey_data), true);
+            if (is_array($decoded)) {
+                $survey = $decoded;
             }
+        }
+        if (!empty($survey)) {
+            $body .= "Ankieta:\n";
+            foreach ($survey as $question => $answer) {
+                $body .= "  " . $question . ": " . $answer . "\n";
+            }
+            $body .= "\n";
         }
 
         $body .= "Wybrane lokale:\n" . $apartments . "\n";
@@ -379,7 +391,66 @@ class Develogic_REST_API {
             'Reply-To: ' . $name . ' <' . $email . '>',
         );
 
-        $sent = wp_mail($to, $subject, $body, $headers);
+        // Załącznik CSV — taki sam jak przy "Umów się na spotkanie". Wcześniej
+        // ten formularz wysyłał samą treść, więc firma dostawała zestawienie
+        // tylko jedną z dwóch dróg.
+        $attachments = array();
+        $filepath = '';
+        $csv_source = '';
+
+        $apartments_list = json_decode(wp_unslash((string) $apartments_json), true);
+        if (is_array($apartments_list) && !empty($apartments_list)) {
+            $csv = self::build_quote_csv($apartments_list, $name, $email, $phone, $survey);
+            $csv_source = 'json';
+        } else {
+            // Zapas na wypadek zakeszowanego, starszego skryptu, który wysyła
+            // wyłącznie gotowy tekst bez danych strukturalnych. Lepszy załącznik
+            // z surowymi wierszami niż żaden — firma i tak dostaje zestawienie
+            // w pliku, a nie tylko w treści maila.
+            $csv = self::build_quote_csv_from_text($apartments, $name, $email, $phone, $survey);
+            $csv_source = 'tekst';
+        }
+
+        $safe_name = sanitize_file_name($name);
+        if ($safe_name === '') {
+            $safe_name = 'klient';
+        }
+        $filepath = self::write_temp_attachment(
+            'konfigurator-' . $safe_name . '-' . date('Y-m-d') . '.csv',
+            $csv['content']
+        );
+        if ($filepath !== '' && is_readable($filepath) && filesize($filepath) > 0) {
+            $attachments[] = $filepath;
+        }
+
+        $mail_error = '';
+        $capture = function ($wp_error) use (&$mail_error) {
+            if (is_wp_error($wp_error)) {
+                $mail_error = $wp_error->get_error_message();
+            }
+        };
+        add_action('wp_mail_failed', $capture);
+        $sent = wp_mail($to, $subject, $body, $headers, $attachments);
+        remove_action('wp_mail_failed', $capture);
+
+        self::log_mail(
+            sprintf(
+                'Formularz -> %s | załącznik: %s | wynik: %s%s',
+                $to,
+                empty($attachments) ? 'BRAK' : basename($filepath) . ' (' . filesize($filepath) . ' B)',
+                $sent ? 'wysłano' : 'BŁĄD',
+                $mail_error !== '' ? ' | ' . $mail_error : ''
+            ),
+            array(
+                'to'         => $to,
+                'client'     => $name,
+                'source'     => 'Wyślij formularz',
+                'attachment' => empty($attachments) ? '' : basename($filepath),
+                'size'       => empty($attachments) ? 0 : filesize($filepath),
+                'sent'       => (bool) $sent,
+                'error'      => $mail_error,
+            )
+        );
 
         if (!$sent) {
             return new WP_Error('mail_error', __('Nie udało się wysłać wiadomości. Spróbuj ponownie.', 'develogic'), array('status' => 500));
@@ -427,65 +498,22 @@ class Develogic_REST_API {
         }
 
         // --- Build CSV file (UTF-8 with BOM so Excel reads Polish chars) ------
-        $csv_rows = array();
-        $csv_rows[] = array('Lp.', 'Typ', 'Numer', 'Budynek', 'Piętro', 'Powierzchnia', 'Pokoje', 'Cena brutto');
-        $total = 0.0;
-        $i = 0;
-        foreach ($apartments as $apt) {
-            $i++;
-            $price = isset($apt['price']) ? (float) $apt['price'] : 0;
-            $total += $price;
-            $csv_rows[] = array(
-                $i,
-                isset($apt['localType']) ? $apt['localType'] : '',
-                isset($apt['number']) ? $apt['number'] : '',
-                isset($apt['building']) ? $apt['building'] : '',
-                isset($apt['floor']) ? $apt['floor'] : '',
-                isset($apt['area']) ? $apt['area'] : '',
-                isset($apt['rooms']) ? $apt['rooms'] : '',
-                $price > 0 ? number_format($price, 2, ',', ' ') . ' zł' : '-',
-            );
-        }
-        $csv_rows[] = array('', '', '', '', '', '', 'Łączna cena:', number_format($total, 2, ',', ' ') . ' zł');
-
-        // Contact + survey block appended below the table.
-        $csv_rows[] = array();
-        $csv_rows[] = array('Dane kontaktowe');
-        $csv_rows[] = array('Imię i nazwisko', $name);
-        $csv_rows[] = array('Email', $email);
-        $csv_rows[] = array('Telefon', !empty($phone) ? $phone : '-');
-        if (!empty($survey)) {
-            $csv_rows[] = array();
-            $csv_rows[] = array('Ankieta');
-            foreach ($survey as $q => $a) {
-                $csv_rows[] = array($q, $a);
-            }
-        }
-
-        $fh = fopen('php://temp', 'r+');
-        fputs($fh, "\xEF\xBB\xBF"); // UTF-8 BOM
-        foreach ($csv_rows as $row) {
-            fputcsv($fh, $row, ';');
-        }
-        rewind($fh);
-        $csv_content = stream_get_contents($fh);
-        fclose($fh);
+        $csv = self::build_quote_csv($apartments, $name, $email, $phone, $survey);
+        $csv_content = $csv['content'];
+        $csv_rows    = $csv['rows'];
+        $total       = $csv['total'];
+        $i           = $csv['count'];
 
         // Write the CSV to a temp file for wp_mail attachment. wp_mail uses the
         // file's basename as the attachment name shown to the recipient, so we
         // give it a readable name (client's surname + date). Uniqueness on disk
         // is guaranteed by a random sub-directory, not by the visible filename.
-        $upload = wp_upload_dir();
-        $tmp_dir = trailingslashit($upload['basedir']) . 'develogic-tmp/' . wp_generate_password(12, false);
-        wp_mkdir_p($tmp_dir);
-
         $safe_name = sanitize_file_name($name);          // "Jan Kowalski" -> "Jan-Kowalski"
         if ($safe_name === '') {
             $safe_name = 'klient';
         }
         $filename = 'konfigurator-' . $safe_name . '-' . date('Y-m-d') . '.csv';
-        $filepath = trailingslashit($tmp_dir) . $filename;
-        file_put_contents($filepath, $csv_content);
+        $filepath = self::write_temp_attachment($filename, $csv_content);
 
         // --- Email --------------------------------------------------------------
         $subject = sprintf('Prośba o spotkanie z konfiguratora - %s', $name);
@@ -510,16 +538,58 @@ class Develogic_REST_API {
             'Reply-To: ' . $name . ' <' . $email . '>',
         );
 
-        $sent = wp_mail($to, $subject, $body, $headers, array($filepath));
-
-        // Clean up the temp attachment and its random sub-directory.
-        if (file_exists($filepath)) {
-            @unlink($filepath);
+        // Załącznik dokładamy tylko wtedy, gdy plik naprawdę powstał i da się go
+        // odczytać. PHPMailer na brakującym pliku rzuca wyjątek, przez co cała
+        // wiadomość nie wychodzi — lepiej wysłać ją bez załącznika, z tabelą
+        // wklejoną w treść, niż nie wysłać wcale.
+        $attachments = array();
+        if ($filepath !== '' && is_readable($filepath) && filesize($filepath) > 0) {
+            $attachments[] = $filepath;
+        } else {
+            self::log_mail('Nie udało się przygotować pliku CSV — wysyłam zestawienie w treści wiadomości.');
+            $body .= "\n--- Zestawienie (załącznik CSV się nie utworzył) ---\n";
+            foreach ($csv_rows as $row) {
+                $body .= implode(' | ', (array) $row) . "\n";
+            }
         }
-        if (is_dir($tmp_dir)) {
-            @rmdir($tmp_dir);
-        }
 
+        // Przechwyć powód odrzucenia wiadomości przez PHPMailer / wtyczkę SMTP,
+        // żeby w logu było widać, co się stało — samo `false` z wp_mail() nic
+        // nie mówi przy zgłoszeniach typu "mail nie doszedł".
+        $mail_error = '';
+        $capture = function ($wp_error) use (&$mail_error) {
+            if (is_wp_error($wp_error)) {
+                $mail_error = $wp_error->get_error_message();
+            }
+        };
+        add_action('wp_mail_failed', $capture);
+        $sent = wp_mail($to, $subject, $body, $headers, $attachments);
+        remove_action('wp_mail_failed', $capture);
+
+        self::log_mail(
+            sprintf(
+                'Konfigurator -> %s | załącznik: %s | wynik: %s%s',
+                $to,
+                empty($attachments) ? 'BRAK' : basename($filepath) . ' (' . filesize($filepath) . ' B)',
+                $sent ? 'wysłano' : 'BŁĄD',
+                $mail_error !== '' ? ' | ' . $mail_error : ''
+            ),
+            array(
+                'to'         => $to,
+                'client'     => $name,
+                'source'     => 'Umów się na spotkanie',
+                'attachment' => empty($attachments) ? '' : basename($filepath),
+                'size'       => empty($attachments) ? 0 : filesize($filepath),
+                'sent'       => (bool) $sent,
+                'error'      => $mail_error,
+            )
+        );
+
+        // Pliku NIE kasujemy tutaj. Wtyczki SMTP/API (WP Mail SMTP, FluentSMTP,
+        // Post SMTP i podobne) potrafią kolejkować wysyłkę i sięgać po załącznik
+        // dopiero po zakończeniu tego żądania — skasowany od razu plik znikał
+        // wtedy sprzed nosa i wiadomość szła bez załącznika. Sprzątanie robi
+        // sweep starych plików przy kolejnym zgłoszeniu (patrz niżej).
         if (!$sent) {
             return new WP_Error('mail_error', __('Nie udało się wysłać wiadomości do firmy.', 'develogic'), array('status' => 500));
         }
@@ -529,5 +599,327 @@ class Develogic_REST_API {
             'message' => __('Prośba o spotkanie została wysłana', 'develogic'),
         ), 200);
     }
+    /**
+     * Buduje zestawienie CSV z wybranych lokali (UTF-8 z BOM, separator ";").
+     *
+     * Wspólne dla obu przycisków konfiguratora — "Wyślij formularz" i "Umów się
+     * na spotkanie" — żeby firma dostawała identyczny załącznik niezależnie od
+     * tego, którą drogą klient wysłał zgłoszenie.
+     *
+     * @param array  $apartments Lokale (tablice z kluczami localType/number/...)
+     * @param string $name       Imię i nazwisko klienta
+     * @param string $email      Email klienta
+     * @param string $phone      Telefon klienta
+     * @param array  $survey     Odpowiedzi z ankiety (pytanie => odpowiedź)
+     * @return array{content: string, rows: array, total: float, count: int}
+     */
+    private static function build_quote_csv($apartments, $name, $email, $phone, $survey = array()) {
+        $rows = array();
+        $rows[] = array('Lp.', 'Typ', 'Numer', 'Budynek', 'Piętro', 'Powierzchnia', 'Pokoje', 'Cena brutto');
+        $total = 0.0;
+        $count = 0;
+
+        foreach ((array) $apartments as $apt) {
+            if (!is_array($apt)) {
+                continue;
+            }
+            $count++;
+            $price = isset($apt['price']) ? (float) $apt['price'] : 0;
+            // Konfigurator wysyła cenę raz jako "price", raz jako "priceGross".
+            if ($price <= 0 && isset($apt['priceGross'])) {
+                $price = (float) $apt['priceGross'];
+            }
+            $total += $price;
+            $rows[] = array(
+                $count,
+                isset($apt['localType']) ? $apt['localType'] : '',
+                isset($apt['number']) ? $apt['number'] : '',
+                isset($apt['building']) ? $apt['building'] : '',
+                isset($apt['floorDisplay']) ? $apt['floorDisplay'] : (isset($apt['floor']) ? $apt['floor'] : ''),
+                isset($apt['area']) ? $apt['area'] : '',
+                isset($apt['rooms']) ? $apt['rooms'] : '',
+                $price > 0 ? number_format($price, 2, ',', ' ') . ' zł' : '-',
+            );
+        }
+        $rows[] = array('', '', '', '', '', '', 'Łączna cena:', number_format($total, 2, ',', ' ') . ' zł');
+
+        // Contact + survey block appended below the table.
+        $rows[] = array();
+        $rows[] = array('Dane kontaktowe');
+        $rows[] = array('Imię i nazwisko', $name);
+        $rows[] = array('Email', $email);
+        $rows[] = array('Telefon', !empty($phone) ? $phone : '-');
+        if (!empty($survey)) {
+            $rows[] = array();
+            $rows[] = array('Ankieta');
+            foreach ($survey as $q => $a) {
+                $rows[] = array($q, $a);
+            }
+        }
+
+        $fh = fopen('php://temp', 'r+');
+        fputs($fh, "\xEF\xBB\xBF"); // UTF-8 BOM
+        foreach ($rows as $row) {
+            fputcsv($fh, $row, ';');
+        }
+        rewind($fh);
+        $content = stream_get_contents($fh);
+        fclose($fh);
+
+        return array(
+            'content' => $content,
+            'rows'    => $rows,
+            'total'   => $total,
+            'count'   => $count,
+        );
+    }
+
+    /**
+     * Buduje CSV z gotowego, tekstowego zestawienia lokali.
+     *
+     * Używane tylko jako zapas, gdy zgłoszenie nie przyniosło danych
+     * strukturalnych (np. przeglądarka trzyma starszą wersję skryptu).
+     * Kolumny rozbijamy po separatorze "|", którym konfigurator skleja wiersz.
+     *
+     * @param string $apartments_text Wiersze rozdzielone znakiem nowej linii
+     * @param string $name            Imię i nazwisko klienta
+     * @param string $email           Email klienta
+     * @param string $phone           Telefon klienta
+     * @param array  $survey          Odpowiedzi z ankiety
+     * @return array{content: string, rows: array, total: float, count: int}
+     */
+    private static function build_quote_csv_from_text($apartments_text, $name, $email, $phone, $survey = array()) {
+        $rows = array();
+        $rows[] = array('Lp.', 'Lokal');
+
+        $count = 0;
+        $lines = preg_split('/\r\n|\r|\n/', (string) $apartments_text);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '') {
+                continue;
+            }
+            $count++;
+            $parts = array_map('trim', explode('|', $line));
+            $rows[] = array_merge(array($count), $parts);
+        }
+
+        $rows[] = array();
+        $rows[] = array('Dane kontaktowe');
+        $rows[] = array('Imię i nazwisko', $name);
+        $rows[] = array('Email', $email);
+        $rows[] = array('Telefon', !empty($phone) ? $phone : '-');
+        if (!empty($survey)) {
+            $rows[] = array();
+            $rows[] = array('Ankieta');
+            foreach ($survey as $q => $a) {
+                $rows[] = array($q, $a);
+            }
+        }
+
+        $fh = fopen('php://temp', 'r+');
+        fputs($fh, "\xEF\xBB\xBF"); // UTF-8 BOM
+        foreach ($rows as $row) {
+            fputcsv($fh, $row, ';');
+        }
+        rewind($fh);
+        $content = stream_get_contents($fh);
+        fclose($fh);
+
+        return array(
+            'content' => $content,
+            'rows'    => $rows,
+            'total'   => 0.0,
+            'count'   => $count,
+        );
+    }
+
+    /**
+     * Zapisuje treść załącznika do pliku tymczasowego i zwraca jego ścieżkę.
+     *
+     * Katalog systemowy (get_temp_dir()) jest pierwszym wyborem, bo nie jest
+     * dostępny z przeglądarki — w pliku są dane osobowe klienta. Gdy nie da się
+     * do niego pisać (open_basedir na części hostingów), schodzimy do
+     * uploads/develogic-tmp/.
+     *
+     * @param string $filename Nazwa widoczna dla odbiorcy maila
+     * @param string $content  Zawartość pliku
+     * @return string Ścieżka do pliku albo '' gdy zapis się nie powiódł
+     */
+    private static function write_temp_attachment($filename, $content) {
+        self::cleanup_old_attachments();
+
+        $bases = array();
+        $sys_tmp = get_temp_dir();
+        if (!empty($sys_tmp) && is_writable($sys_tmp)) {
+            $bases[] = trailingslashit($sys_tmp) . 'develogic-tmp';
+        }
+        $upload = wp_upload_dir();
+        if (empty($upload['error']) && !empty($upload['basedir'])) {
+            $bases[] = trailingslashit($upload['basedir']) . 'develogic-tmp';
+        }
+
+        foreach ($bases as $base) {
+            // Losowy podkatalog: dzięki niemu widoczna nazwa pliku może być
+            // czytelna (nazwisko + data) i nie musi być unikalna.
+            $dir = trailingslashit($base) . wp_generate_password(12, false);
+            if (!wp_mkdir_p($dir)) {
+                continue;
+            }
+            // Katalog w uploads jest dostępny z sieci — zablokuj listowanie.
+            if (!file_exists(trailingslashit($base) . 'index.html')) {
+                @file_put_contents(trailingslashit($base) . 'index.html', '');
+            }
+            $path = trailingslashit($dir) . $filename;
+            if (file_put_contents($path, $content) !== false) {
+                return $path;
+            }
+        }
+
+        self::log_mail('Brak zapisywalnego katalogu tymczasowego na załącznik (' . implode(', ', $bases) . ').');
+        return '';
+    }
+
+    /**
+     * Kasuje załączniki starsze niż godzina.
+     *
+     * Plik musi przeżyć samo żądanie, bo wtyczki kolejkujące pocztę sięgają po
+     * niego później. Sprzątamy więc przy okazji kolejnego zgłoszenia, zamiast
+     * zaraz po wp_mail() — i bez zależności od WP-Cron, który bywa wyłączony.
+     */
+    private static function cleanup_old_attachments() {
+        $bases = array();
+        $sys_tmp = get_temp_dir();
+        if (!empty($sys_tmp)) {
+            $bases[] = trailingslashit($sys_tmp) . 'develogic-tmp';
+        }
+        $upload = wp_upload_dir();
+        if (empty($upload['error']) && !empty($upload['basedir'])) {
+            $bases[] = trailingslashit($upload['basedir']) . 'develogic-tmp';
+        }
+
+        $cutoff = time() - HOUR_IN_SECONDS;
+        foreach ($bases as $base) {
+            if (!is_dir($base)) {
+                continue;
+            }
+            $entries = @scandir($base);
+            if (!is_array($entries)) {
+                continue;
+            }
+            foreach ($entries as $entry) {
+                if ($entry === '.' || $entry === '..' || $entry === 'index.html') {
+                    continue;
+                }
+                $dir = trailingslashit($base) . $entry;
+                if (!is_dir($dir) || @filemtime($dir) > $cutoff) {
+                    continue;
+                }
+                foreach ((array) @glob(trailingslashit($dir) . '*') as $file) {
+                    @unlink($file);
+                }
+                @rmdir($dir);
+            }
+        }
+    }
+
+    /**
+     * Nazwa opcji z logiem wysyłek konfiguratora.
+     */
+    const MAIL_LOG_OPTION = 'develogic_mail_log';
+
+    /**
+     * Ile ostatnich wpisów trzymamy w logu.
+     */
+    const MAIL_LOG_LIMIT = 30;
+
+    /**
+     * Log wysyłki maila z konfiguratora.
+     *
+     * Wpis idzie do error_log ORAZ do opcji w bazie — dzięki temu da się go
+     * obejrzeć w panelu WordPressa (Develogic → Diagnostyka maili), bez dostępu
+     * do logów serwera.
+     *
+     * @param string $message Treść wpisu
+     * @param array  $context Dodatkowe pola do pokazania w tabeli w adminie
+     */
+    private static function log_mail($message, $context = array()) {
+        error_log(sprintf('[Develogic Konfigurator] %s', $message));
+
+        $log = get_option(self::MAIL_LOG_OPTION, array());
+        if (!is_array($log)) {
+            $log = array();
+        }
+        array_unshift($log, array_merge(array(
+            'time'    => current_time('mysql'),
+            'message' => $message,
+        ), $context));
+        $log = array_slice($log, 0, self::MAIL_LOG_LIMIT);
+        update_option(self::MAIL_LOG_OPTION, $log, false);
+    }
+
+    /**
+     * Wysyła testową wiadomość konfiguratora tą samą ścieżką co realna.
+     *
+     * Używana przez przycisk w panelu — pozwala sprawdzić, czy wiadomość
+     * z załącznikiem w ogóle wychodzi, bez składania prawdziwego zapytania
+     * przez formularz na stronie.
+     *
+     * @param string $to Adres odbiorcy
+     * @return array{sent: bool, error: string, attachment: string}
+     */
+    public static function send_test_quote_mail($to) {
+        $csv  = "\xEF\xBB\xBF";
+        $csv .= "Lp.;Typ;Numer;Cena brutto\n";
+        $csv .= "1;Lokal mieszkalny;M1;500 000,00 zł\n";
+        $csv .= "2;Garaż;G1-21;45 000,00 zł\n";
+
+        $filename = 'konfigurator-test-' . date('Y-m-d') . '.csv';
+        $filepath = self::write_temp_attachment($filename, $csv);
+
+        $attachments = array();
+        if ($filepath !== '' && is_readable($filepath) && filesize($filepath) > 0) {
+            $attachments[] = $filepath;
+        }
+
+        $mail_error = '';
+        $capture = function ($wp_error) use (&$mail_error) {
+            if (is_wp_error($wp_error)) {
+                $mail_error = $wp_error->get_error_message();
+            }
+        };
+        add_action('wp_mail_failed', $capture);
+        $sent = wp_mail(
+            $to,
+            'TEST konfiguratora Develogic',
+            "To jest wiadomość testowa z wtyczki Develogic.\n\n" .
+            "Powinien być do niej dołączony plik CSV — jeśli go nie widzisz,\n" .
+            "załącznik jest gubiony po drodze (wtyczka SMTP, serwer pocztowy\n" .
+            "albo skaner antywirusowy), a nie przy generowaniu.\n",
+            array('Content-Type: text/plain; charset=UTF-8'),
+            $attachments
+        );
+        remove_action('wp_mail_failed', $capture);
+
+        self::log_mail(
+            sprintf('TEST -> %s | wynik: %s%s', $to, $sent ? 'wysłano' : 'BŁĄD', $mail_error !== '' ? ' | ' . $mail_error : ''),
+            array(
+                'to'         => $to,
+                'source'     => 'Test z panelu',
+                'attachment' => empty($attachments) ? '' : basename($filepath),
+                'size'       => empty($attachments) ? 0 : filesize($filepath),
+                'sent'       => (bool) $sent,
+                'error'      => $mail_error,
+                'test'       => true,
+            )
+        );
+
+        return array(
+            'sent'       => (bool) $sent,
+            'error'      => $mail_error,
+            'attachment' => empty($attachments) ? '' : basename($filepath),
+        );
+    }
+
 }
 

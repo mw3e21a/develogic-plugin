@@ -297,23 +297,33 @@ if (!defined('DEVELOGIC_CRITICAL_CSS_PRINTED')) {
                         if (isset($available_floors_in_data) && !empty($available_floors_in_data) && is_array($available_floors_in_data)) {
                             $available_floors = $available_floors_in_data;
                         } else {
-                            // Fallback (backwards compatibility): hard-coded range + KL/PG floors
+                            // Fallback (backwards compatibility): hard-coded range
                             $available_floors = array('0', '1', '2', '3', '4');
-                            if (isset($kl_pg_floors) && !empty($kl_pg_floors) && is_array($kl_pg_floors)) {
-                                foreach ($kl_pg_floors as $floor) {
-                                    $floor_str = (string) $floor;
-                                    if (!in_array($floor_str, $available_floors)) {
-                                        $available_floors[] = $floor_str;
-                                    }
+                        }
+
+                        // Kondygnacje garaży/komórek (zebrane PRZED filtrowaniem listy)
+                        // dokładamy ZAWSZE. Wcześniej trafiały tu tylko w gałęzi
+                        // fallback, więc gdy w danych było choć jedno mieszkanie,
+                        // wygrywały piętra z przefiltrowanej listy, a "Piwnica -1"
+                        // i "Piwnica -2" w ogóle nie powstawały jako <option> —
+                        // przycisk i mapa przełączały się, ale tabelki nie dało się
+                        // przefiltrować na te kondygnacje.
+                        if (isset($kl_pg_floors) && !empty($kl_pg_floors) && is_array($kl_pg_floors)) {
+                            foreach ($kl_pg_floors as $floor) {
+                                $floor_str = (string) $floor;
+                                if (!in_array($floor_str, $available_floors, true)) {
+                                    $available_floors[] = $floor_str;
                                 }
-                                usort($available_floors, function($a, $b) {
-                                    return intval($a) <=> intval($b);
-                                });
                             }
                         }
+                        usort($available_floors, function($a, $b) {
+                            return intval($a) <=> intval($b);
+                        });
 
                         // Floor labels mapping
                         $floor_labels = array(
+                            '-3' => 'Piwnica -3',
+                            '-2' => 'Piwnica -2',
                             '-1' => 'Piwnica',
                             '0' => 'Parter',
                             '1' => 'Piętro I',
@@ -331,7 +341,15 @@ if (!defined('DEVELOGIC_CRITICAL_CSS_PRINTED')) {
                         <option value="all" <?php echo ($default_floor === 'all') ? 'selected' : ''; ?>>Wszystkie piętra</option>
                         <?php
                         foreach ($available_floors as $floor) {
-                            $floor_label = isset($floor_labels[$floor]) ? $floor_labels[$floor] : 'Piętro ' . $floor;
+                            // Nieznane wartości: ujemne to kondygnacje podziemne,
+                            // dodatnie — piętra. Bez tego "-4" wyszłoby jako "Piętro -4".
+                            if (isset($floor_labels[$floor])) {
+                                $floor_label = $floor_labels[$floor];
+                            } elseif (intval($floor) < 0) {
+                                $floor_label = 'Piwnica ' . intval($floor);
+                            } else {
+                                $floor_label = 'Piętro ' . $floor;
+                            }
                             $is_selected = ($default_floor === $floor) ? ' selected' : '';
                             echo '<option value="' . esc_attr($floor) . '"' . $is_selected . '>' . esc_html($floor_label) . '</option>';
                         }
@@ -707,9 +725,18 @@ if (!defined('DEVELOGIC_CRITICAL_CSS_PRINTED')) {
                 
                 // Prepare sortable data
                 $rooms_padded = str_pad($local['rooms'], 2, '0', STR_PAD_LEFT);
-                $floor_value = $local['floor'];
-                // For sorting: convert -1 to 99, keep 0-99 as is, pad to 3 digits
-                $floor_sort = ($floor_value == -1) ? 999 : str_pad(max(0, $floor_value), 3, '0', STR_PAD_LEFT);
+                // Kondygnacja z API bywa tekstem ("piwnica -2", "I piętro") —
+                // do sortowania i do data-floor-number potrzebujemy liczby.
+                $floor_value = Develogic_Data_Formatter::normalize_floor($local['floor']);
+                if ($floor_value === null) {
+                    $floor_value = $local['floor'];
+                }
+                // For sorting: kondygnacje podziemne na koniec listy (990+),
+                // pozostałe wg numeru piętra, dopełnione do 3 cyfr.
+                $floor_int = is_numeric($floor_value) ? intval($floor_value) : 0;
+                $floor_sort = ($floor_int < 0)
+                    ? (string) (1000 + $floor_int)   // -1 -> "999", -2 -> "998"
+                    : str_pad($floor_int, 3, '0', STR_PAD_LEFT);
                 $floor_display = Develogic_Data_Formatter::format_floor($local['floor']);
                 $floor_padded = $floor_sort;
                 $price_padded = str_pad($display_price, 8, '0', STR_PAD_LEFT);

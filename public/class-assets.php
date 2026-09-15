@@ -58,7 +58,7 @@ class Develogic_Assets {
             'develogic-main',
             DEVELOGIC_PLUGIN_URL . 'assets/js/main.js',
             array('jquery'),
-            DEVELOGIC_VERSION,
+            self::asset_version('assets/js/main.js'),
             true
         );
         
@@ -67,7 +67,7 @@ class Develogic_Assets {
             'develogic-apartments-list',
             DEVELOGIC_PLUGIN_URL . 'assets/js/apartments-list.js',
             array(),
-            DEVELOGIC_VERSION,
+            self::asset_version('assets/js/apartments-list.js'),
             true
         );
         
@@ -120,7 +120,7 @@ class Develogic_Assets {
             'develogic-main',
             DEVELOGIC_PLUGIN_URL . 'assets/css/main.css',
             array(),
-            DEVELOGIC_VERSION
+            self::asset_version('assets/css/main.css')
         );
         
         // Apartments list styles
@@ -128,7 +128,7 @@ class Develogic_Assets {
             'develogic-apartments-list',
             DEVELOGIC_PLUGIN_URL . 'assets/css/apartments-list.css',
             array(),
-            DEVELOGIC_VERSION
+            self::asset_version('assets/css/apartments-list.css')
         );
         
         // Add inline CSS with CSS variables for primary color
@@ -205,5 +205,23 @@ class Develogic_Assets {
         wp_enqueue_script('develogic-main');
         wp_enqueue_style('develogic-main');
     }
+    /**
+     * Wersja pliku statycznego do parametru ?ver=.
+     *
+     * Bierzemy datę modyfikacji pliku, a nie numer wersji wtyczki. Inaczej
+     * poprawka w JS lub CSS bez podbicia wersji zostawała niewidoczna —
+     * przeglądarki i cache serwowały stary plik pod tym samym adresem, bo
+     * ?ver= się nie zmieniało.
+     *
+     * @param string $relative_path Ścieżka względem katalogu wtyczki
+     * @return string
+     */
+    private static function asset_version($relative_path) {
+        $file = DEVELOGIC_PLUGIN_DIR . $relative_path;
+        $mtime = file_exists($file) ? filemtime($file) : false;
+
+        return $mtime ? DEVELOGIC_VERSION . '.' . $mtime : DEVELOGIC_VERSION;
+    }
+
 }
 

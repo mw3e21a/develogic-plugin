@@ -32,6 +32,7 @@ function develogic_uninstall_cleanup() {
     
     // Clear all scheduled instances of the cron (in case there are multiple)
     wp_clear_scheduled_hook('develogic_sync_cron');
+    wp_clear_scheduled_hook('develogic_background_sync_fallback');
     
     // Delete all develogic_local posts
     $posts = get_posts(array(
@@ -129,6 +130,8 @@ function develogic_uninstall_cleanup() {
         'develogic_settings',
         'develogic_last_sync',
         'develogic_sync_log',
+        'develogic_sync_bg',
+        'develogic_mail_log',
     );
     
     foreach ($options as $option) {
@@ -138,6 +141,7 @@ function develogic_uninstall_cleanup() {
     // Delete all transients
     $transients = array(
         'develogic_sync_lock',
+        'develogic_sync_token',
         'develogic_last_api_error',
     );
     

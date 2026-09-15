@@ -21,6 +21,12 @@ class Develogic_Admin_Sync {
     public function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'), 20);
         add_action('admin_post_develogic_manual_sync', array($this, 'handle_manual_sync'));
+        // Worker synchronizacji w tle. Pętla zwrotna (loopback) leci bez ciasteczek,
+        // więc trafia w wariant _nopriv — autoryzuje ją jednorazowy token.
+        add_action('admin_post_nopriv_develogic_run_background_sync', array($this, 'handle_run_background_sync'));
+        add_action('admin_post_develogic_run_background_sync', array($this, 'handle_run_background_sync'));
+        // Zapas, gdy hosting blokuje loopback — dokańcza zakolejkowaną synchronizację.
+        add_action('develogic_background_sync_fallback', array($this, 'run_queued_sync_fallback'));
         add_action('admin_post_develogic_clear_locals', array($this, 'handle_clear_locals'));
         add_action('admin_post_develogic_unlock_sync', array($this, 'handle_unlock_sync'));
         add_action('admin_post_develogic_fetch_investments', array($this, 'handle_fetch_investments'));
@@ -54,6 +60,12 @@ class Develogic_Admin_Sync {
         $sync_log = get_option('develogic_sync_log', array());
         $locals_count = wp_count_posts('develogic_local');
         $is_running = (bool) get_transient('develogic_sync_lock');
+        $bg_state = get_option('develogic_sync_bg', array());
+        if (!is_array($bg_state)) {
+            $bg_state = array();
+        }
+        $bg_status = isset($bg_state['status']) ? $bg_state['status'] : '';
+        $bg_active = in_array($bg_status, array('queued', 'running'), true);
         $secret_key = develogic()->get_setting('sync_secret_key');
         
         // Debug
@@ -78,7 +90,53 @@ class Develogic_Admin_Sync {
         ?>
         <div class="wrap">
             <h1><?php _e('Synchronizacja z Develogic API', 'develogic'); ?></h1>
-            
+
+            <?php if (isset($_GET['sync_result']) && $_GET['sync_result'] === 'queued'): ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><?php echo esc_html(isset($_GET['sync_message']) ? urldecode(wp_unslash($_GET['sync_message'])) : ''); ?></p>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($bg_active): ?>
+                <?php
+                $since = isset($bg_state['started_at']) ? $bg_state['started_at'] : (isset($bg_state['queued_at']) ? $bg_state['queued_at'] : time());
+                $elapsed = max(0, time() - (int) $since);
+                ?>
+                <div class="notice notice-info">
+                    <p>
+                        <span class="spinner is-active" style="float:none;margin:0 6px 0 0;"></span>
+                        <strong><?php
+                            echo $bg_status === 'running'
+                                ? esc_html__('Synchronizacja w toku…', 'develogic')
+                                : esc_html__('Synchronizacja zakolejkowana, zaraz ruszy…', 'develogic');
+                        ?></strong>
+                        <?php printf(
+                            /* translators: %s: czas trwania */
+                            esc_html__('(trwa %s)', 'develogic'),
+                            esc_html(human_time_diff((int) $since, time()))
+                        ); ?>
+                    </p>
+                    <p class="description">
+                        <?php esc_html_e('Możesz zamknąć tę stronę — synchronizacja działa po stronie serwera. Strona odświeży się sama.', 'develogic'); ?>
+                    </p>
+                </div>
+                <script>
+                    // Odświeżamy widok, dopóki synchronizacja trwa — postęp jest
+                    // zapisywany po stronie serwera, więc wystarczy przeładowanie.
+                    setTimeout(function () { window.location.reload(); }, 15000);
+                </script>
+            <?php elseif ($bg_status === 'done' && !empty($bg_state['result'])): ?>
+                <div class="notice notice-success is-dismissible">
+                    <p><strong><?php esc_html_e('Synchronizacja w tle zakończona.', 'develogic'); ?></strong>
+                    <?php echo esc_html(isset($bg_state['result']['message']) ? $bg_state['result']['message'] : ''); ?></p>
+                </div>
+            <?php elseif ($bg_status === 'error' && !empty($bg_state['result'])): ?>
+                <div class="notice notice-error is-dismissible">
+                    <p><strong><?php esc_html_e('Synchronizacja w tle zakończona błędem.', 'develogic'); ?></strong>
+                    <?php echo esc_html(isset($bg_state['result']['message']) ? $bg_state['result']['message'] : ''); ?></p>
+                </div>
+            <?php endif; ?>
+
             
             <?php if (!$api_configured): ?>
                 <div class="notice notice-warning">
@@ -267,9 +325,10 @@ class Develogic_Admin_Sync {
                             <input type="hidden" name="action" value="develogic_manual_sync">
                             <?php wp_nonce_field('develogic_manual_sync', 'develogic_sync_nonce'); ?>
                             <?php 
-                            $disabled_attr = $is_running ? array('disabled' => 'disabled') : array();
-                            submit_button(__('Synchronizuj teraz', 'develogic'), 'primary', 'submit', false, $disabled_attr); 
+                            $disabled_attr = ($is_running || $bg_active) ? array('disabled' => 'disabled') : array();
+                            submit_button(__('Synchronizuj teraz (w tle)', 'develogic'), 'primary', 'submit', false, $disabled_attr); 
                             ?>
+                            <p class="description"><?php _e('Uruchamia synchronizację po stronie serwera. Przeglądarka nie czeka, więc nie ma timeoutu — stronę można zamknąć.', 'develogic'); ?></p>
                         </form>
                         
                         <?php if ($is_running): ?>
@@ -420,18 +479,135 @@ class Develogic_Admin_Sync {
         }
         
         check_admin_referer('develogic_manual_sync', 'develogic_sync_nonce');
-        
-        $sync = new Develogic_Sync();
-        $result = $sync->sync_locals();
-        
-        $message_type = $result['success'] ? 'success' : 'error';
-        
+
+        // Synchronizacja pełnej bazy trwa kilka minut (ostatnio 354 s), więc
+        // uruchamiana wprost z przeglądarki kończyła się timeoutem i błędem 500
+        // — mimo że w tle i tak dobiegała końca. Teraz odpalamy ją osobnym
+        // procesem, a przeglądarka dostaje odpowiedź natychmiast.
+        if (get_transient('develogic_sync_lock')) {
+            wp_redirect(add_query_arg(array(
+                'page' => 'develogic-sync',
+                'sync_result' => 'error',
+                'sync_message' => urlencode(__('Synchronizacja jest już w trakcie.', 'develogic')),
+            ), admin_url('admin.php')));
+            exit;
+        }
+
+        $this->queue_background_sync();
+
         wp_redirect(add_query_arg(array(
             'page' => 'develogic-sync',
-            'sync_result' => $message_type,
-            'sync_message' => urlencode($result['message']),
+            'sync_result' => 'queued',
+            'sync_message' => urlencode(__('Synchronizacja została uruchomiona w tle. Postęp zobaczysz poniżej — tej strony nie trzeba trzymać otwartej.', 'develogic')),
         ), admin_url('admin.php')));
         exit;
+    }
+
+    /**
+     * Kolejkuje synchronizację i startuje proces roboczy.
+     *
+     * Lock trzyma 30 minut (pełny przebieg to kilka minut), żeby równoległe
+     * kliknięcie nie odpaliło drugiej synchronizacji. Gdyby worker padł,
+     * lock wygaśnie sam, a w panelu jest przycisk odblokowania.
+     */
+    private function queue_background_sync() {
+        set_transient('develogic_sync_lock', true, 30 * MINUTE_IN_SECONDS);
+
+        update_option('develogic_sync_bg', array(
+            'status'    => 'queued',
+            'queued_at' => time(),
+        ), false);
+
+        $token = wp_generate_password(32, false);
+        set_transient('develogic_sync_token', $token, 10 * MINUTE_IN_SECONDS);
+
+        $url = add_query_arg(array(
+            'action' => 'develogic_run_background_sync',
+            'token'  => $token,
+        ), admin_url('admin-post.php'));
+
+        // blocking=false: nie czekamy na odpowiedź, żądanie ma tylko wystartować
+        // drugi proces PHP. Timeout musi być niezerowy, inaczej część serwerów
+        // zrywa połączenie zanim PHP zdąży wejść w handler.
+        wp_remote_post($url, array(
+            'timeout'   => 1,
+            'blocking'  => false,
+            'sslverify' => false,
+            'cookies'   => array(),
+        ));
+
+        // Zapas na hostingach blokujących loopback.
+        if (!wp_next_scheduled('develogic_background_sync_fallback')) {
+            wp_schedule_single_event(time() + 90, 'develogic_background_sync_fallback');
+        }
+    }
+
+    /**
+     * Proces roboczy synchronizacji w tle.
+     */
+    public function handle_run_background_sync() {
+        $token = isset($_REQUEST['token']) ? sanitize_text_field(wp_unslash($_REQUEST['token'])) : '';
+        $expected = get_transient('develogic_sync_token');
+
+        if (empty($expected) || empty($token) || !hash_equals($expected, $token)) {
+            status_header(403);
+            exit;
+        }
+        // Token jednorazowy — drugie wywołanie tym samym już nie przejdzie.
+        delete_transient('develogic_sync_token');
+
+        $this->run_sync_detached();
+        exit;
+    }
+
+    /**
+     * Zapasowe uruchomienie z WP-Cron, gdy loopback nie wystartował workera.
+     */
+    public function run_queued_sync_fallback() {
+        $state = get_option('develogic_sync_bg', array());
+        if (!is_array($state) || !isset($state['status']) || $state['status'] !== 'queued') {
+            return; // worker już ruszył albo nic nie czeka w kolejce
+        }
+        $this->run_sync_detached();
+    }
+
+    /**
+     * Wykonuje synchronizację w oderwaniu od żądania przeglądarki.
+     */
+    private function run_sync_detached() {
+        // Klient (loopback) rozłącza się od razu — bez tego PHP przerwałoby
+        // pracę w połowie. Limit czasu zdejmujemy, bo przebieg trwa minuty.
+        ignore_user_abort(true);
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+        @ini_set('max_execution_time', '0');
+
+        $state = get_option('develogic_sync_bg', array());
+        if (!is_array($state)) {
+            $state = array();
+        }
+        $state['status'] = 'running';
+        $state['started_at'] = time();
+        update_option('develogic_sync_bg', $state, false);
+
+        // Odśwież lock — liczymy czas od faktycznego startu pracy.
+        set_transient('develogic_sync_lock', true, 30 * MINUTE_IN_SECONDS);
+
+        $sync = new Develogic_Sync();
+        $result = $sync->sync_locals();
+
+        delete_transient('develogic_sync_lock');
+
+        $state['status'] = !empty($result['success']) ? 'done' : 'error';
+        $state['finished_at'] = time();
+        $state['result'] = $result;
+        update_option('develogic_sync_bg', $state, false);
+
+        error_log(sprintf(
+            '[Develogic Sync w tle] Zakończono: %s',
+            isset($result['message']) ? $result['message'] : ''
+        ));
     }
     
     /**
@@ -563,6 +739,10 @@ class Develogic_Admin_Sync {
         
         // Delete sync lock transient
         delete_transient('develogic_sync_lock');
+        delete_transient('develogic_sync_token');
+        // Skasuj też stan synchronizacji w tle — inaczej panel dalej pokazywałby
+        // "w toku" dla przebiegu, który już nie istnieje.
+        delete_option('develogic_sync_bg');
         
         wp_redirect(add_query_arg(array(
             'page' => 'develogic-sync',

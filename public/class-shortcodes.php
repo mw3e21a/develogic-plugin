@@ -1021,46 +1021,9 @@ class Develogic_Shortcodes {
      * @return string|null Normalized floor value as string, or null if invalid
      */
     private static function normalize_floor_value($floor) {
-        if ($floor === '' || $floor === null) {
-            return null;
-        }
-        
-        $floor_str = trim((string) $floor);
-        
-        // Handle special cases: parter and piwnica
-        if (strtolower($floor_str) === 'parter' || $floor_str === '0') {
-            return '0';
-        }
-        if (strtolower($floor_str) === 'piwnica' || $floor_str === '-1') {
-            return '-1';
-        }
-        
-        // Try direct numeric conversion
-        if (is_numeric($floor_str)) {
-            return (string) intval($floor_str);
-        }
-        
-        // Try to extract Roman numerals (I, II, III, IV, V, VI, VII, VIII, IX, X)
-        $roman_map = array(
-            'I' => 1, 'II' => 2, 'III' => 3, 'IV' => 4, 'V' => 5,
-            'VI' => 6, 'VII' => 7, 'VIII' => 8, 'IX' => 9, 'X' => 10
-        );
-        
-        // Check for Roman numerals in the string (case insensitive)
-        foreach ($roman_map as $roman => $num) {
-            // Match whole word or at start/end of string
-            if (preg_match('/\b' . preg_quote($roman, '/') . '\b/i', $floor_str)) {
-                return (string) $num;
-            }
-        }
-        
-        // Try to extract Arabic number from text
-        if (preg_match('/\d+/', $floor_str, $matches)) {
-            return (string) intval($matches[0]);
-        }
-        
-        // If we can't parse it, return null
-        return null;
+        // Jedna implementacja dla całej wtyczki — wcześniej ta kopia i JS
+        // rozjeżdżały się na kondygnacjach podziemnych typu "piwnica -2".
+        return Develogic_Data_Formatter::normalize_floor($floor);
     }
     
     /**

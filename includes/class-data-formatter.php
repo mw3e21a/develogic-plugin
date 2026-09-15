@@ -65,26 +65,105 @@ class Develogic_Data_Formatter {
         // Convert to string for consistent comparison
         $floor_str = (string) $floor;
         
-        // Special cases: basement and ground floor
-        if ($floor_str === '-1') {
-            return 'Piwnica';
+        $normalized = self::normalize_floor($floor);
+        if ($normalized === null) {
+            // Fallback - nierozpoznany format, pokaż jak przyszedł z API
+            return $floor_str;
         }
-        if ($floor_str === '0') {
+        
+        $floor_int = intval($normalized);
+        
+        // Special cases: basement and ground floor
+        if ($floor_int === 0) {
             return 'Parter';
         }
-        
-        $floor_int = absint($floor);
-        if ($floor_int > 0) {
-            // Format as "Piętro I", "Piętro II", etc. for first 10 floors
-            $roman_numerals = array('', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X');
-            if ($floor_int <= 10 && isset($roman_numerals[$floor_int])) {
-                return 'Piętro ' . $roman_numerals[$floor_int];
-            }
-            return 'Piętro ' . $floor_int;
+        if ($floor_int === -1) {
+            return 'Piwnica';
+        }
+        // Kondygnacje podziemne poniżej -1 ("piwnica -2") rozróżniamy numerem,
+        // inaczej -1 i -2 wyglądałyby na liście identycznie.
+        if ($floor_int < -1) {
+            return 'Piwnica ' . $floor_int;
         }
         
-        // Fallback - should not happen normally
-        return $floor_str;
+        // Format as "Piętro I", "Piętro II", etc. for first 10 floors
+        $roman_numerals = array('', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X');
+        if ($floor_int <= 10 && isset($roman_numerals[$floor_int])) {
+            return 'Piętro ' . $roman_numerals[$floor_int];
+        }
+        return 'Piętro ' . $floor_int;
+    }
+    
+    /**
+     * Normalize a floor value coming from the API to a numeric string.
+     *
+     * API zwraca kondygnacje jako tekst i w bardzo różnych formatach:
+     * "parter", "piwnica", "piwnica -1", "piwnica -2", "I piętro", "3".
+     * Wszystkie sprowadzamy do liczby jako stringa ("0", "-1", "-2", "1", "3"),
+     * bo po tej wartości filtruje i sortuje zarówno PHP, jak i JS.
+     *
+     * @param mixed $floor Raw floor value
+     * @return string|null Normalized numeric string or null when unparseable
+     */
+    public static function normalize_floor($floor) {
+        if ($floor === '' || $floor === null) {
+            return null;
+        }
+        
+        $floor_str = trim((string) $floor);
+        if ($floor_str === '') {
+            return null;
+        }
+        
+        $lower = function_exists('mb_strtolower') ? mb_strtolower($floor_str, 'UTF-8') : strtolower($floor_str);
+        
+        // Handle special cases: parter and piwnica
+        if ($lower === 'parter' || $floor_str === '0') {
+            return '0';
+        }
+        if ($lower === 'piwnica' || $floor_str === '-1') {
+            return '-1';
+        }
+        
+        // Try direct numeric conversion ("-2", "3")
+        if (is_numeric($floor_str)) {
+            return (string) intval($floor_str);
+        }
+        
+        // Jawny minus w tekście: "piwnica -1", "piwnica -2", "kondygnacja -2".
+        // MUSI być sprawdzony przed wyciąganiem samych cyfr — inaczej
+        // "piwnica -2" wychodziło jako piętro 2, więc garaże i komórki lądowały
+        // na piętrach mieszkalnych zamiast na kondygnacji podziemnej.
+        if (preg_match('/-\s*(\d+)/', $floor_str, $matches)) {
+            return (string) (-1 * intval($matches[1]));
+        }
+        
+        // Kondygnacje podziemne opisane słownie, bez numeru ("hala garażowa").
+        if (strpos($lower, 'piwnic') !== false
+            || strpos($lower, 'podziem') !== false
+            || strpos($lower, 'garaż') !== false
+            || strpos($lower, 'garaz') !== false) {
+            return '-1';
+        }
+        
+        // Try to extract Roman numerals (I, II, III, IV, V, VI, VII, VIII, IX, X)
+        $roman_map = array(
+            'I' => 1, 'II' => 2, 'III' => 3, 'IV' => 4, 'V' => 5,
+            'VI' => 6, 'VII' => 7, 'VIII' => 8, 'IX' => 9, 'X' => 10
+        );
+        
+        foreach ($roman_map as $roman => $num) {
+            if (preg_match('/\b' . preg_quote($roman, '/') . '\b/i', $floor_str)) {
+                return (string) $num;
+            }
+        }
+        
+        // Try to extract Arabic number from text
+        if (preg_match('/\d+/', $floor_str, $matches)) {
+            return (string) intval($matches[0]);
+        }
+        
+        return null;
     }
     
     /**
