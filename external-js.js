@@ -1,336 +1,434 @@
-/* Dodaj tutaj swój kod JavaScript.
+/* ============================================================================
+ * Synchronizacja filtra pięter <-> Image Map Pro — BUDYNEK E
+ * ----------------------------------------------------------------------------
+ * Wkleić jako snippet (Code Snippets / Custom JS) na stronie z mapą Budynku E.
+ *
+ * WAŻNE: skrypt NIE zakłada, że jQuery jest już załadowane. Czeka na nie, bo
+ * w zależności od kolejności ładowania (cache/optymalizacja) snippet potrafi
+ * wykonać się PRZED jQuery — wtedy `jQuery(...)` rzuca ReferenceError i cała
+ * synchronizacja przestaje działać.
+ * ==========================================================================*/
 
-Jeśli używasz biblioteki jQuery, nie zapomnij umieścić swojego kodu wewnątrz jQuery.ready() w następujący sposób:
+(function () {
+    'use strict';
 
-jQuery(document).ready(function( $ ){
-    // Twój kod tutaj
-});
-
---
-
-Jeśli chcesz połączyć plik JavaScript znajdujący się na innym serwerze (podobnie jak
-<script src="https://example.com/your-js-file.js"></script>), skorzystaj ze
-strony „Dodaj kod HTML", ponieważ jest to kod HTML łączący plik JavaScript.
-
-Koniec komentarza */
-
-jQuery(document).ready(function($) {
-    var buttons = [
-        '#piwnica-i',
-        '#miejsca-postojowe-i',
-        '#parter-i',
-        '#pietro-i-1',
-        '#pietro-i-2',
-        '#pietro-i-3',
-        '#pietro-i-4'
-    ];
-
-    var floorMap = {
-        '#piwnica-i': '-1',
-        '#miejsca-postojowe-i': 'all',
-        '#parter-i': '0',
-        '#pietro-i-1': '1',
-        '#pietro-i-2': '2',
-        '#pietro-i-3': '3',
-        '#pietro-i-4': '4'
-    };
-
-    var localTypeMap = {
-        '#miejsca-postojowe-i': 'Miejsce postojowe'
-    };
-
-    var artboardToSelector = {
-        'Piwnica': '#piwnica-i',
-        'Miejsca postojowe': '#miejsca-postojowe-i',
-        'Parter': '#parter-i',
-        'Pietro 1': '#pietro-i-1',
-        'Pietro 2': '#pietro-i-2',
-        'Pietro 3': '#pietro-i-3',
-        'Pietro 4': '#pietro-i-4'
-    };
-
-    var floorValueToArtboard = {
-        '-1': 'Piwnica',
-        '0': 'Parter',
-        '1': 'Pietro 1',
-        '2': 'Pietro 2',
-        '3': 'Pietro 3',
-        '4': 'Pietro 4'
-    };
-
-    var floorValueToSelector = {
-        '-1': '#piwnica-i',
-        '0': '#parter-i',
-        '1': '#pietro-i-1',
-        '2': '#pietro-i-2',
-        '3': '#pietro-i-3',
-        '4': '#pietro-i-4'
-    };
-
-    // Map local type to Image Map Pro artboard
-    var localTypeToArtboard = {
-        'Lokal mieszkalny': 'Parter',
-        'Garaż': 'Piwnica',
-        'Komórka lokatorska': 'Piwnica',
-        'Miejsce postojowe': 'Miejsca postojowe'
-    };
-
-    // Flag to prevent artboard sync when change comes from setActiveFloor
-    var syncingFromButton = false;
-
-    // Flag to prevent poll from overriding localType when artboard change comes from dropdown
-    var syncingFromDropdown = false;
-
-    // Track last artboard seen by poll (declared here so dropdown handler can update it)
-    var lastArtboard = '';
-
-    // Store original heading text for restoration
-    var originalHeadingText = '';
-    var headingEl = document.querySelector('.develogic-apartments-container .title');
-    if (headingEl) {
-        originalHeadingText = headingEl.textContent.trim();
-    }
-
-    var basementHeadingHTML = 'Wybierz garaż lub komórkę lokatorską' +
-        '<br><small style="font-size: 0.45em; font-weight: normal; line-height: 1.3; display: block; margin-top: 0.4em;">' +
-        '<span style="font-size: 1.4em; color: #2563eb; font-weight: bold;">UWAGA! Zakup garażu jedynie łącznie z mieszkaniem</span> ' +
-        '(Ceny podane w tabeli dotyczą garażu przynależnego do mieszkania! ' +
-        'W przypadku zakupu mieszkania i garażu samodzielnego należy doliczyć ' +
-        'do podanej ceny garażu ok. 15%).</small>';
-
-    function updateHeading(isBasement) {
-        if (!headingEl) return;
-        if (isBasement) {
-            headingEl.innerHTML = basementHeadingHTML;
-        } else {
-            headingEl.textContent = originalHeadingText;
+    // Poczekaj aż jQuery będzie dostępne, potem odpal właściwą logikę.
+    function whenJQueryReady(cb) {
+        if (window.jQuery) {
+            window.jQuery(function () { cb(window.jQuery); });
+            return;
         }
+        var tries = 0;
+        var timer = setInterval(function () {
+            if (window.jQuery) {
+                clearInterval(timer);
+                window.jQuery(function () { cb(window.jQuery); });
+            } else if (++tries > 100) { // ~10 s i rezygnujemy
+                clearInterval(timer);
+            }
+        }, 100);
     }
 
-    function clearButtonStyles() {
-        buttons.forEach(function(selector) {
-            var el = document.querySelector(selector);
-            if (!el) return;
-            el.style.backgroundColor = '';
-            el.style.color = '';
-            var link = el.querySelector('a');
-            if (link) link.style.color = '';
+    whenJQueryReady(function ($) {
+
+        // Ustaw na true, żeby snippet raportował w konsoli co robi przy kliknięciu.
+        var DEBUG = false;
+        function log() {
+            if (!DEBUG || !window.console) return;
+            console.log.apply(console, ['[sync pięter]'].concat(Array.prototype.slice.call(arguments)));
+        }
+
+        // Artboardy (tekst opcji w selekcie IMP). Odczyt jest po tym tekście.
+        var ROOT_ARTBOARD = 'Budynek E';
+
+        // floorFilter (wartość <option>)  ->  kandydaci na tekst artboardu w IMP.
+        // Pierwszy z listy, który faktycznie istnieje w menu warstw, zostaje użyty.
+        // W Budynku E kondygnacje garażowe to "PIWNICA -1" i "PIWNICA -2" — stoją
+        // na początku list; reszta wariantów to zapas na wypadek zmiany nazw.
+        var floorValueToArtboard = {
+            '-2': ['PIWNICA -2', 'GARAŻ -2', 'GARAZ -2', 'POZIOM -2', 'KONDYGNACJA -2', '-2'],
+            '-1': ['PIWNICA -1', 'GARAŻ -1', 'GARAZ -1', 'POZIOM -1', 'KONDYGNACJA -1', 'PIWNICA', 'GARAŻ', 'GARAZ', '-1'],
+            '0': ['PARTER'],
+            '1': ['PIĘTRO I'],
+            '2': ['PIĘTRO II'],
+            '3': ['PIĘTRO III'],
+            '4': ['PIĘTRO IV'],
+            '5': ['PIĘTRO V'],
+            '6': ['PIĘTRO VI'],
+            '7': ['PIĘTRO VII']
+        };
+        // Odwrotna mapa: tekst artboardu (UPPERCASE) -> wartość filtra pięter.
+        var artboardToFloorValue = {};
+        Object.keys(floorValueToArtboard).forEach(function (v) {
+            floorValueToArtboard[v].forEach(function (name) {
+                artboardToFloorValue[name.toUpperCase()] = v;
+            });
         });
-    }
 
-    // source: 'button' = floor button clicked, 'poll' = Image Map Pro artboard detected
-    window.setActiveFloor = function(activeSelector, source) {
-        clearButtonStyles();
-        var activeEl = document.querySelector(activeSelector);
-        if (activeEl) {
-            activeEl.style.backgroundColor = '#0066cc';
-            activeEl.style.color = 'white';
-            var link = activeEl.querySelector('a');
-            if (link) link.style.color = 'white';
-        }
+        // --- Stan synchronizacji -------------------------------------------
+        var SUPPRESS_MS = 1500;
+        var suppressPollUntil = 0;
+        // Ustawiana na czas programowej zmiany #floorFilter z przycisku, żeby
+        // handler zmiany nie przełączał artboardu drugi raz.
+        var syncingFromButton = false;
+        var pendingArtboard = '';
+        var lastArtboard = '';
 
-        var floorValue = floorMap[activeSelector];
-        var floorFilter = document.getElementById('floorFilter');
-        if (floorFilter && floorValue !== undefined) {
-            floorFilter.value = floorValue;
-        }
+        var headingEl = document.querySelector('.develogic-apartments-container .title');
+        var originalHeadingText = headingEl ? headingEl.textContent.trim() : '';
 
-        var localTypeFilter = document.getElementById('localTypeFilter');
-        if (localTypeFilter) {
-            if (source === 'button') {
-                // Button click: set local type based on button mapping
-                if (localTypeMap[activeSelector]) {
-                    localTypeFilter.value = localTypeMap[activeSelector];
-                } else if (activeSelector === '#piwnica-i') {
-                    // Piwnica button → show all types
-                    localTypeFilter.value = 'all';
-                } else {
-                    localTypeFilter.value = 'Lokal mieszkalny';
-                }
-            } else if (source === 'poll') {
-                // Artboard detected by poll — don't override localType if the change
-                // was triggered by the dropdown (syncingFromDropdown flag)
-                if (!syncingFromDropdown) {
-                    if (localTypeMap[activeSelector]) {
-                        localTypeFilter.value = localTypeMap[activeSelector];
-                    } else if (activeSelector === '#piwnica-i') {
-                        localTypeFilter.value = 'all';
-                    } else {
-                        localTypeFilter.value = 'Lokal mieszkalny';
+        // Przejście do artboardu: najpierw publiczne API (jeśli jest), a jako
+        // pewny fallback — przełączenie natywnego <select> warstw Image Map Pro
+        // (to samo, co robi użytkownik klikając w menu warstw mapy).
+        // Zwraca tekst artboardu tak, jak zapisany jest w menu warstw mapy —
+        // z listy kandydatów bierze pierwszy, który w tym menu istnieje.
+        // Porównanie bez uwzględniania wielkości liter, bo nazwy warstw bywają
+        // zapisane różnie ("Piwnica" vs "PIWNICA").
+        function resolveArtboard(candidates) {
+            var list = Array.isArray(candidates) ? candidates : [candidates];
+            var sel = document.querySelector('.imp-ui-layers-select');
+            if (!sel) return list[0];
+            for (var i = 0; i < list.length; i++) {
+                for (var j = 0; j < sel.options.length; j++) {
+                    if (sel.options[j].text.trim().toUpperCase() === list[i].toUpperCase()) {
+                        return sel.options[j].text.trim();
                     }
                 }
-                // If syncingFromDropdown, leave localType as-is
-            } else {
-                // Legacy/default behavior
-                if (localTypeMap[activeSelector]) {
-                    localTypeFilter.value = localTypeMap[activeSelector];
-                } else {
-                    localTypeFilter.value = 'Lokal mieszkalny';
+            }
+            return null; // mapa nie ma takiego artboardu
+        }
+
+        // Fallback: dopasowanie po samym numerze kondygnacji. Dzięki temu snippet
+        // trafia w artboard nawet gdy nazwano go inaczej niż przewiduje lista
+        // kandydatów (np. "Garaż podziemny -2" albo "Hala -1").
+        function resolveArtboardByNumber(floorValue) {
+            var sel = document.querySelector('.imp-ui-layers-select');
+            if (!sel) return null;
+            var want = normalizeFloorValue(floorValue);
+            if (want === '' || isNaN(parseInt(want, 10))) return null;
+            for (var i = 0; i < sel.options.length; i++) {
+                var text = sel.options[i].text.trim();
+                if (text.toUpperCase() === ROOT_ARTBOARD.toUpperCase()) continue;
+                if (normalizeFloorValue(text) === want) {
+                    return text;
                 }
             }
+            return null;
         }
 
-        // Update heading based on whether we're on basement/parking floor
-        var isBasement = (activeSelector === '#piwnica-i');
-        updateHeading(isBasement);
+        function goTo(artboardText) {
+            if (typeof $.imageMapProGoToFloor === 'function') {
+                var mapNames = ['Budynek E', 'budynek-e', 'Budynek_E'];
+                for (var i = 0; i < mapNames.length; i++) {
+                    try { $.imageMapProGoToFloor(mapNames[i], artboardText); } catch (err) { }
+                }
+            }
+            var sel = document.querySelector('.imp-ui-layers-select');
+            if (sel) {
+                for (var j = 0; j < sel.options.length; j++) {
+                    if (sel.options[j].text.trim() === artboardText) {
+                        sel.selectedIndex = j;
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                        sel.dispatchEvent(new Event('input', { bubbles: true }));
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
 
-        if (floorFilter) {
+        function pushToMap(artboardText) {
+            if (!artboardText) return;
+            goTo(artboardText);
+            pendingArtboard = artboardText;
+            lastArtboard = artboardText;
+            suppressPollUntil = Date.now() + SUPPRESS_MS;
+        }
+
+        // "piwnica"/"Piwnica"/"-1" -> "-1", "parter" -> "0" itd. Wtyczka renderuje
+        // opcje pięter z danych API, gdzie kondygnacja podziemna bywa tekstem.
+        function normalizeFloorValue(value) {
+            var str = String(value == null ? '' : value).trim();
+            if (str === '') return '';
+            if (str.toLowerCase() === 'parter') return '0';
+            if (str.toLowerCase() === 'piwnica') return '-1';
+            // Minus musi być częścią dopasowania, inaczej "Piwnica -2" -> "2".
+            var m = str.match(/-?\d+/);
+            if (m) return m[0];
+            // Zapis rzymski ("PIĘTRO VII", "Piętro IV") — tylko gdy brak cyfr.
+            var roman = [['VIII', '8'], ['VII', '7'], ['III', '3'], ['VI', '6'],
+                         ['IV', '4'], ['IX', '9'], ['II', '2'], ['X', '10'],
+                         ['V', '5'], ['I', '1']];
+            var upper = str.toUpperCase();
+            for (var i = 0; i < roman.length; i++) {
+                if (new RegExp('\\b' + roman[i][0] + '\\b').test(upper)) {
+                    return roman[i][1];
+                }
+            }
+            return str;
+        }
+
+        // force = wyślij zdarzenie 'change' także wtedy, gdy wartość się nie zmieniła.
+        // Potrzebne przy kliknięciu przycisku: wtyczka mogła już ustawić tę samą
+        // wartość, ale bez przefiltrowania listy.
+        function setFloorFilter(value, force) {
+            var ff = document.getElementById('floorFilter');
+            if (!ff) { log('brak #floorFilter na stronie'); return false; }
+            // Dopasowanie po znormalizowanej wartości — opcja może mieć value
+            // "piwnica", a my przychodzimy z "-1" (i odwrotnie).
+            var target = null;
+            for (var i = 0; i < ff.options.length; i++) {
+                var optVal = ff.options[i].value;
+                if (optVal === value || (value !== 'all' && normalizeFloorValue(optVal) === normalizeFloorValue(value))) {
+                    target = optVal;
+                    break;
+                }
+            }
+            if (target === null) {
+                // Najczęstsza przyczyna: wtyczka nie wygenerowała opcji dla tej
+                // kondygnacji, bo na niej nie ma żadnego lokalu w widocznym
+                // statusie — albo na stronie działa jeszcze stara wersja wtyczki,
+                // która nie rozpoznaje kondygnacji "piwnica -1" / "piwnica -2".
+                if (window.console) {
+                    console.warn('[sync pięter] #floorFilter nie ma opcji dla piętra "' + value +
+                        '". Dostępne: ' + Array.prototype.map.call(ff.options, function (o) {
+                            return o.value;
+                        }).join(', ') + '. Tabelka nie zostanie przefiltrowana.');
+                }
+                return false;
+            }
+            if (ff.value === target && !force) return true;
+            ff.value = target;
+            ff.dispatchEvent(new Event('change', { bubbles: true }));
+            log('ustawiono #floorFilter =', target);
+            return true;
+        }
+
+        function getCurrentArtboard() {
+            var sel = document.querySelector('.imp-ui-layers-select');
+            if (!sel || sel.selectedIndex < 0) return '';
+            return sel.options[sel.selectedIndex].text.trim();
+        }
+
+        // ===================================================================
+        // Przyciski pięter (widgety tekstowe Elementora)
+        // -------------------------------------------------------------------
+        // Elementor wkleja KAŻDY przycisk z tym samym id="piwnica-i", więc
+        // querySelector('#piwnica-i') trafia wyłącznie w pierwszy z nich i
+        // wiązanie po id z założenia nie może działać. Jedyne, co odróżnia te
+        // przyciski, to TEKST etykiety — i po nim je rozpoznajemy. Dzięki temu
+        // dochodzące kondygnacje ("Piwnica -2") działają bez zmian w kodzie.
+        // ===================================================================
+        var ACTIVE_BG = '#0066cc';
+        var floorButtons = [];
+
+        function collectFloorButtons() {
+            var found = [];
+            var nodes = document.querySelectorAll('.elementor-widget-text-editor p');
+            Array.prototype.forEach.call(nodes, function (el) {
+                var text = (el.textContent || '').trim();
+                if (!/^(piwnica|parter|pi[eę]tro)\b/i.test(text)) return;
+                var value = normalizeFloorValue(text);
+                if (value === '' || isNaN(parseInt(value, 10))) return;
+                found.push({ el: el, value: String(parseInt(value, 10)), text: text });
+            });
+            return found;
+        }
+
+        function clearButtonStyles() {
+            floorButtons.forEach(function (btn) {
+                btn.el.style.backgroundColor = '';
+                btn.el.style.color = '';
+                var link = btn.el.querySelector('a');
+                if (link) link.style.color = '';
+            });
+        }
+
+        // Podświetla przycisk odpowiadający danej kondygnacji ('all' = żaden).
+        function highlightFloorButton(floorValue) {
+            clearButtonStyles();
+            if (floorValue === 'all' || floorValue === undefined || floorValue === null) return;
+            var want = normalizeFloorValue(floorValue);
+            floorButtons.forEach(function (btn) {
+                if (btn.value !== want) return;
+                btn.el.style.backgroundColor = ACTIVE_BG;
+                btn.el.style.color = 'white';
+                var link = btn.el.querySelector('a');
+                if (link) link.style.color = 'white';
+            });
+        }
+
+        // Wspólna ścieżka dla kliknięcia przycisku i zmiany w filtrze pięter.
+        function goToFloor(floorValue) {
+            var key = normalizeFloorValue(floorValue);
+            var artboard = resolveArtboard(floorValueToArtboard[key] || [])
+                || resolveArtboardByNumber(key);
+            if (artboard) {
+                pushToMap(artboard);
+            }
+            highlightFloorButton(key);
+            return artboard;
+        }
+
+        // Po kliknięciu przycisku wtyczka i tak zareaguje na 'artboardChange'
+        // Image Map Pro — asynchronicznie, czyli JUŻ PO naszym setFloorFilter —
+        // i potrafi wpisać do #floorFilter własną wartość. Przy kondygnacjach
+        // podziemnych bywa ona błędna (starsze wersje wtyczki gubiły minus i
+        // z "PIWNICA -2" robiły piętro 2). Przy zmianie z poziomu przełącznika
+        // warstw poprawiał to poll, ale po kliknięciu przycisku poll jest
+        // wyciszony — i nikt tego nie prostował. Stąd blokada: przez chwilę po
+        // kliknięciu pilnujemy, żeby filtr trzymał wybraną kondygnację.
+        var FLOOR_LOCK_MS = 2500;
+        var floorLock = null;       // { value: '-2', until: timestamp }
+        var restoringFloor = false; // zabezpieczenie przed rekurencją
+
+        function lockFloor(value) {
+            floorLock = { value: normalizeFloorValue(value), until: Date.now() + FLOOR_LOCK_MS };
+        }
+
+        (function watchFloorOverrides() {
+            var ff = document.getElementById('floorFilter');
+            if (!ff) return;
+            ff.addEventListener('change', function () {
+                if (!floorLock || restoringFloor) return;
+                if (Date.now() > floorLock.until) { floorLock = null; return; }
+                if (normalizeFloorValue(ff.value) === floorLock.value) return;
+                log('ktoś nadpisał piętro na', ff.value, '- przywracam', floorLock.value);
+                restoringFloor = true;
+                setFloorFilter(floorLock.value, true);
+                restoringFloor = false;
+                highlightFloorButton(floorLock.value);
+            });
+        })();
+
+        // Przełącza mapę i listę na wskazaną kondygnację.
+        function activateFloor(value) {
+            log('klik przycisku ->', value);
+            lockFloor(value);
+            var artboard = goToFloor(value);
+            if (!artboard) {
+                log('nie znalazłem artboardu dla piętra', value,
+                    '— warstwy w mapie:', Array.prototype.map.call(
+                        (document.querySelector('.imp-ui-layers-select') || { options: [] }).options,
+                        function (o) { return o.text.trim(); }).join(' | '));
+            }
             syncingFromButton = true;
-            floorFilter.dispatchEvent(new Event('change'));
+            setFloorFilter(value, true);
             syncingFromButton = false;
+
+            // Image Map Pro zgłasza 'artboardChange' asynchronicznie (po animacji
+            // przejścia), a wtyczka na to zdarzenie sama przestawia #floorFilter —
+            // potrafi więc nadpisać naszą wartość już PO kliknięciu, np. na "all".
+            // Dlatego wymuszamy ją jeszcze raz, gdy mapa się uspokoi. Przy zgodnej
+            // wartości setFloorFilter bez 'force' nic nie robi, więc nie pętli się.
+            [150, 500, 900].forEach(function (ms) {
+                setTimeout(function () {
+                    syncingFromButton = true;
+                    setFloorFilter(value, false);
+                    syncingFromButton = false;
+                    highlightFloorButton(value);
+                }, ms);
+            });
         }
-    };
 
-    window.resetFloorButtons = function() {
-        clearButtonStyles();
+        floorButtons = collectFloorButtons();
+        log('rozpoznane przyciski pięter:', floorButtons.map(function (b) {
+            return b.text + '=' + b.value;
+        }).join(', ') || 'BRAK');
 
+        floorButtons.forEach(function (btn) {
+            btn.el.style.cursor = 'pointer';
+
+            function onClick(e) {
+                // Nasłuch wisi i na <p>, i na <a> w środku — bez tej flagi jedno
+                // kliknięcie w link obsłużyłoby się dwa razy.
+                if (e.__floorHandled) return;
+                e.__floorHandled = true;
+                e.preventDefault();
+                activateFloor(btn.value);
+            }
+
+            // Nasłuch na <a> osobno: gdyby motyw albo Elementor zatrzymał
+            // propagację na linku, handler na <p> nigdy by nie dostał zdarzenia.
+            var link = btn.el.querySelector('a');
+            if (link) link.addEventListener('click', onClick);
+            btn.el.addEventListener('click', onClick);
+        });
+
+        // ===================================================================
+        // KIERUNEK 1:  floorFilter  ->  Image Map Pro
+        // ===================================================================
         var floorFilter = document.getElementById('floorFilter');
         if (floorFilter) {
-            floorFilter.value = 'all';
+            floorFilter.addEventListener('change', function () {
+                if (syncingFromButton || restoringFloor) return;
+                // Ręczna zmiana w selekcie znosi blokadę z przycisku.
+                floorLock = null;
+                var val = floorFilter.value;
+                if (val === 'all') {
+                    pushToMap(ROOT_ARTBOARD);
+                    clearButtonStyles();
+                    if (headingEl) headingEl.textContent = originalHeadingText;
+                    return;
+                }
+                // Normalizujemy wartość filtra ("piwnica"/"Piwnica" -> "-1"),
+                // bo opcje pięter mogą przyjść z API jako tekst, nie jako liczba.
+                goToFloor(val);
+                // Brak takiego artboardu w mapie -> zostawiamy widok bez zmian.
+            });
         }
 
-        var localTypeFilter = document.getElementById('localTypeFilter');
-        if (localTypeFilter) {
-            localTypeFilter.value = 'all';
-        }
+        // ===================================================================
+        // KIERUNEK 2:  Image Map Pro  ->  floorFilter
+        // ===================================================================
+        setInterval(function () {
+            var current = getCurrentArtboard();
+            if (!current) return;
 
-        // Restore original heading
-        updateHeading(false);
+            if (Date.now() < suppressPollUntil) {
+                if (current === pendingArtboard) {
+                    lastArtboard = current;
+                    suppressPollUntil = 0;
+                    pendingArtboard = '';
+                }
+                return;
+            }
 
+            if (current === lastArtboard) return;
+            lastArtboard = current;
+
+            if (current === ROOT_ARTBOARD) {
+                setFloorFilter('all');
+                clearButtonStyles();
+                if (headingEl) headingEl.textContent = originalHeadingText;
+                return;
+            }
+            var floorVal = artboardToFloorValue[current.toUpperCase()];
+            if (floorVal === undefined) {
+                // Artboard spoza mapy nazw — spróbuj odczytać numer kondygnacji
+                // wprost z jego nazwy ("GARAŻ -2" -> "-2").
+                var parsed = normalizeFloorValue(current);
+                if (parsed !== '' && !isNaN(parseInt(parsed, 10))) {
+                    floorVal = parsed;
+                }
+            }
+            if (floorVal !== undefined) {
+                setFloorFilter(floorVal);
+                highlightFloorButton(floorVal);
+            }
+        }, 300);
+
+        // ===================================================================
+        // Reset filtrów -> widok całego budynku
+        // ===================================================================
         var resetBtn = document.getElementById('resetFilters');
         if (resetBtn) {
-            syncingFromButton = true;
-            resetBtn.click();
-            syncingFromButton = false;
-        } else if (floorFilter) {
-            syncingFromButton = true;
-            floorFilter.dispatchEvent(new Event('change'));
-            syncingFromButton = false;
-        }
-    };
-
-    // Sync artboard when floor dropdown changes (only from user interaction)
-    var floorFilter = document.getElementById('floorFilter');
-    if (floorFilter) {
-        floorFilter.addEventListener('change', function() {
-            if (syncingFromButton) return;
-
-            var val = floorFilter.value;
-            if (val === 'all') {
+            resetBtn.addEventListener('click', function () {
+                floorLock = null;
+                pushToMap(ROOT_ARTBOARD);
                 clearButtonStyles();
-                $.imageMapProGoToFloor('Budynki IJKL', 'Budynek I');
-                updateHeading(false);
-            } else {
-                var artboard = floorValueToArtboard[val];
-                var selector = floorValueToSelector[val];
-                if (artboard) {
-                    $.imageMapProGoToFloor('Budynki IJKL', artboard);
-                }
-                if (selector) {
-                    clearButtonStyles();
-                    var el = document.querySelector(selector);
-                    if (el) {
-                        el.style.backgroundColor = '#0066cc';
-                        el.style.color = 'white';
-                        var link = el.querySelector('a');
-                        if (link) link.style.color = 'white';
-                    }
-                }
-                updateHeading(val === '-1');
-            }
-        });
-    }
-
-    // Sync artboard when local type dropdown changes
-    var localTypeFilter = document.getElementById('localTypeFilter');
-    if (localTypeFilter) {
-        localTypeFilter.addEventListener('change', function() {
-            var selectedType = localTypeFilter.value;
-            var artboard = localTypeToArtboard[selectedType];
-
-            if (artboard) {
-                syncingFromDropdown = true;
-                $.imageMapProGoToFloor('Budynki IJKL', artboard);
-
-                // Update lastArtboard so poll doesn't re-trigger when flag clears
-                lastArtboard = artboard;
-
-                // Also highlight the corresponding button and set floor filter
-                var selectorForArtboard = artboardToSelector[artboard];
-                if (selectorForArtboard) {
-                    clearButtonStyles();
-                    var el = document.querySelector(selectorForArtboard);
-                    if (el) {
-                        el.style.backgroundColor = '#0066cc';
-                        el.style.color = 'white';
-                        var link = el.querySelector('a');
-                        if (link) link.style.color = 'white';
-                    }
-
-                    // Update floor filter to match
-                    var floorValue = floorMap[selectorForArtboard];
-                    var floorFilter = document.getElementById('floorFilter');
-                    if (floorFilter && floorValue !== undefined) {
-                        floorFilter.value = floorValue;
-                    }
-                }
-
-                // Update heading for basement types
-                var isBasement = (artboard === 'Piwnica');
-                updateHeading(isBasement);
-
-                // Clear the flag after a delay — poll is fully skipped during this time
-                // and lastArtboard is already updated, so poll won't re-trigger
-                setTimeout(function() {
-                    syncingFromDropdown = false;
-                }, 1000);
-            }
-        });
-    }
-
-    // Poll Image Map Pro layer select for changes
-    setInterval(function() {
-        // Skip poll entirely when artboard change was triggered by our dropdown handler
-        if (syncingFromDropdown) return;
-
-        var layerSelect = document.querySelector('.imp-ui-layers-select');
-        if (!layerSelect) return;
-        var selectedText = layerSelect.options[layerSelect.selectedIndex].text;
-        if (selectedText === lastArtboard) return;
-        lastArtboard = selectedText;
-
-        if (selectedText === 'Budynek I') {
-            resetFloorButtons();
-        } else {
-            var selector = artboardToSelector[selectedText];
-            if (selector) {
-                setActiveFloor(selector, 'poll');
-            }
+                if (headingEl) headingEl.textContent = originalHeadingText;
+            });
         }
-    }, 300);
-
-    // Reset Image Map Pro to default view when reset filters button is clicked
-    var resetBtn = document.getElementById('resetFilters');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', function() {
-            clearButtonStyles();
-            $.imageMapProGoToFloor('Budynki IJKL', 'Budynek I');
-            lastArtboard = 'Budynek I';
-            updateHeading(false);
-        });
-    }
-
-    // Floor buttons exist only on pages that render them (budynek I). On other
-    // pages querySelector returns null, so bind only what's actually present.
-    Object.keys(artboardToSelector).forEach(function(artboard) {
-        var selector = artboardToSelector[artboard];
-        var el = document.querySelector(selector);
-        if (!el) return;
-
-        el.addEventListener('click', function(e) {
-            e.preventDefault();
-            $.imageMapProGoToFloor('Budynki IJKL', artboard);
-            setActiveFloor(selector, 'button');
-        });
     });
-});
+})();

@@ -3,7 +3,7 @@
  * Plugin Name: Develogic Integration
  * Plugin URI: https://github.com/yourusername/develogic-wp-plugin
  * Description: Integracja z API Develogic - wyświetlanie ofert mieszkań, filtrowanie, sortowanie, galerie i więcej
- * Version: 2.2.0
+ * Version: 2.3.0
  * Author: JawneCenyMieszkan.pl
  * Author URI: https://jawnecenymieszkan.pl
  * License: GPL v2 or later
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('DEVELOGIC_VERSION', '2.2.0');
+define('DEVELOGIC_VERSION', '2.3.0');
 define('DEVELOGIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DEVELOGIC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DEVELOGIC_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -110,6 +110,7 @@ final class Develogic_Integration {
             require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-settings.php';
             require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-sync.php';
             require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-imagemappro.php';
+            require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-mail.php';
             require_once DEVELOGIC_PLUGIN_DIR . 'includes/class-debug-helper.php';
         }
         
@@ -141,6 +142,7 @@ final class Develogic_Integration {
             new Develogic_Admin_Settings();
             new Develogic_Admin_Sync();
             new Develogic_Admin_ImageMapPro();
+            new Develogic_Admin_Mail();
             new Develogic_Debug_Helper();
         }
         
