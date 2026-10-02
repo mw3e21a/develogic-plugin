@@ -14,7 +14,39 @@ if (!defined('ABSPATH')) {
  * Class Develogic_Sync
  */
 class Develogic_Sync {
-    
+
+    /**
+     * Minimalny odstęp między automatycznymi synchronizacjami (REST /sync i WP-Cron).
+     * Ręczna synchronizacja z panelu nie jest limitowana.
+     *
+     * @return int Sekundy
+     */
+    public static function get_auto_sync_interval() {
+        return (int) apply_filters('develogic_auto_sync_interval', HOUR_IN_SECONDS);
+    }
+
+    /**
+     * Ile sekund zostało do kolejnej dozwolonej automatycznej synchronizacji (0 = można).
+     *
+     * 5 minut tolerancji, żeby zewnętrzny cron odpalany co godzinę z lekkim
+     * opóźnieniem/wyprzedzeniem nie przeskakiwał co drugiego przebiegu.
+     *
+     * @return int
+     */
+    public static function get_auto_sync_wait() {
+        $last = (int) get_option('develogic_last_auto_sync', 0);
+        $next = $last + self::get_auto_sync_interval() - 5 * MINUTE_IN_SECONDS;
+        return max(0, $next - time());
+    }
+
+    /**
+     * Zapisuje moment startu automatycznej synchronizacji (także nieudanej —
+     * błąd też nie powinien skutkować ponownym odpytaniem API przed czasem).
+     */
+    public static function mark_auto_sync() {
+        update_option('develogic_last_auto_sync', time(), false);
+    }
+
     /**
      * Sync locals from API to CPT
      *
@@ -33,24 +65,53 @@ class Develogic_Sync {
             'message' => '',
         );
         
-        // Fetch from API
-        $locals = develogic()->api_client->get_locals();
-        
+        $selected_investments = develogic()->get_setting('sync_investments', array());
+        if (!is_array($selected_investments)) {
+            $selected_investments = array();
+        }
+        $selected_investments = array_values(array_filter(array_map('absint', $selected_investments)));
+
+        // Fetch from API — przy wybranych inwestycjach pytamy API osobno o każdą
+        // (?investmentId=X), zamiast pobierać całą bazę dewelopera.
+        if (!empty($selected_investments)) {
+            $locals = array();
+            foreach ($selected_investments as $investment_id) {
+                $investment_locals = develogic()->api_client->get_locals(array('investmentId' => $investment_id));
+
+                // Błąd dowolnej inwestycji przerywa sync — inaczej delete_missing_locals
+                // usunąłby lokale inwestycji, której nie udało się pobrać.
+                if (is_wp_error($investment_locals)) {
+                    $stats['message'] = sprintf(
+                        __('Inwestycja %d: %s', 'develogic'),
+                        $investment_id,
+                        $investment_locals->get_error_message()
+                    );
+                    $this->log_sync('error', $stats['message']);
+                    return $stats;
+                }
+
+                if (is_array($investment_locals)) {
+                    $locals = array_merge($locals, $investment_locals);
+                }
+            }
+        } else {
+            $locals = develogic()->api_client->get_locals();
+        }
+
         if (is_wp_error($locals)) {
             $stats['message'] = $locals->get_error_message();
             $this->log_sync('error', $stats['message']);
             return $stats;
         }
-        
+
         if (empty($locals) || !is_array($locals)) {
             $stats['message'] = __('Brak danych z API', 'develogic');
             $this->log_sync('warning', $stats['message']);
             return $stats;
         }
-        
-        // Filter by selected investments if any are selected
-        $selected_investments = develogic()->get_setting('sync_investments', array());
-        if (!empty($selected_investments) && is_array($selected_investments)) {
+
+        // Zabezpieczenie na wypadek, gdyby API zignorowało parametr investmentId
+        if (!empty($selected_investments)) {
             $filtered_locals = array();
             foreach ($locals as $local_data) {
                 $subdivision_id = isset($local_data['subdivisionId']) ? absint($local_data['subdivisionId']) : 0;

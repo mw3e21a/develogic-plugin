@@ -3,7 +3,7 @@
  * Plugin Name: Develogic Integration
  * Plugin URI: https://github.com/yourusername/develogic-wp-plugin
  * Description: Integracja z API Develogic - wyświetlanie ofert mieszkań, filtrowanie, sortowanie, galerie i więcej
- * Version: 2.3.0
+ * Version: 2.3.1
  * Author: JawneCenyMieszkan.pl
  * Author URI: https://jawnecenymieszkan.pl
  * License: GPL v2 or later
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('DEVELOGIC_VERSION', '2.3.0');
+define('DEVELOGIC_VERSION', '2.3.1');
 define('DEVELOGIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DEVELOGIC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DEVELOGIC_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -81,9 +81,6 @@ final class Develogic_Integration {
         
         add_action('plugins_loaded', array($this, 'load_textdomain'));
         add_action('init', array($this, 'init'), 0);
-        
-        // Add custom cron schedule
-        add_filter('cron_schedules', array($this, 'add_cron_schedules'));
         
         // Register cron job hook
         add_action('develogic_sync_cron', array($this, 'run_cron_sync'));
@@ -165,6 +162,9 @@ final class Develogic_Integration {
         // Set up localisation
         $this->load_textdomain();
         
+        // Migracja starego harmonogramu (co 30 min) na co godzinę
+        $this->maybe_migrate_cron_schedule();
+        
         // After init action
         do_action('develogic_init');
     }
@@ -207,7 +207,7 @@ final class Develogic_Integration {
         
         // Schedule cron job if enabled
         if (!wp_next_scheduled('develogic_sync_cron')) {
-            wp_schedule_event(time(), 'every_30_minutes', 'develogic_sync_cron');
+            wp_schedule_event(time(), 'hourly', 'develogic_sync_cron');
         }
         
         // Flush rewrite rules
@@ -263,20 +263,14 @@ final class Develogic_Integration {
     }
     
     /**
-     * Add custom cron schedules
-     *
-     * @param array $schedules Existing schedules
-     * @return array Modified schedules
+     * Przepina zdarzenie WP-Cron z dawnego harmonogramu 'every_30_minutes' na 'hourly'
      */
-    public function add_cron_schedules($schedules) {
-        if (!isset($schedules['every_30_minutes'])) {
-            $schedules['every_30_minutes'] = array(
-                'interval' => 30 * 60, // 30 minutes in seconds
-                'display'  => __('Co 30 minut', 'develogic'),
-            );
+    private function maybe_migrate_cron_schedule() {
+        $schedule = wp_get_schedule('develogic_sync_cron');
+        if ($schedule && $schedule !== 'hourly') {
+            wp_clear_scheduled_hook('develogic_sync_cron');
+            wp_schedule_event(time() + HOUR_IN_SECONDS, 'hourly', 'develogic_sync_cron');
         }
-
-        return $schedules;
     }
     
     /**
@@ -300,6 +294,13 @@ final class Develogic_Integration {
             error_log('[Develogic Cron] Synchronizacja jest już w trakcie - pomijam');
             return;
         }
+        
+        // Limit częstotliwości wspólny z endpointem REST /sync
+        if (Develogic_Sync::get_auto_sync_wait() > 0) {
+            error_log('[Develogic Cron] Ostatnia synchronizacja była niedawno - pomijam');
+            return;
+        }
+        Develogic_Sync::mark_auto_sync();
         
         error_log('[Develogic Cron] Rozpoczynam automatyczną synchronizację');
         

@@ -129,6 +129,7 @@ function develogic_uninstall_cleanup() {
     $options = array(
         'develogic_settings',
         'develogic_last_sync',
+        'develogic_last_auto_sync',
         'develogic_sync_log',
         'develogic_sync_bg',
         'develogic_mail_log',

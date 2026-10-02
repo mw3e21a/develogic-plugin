@@ -109,7 +109,23 @@ class Develogic_Sync_Endpoint {
                 'message' => __('Synchronizacja jest już w trakcie. Spróbuj ponownie za chwilę.', 'develogic'),
             ), 409);
         }
-        
+
+        // Limit częstotliwości — API Develogic nie powinno być odpytywane częściej
+        // niż raz na godzinę, niezależnie od tego, jak często woła zewnętrzny cron.
+        $wait = Develogic_Sync::get_auto_sync_wait();
+        if ($wait > 0) {
+            return new WP_REST_Response(array(
+                'success' => true,
+                'skipped' => true,
+                'message' => sprintf(
+                    __('Pominięto — ostatnia synchronizacja była niedawno. Kolejna możliwa za %d min.', 'develogic'),
+                    ceil($wait / MINUTE_IN_SECONDS)
+                ),
+            ), 200);
+        }
+
+        Develogic_Sync::mark_auto_sync();
+
         // Set lock (5 minutes)
         set_transient('develogic_sync_lock', true, 300);
         
