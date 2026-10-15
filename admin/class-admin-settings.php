@@ -116,7 +116,7 @@ class Develogic_Admin_Settings {
             'develogic_sync_section',
             array(
                 'field' => 'enable_cron_sync',
-                'description' => __('Włącz automatyczną synchronizację co 5 minut za pomocą WordPress Cron. Wymaga prawidłowo skonfigurowanego WP-Cron.', 'develogic')
+                'description' => __('Włącz automatyczną synchronizację co godzinę za pomocą WordPress Cron. Wymaga prawidłowo skonfigurowanego WP-Cron.', 'develogic')
             )
         );
         
@@ -313,7 +313,7 @@ class Develogic_Admin_Settings {
             if ($new_cron_enabled) {
                 // Enable cron - schedule if not already scheduled
                 if (!wp_next_scheduled('develogic_sync_cron')) {
-                    wp_schedule_event(time(), 'every_30_minutes', 'develogic_sync_cron');
+                    wp_schedule_event(time(), 'hourly', 'develogic_sync_cron');
                 }
             } else {
                 // Disable cron - unschedule if scheduled

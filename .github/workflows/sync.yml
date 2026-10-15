@@ -2,7 +2,7 @@ name: Cron Sync Request
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # co 5 minut
+    - cron: "0 * * * *"   # co godzinę (endpoint i tak limituje do 1x/h)
   workflow_dispatch:
 
 jobs:
