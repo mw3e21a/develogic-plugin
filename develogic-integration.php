@@ -3,7 +3,7 @@
  * Plugin Name: Develogic Integration
  * Plugin URI: https://github.com/yourusername/develogic-wp-plugin
  * Description: Integracja z API Develogic - wyświetlanie ofert mieszkań, filtrowanie, sortowanie, galerie i więcej
- * Version: 2.3.1
+ * Version: 2.3.2
  * Author: JawneCenyMieszkan.pl
  * Author URI: https://jawnecenymieszkan.pl
  * License: GPL v2 or later
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('DEVELOGIC_VERSION', '2.3.1');
+define('DEVELOGIC_VERSION', '2.3.2');
 define('DEVELOGIC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DEVELOGIC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DEVELOGIC_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -108,6 +108,7 @@ final class Develogic_Integration {
             require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-sync.php';
             require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-imagemappro.php';
             require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-mail.php';
+            require_once DEVELOGIC_PLUGIN_DIR . 'admin/class-admin-api-log.php';
             require_once DEVELOGIC_PLUGIN_DIR . 'includes/class-debug-helper.php';
         }
         
@@ -140,6 +141,7 @@ final class Develogic_Integration {
             new Develogic_Admin_Sync();
             new Develogic_Admin_ImageMapPro();
             new Develogic_Admin_Mail();
+            new Develogic_Admin_API_Log();
             new Develogic_Debug_Helper();
         }
         
@@ -295,8 +297,15 @@ final class Develogic_Integration {
             return;
         }
         
+        Develogic_API_Client::set_context('WP-Cron');
+        
         // Limit częstotliwości wspólny z endpointem REST /sync
-        if (Develogic_Sync::get_auto_sync_wait() > 0) {
+        $wait = Develogic_Sync::get_auto_sync_wait();
+        if ($wait > 0) {
+            Develogic_API_Client::add_call_log(array(
+                'skipped' => true,
+                'error'   => sprintf('Pominięto — limit 1x/h, kolejna możliwa za %d min', ceil($wait / MINUTE_IN_SECONDS)),
+            ));
             error_log('[Develogic Cron] Ostatnia synchronizacja była niedawno - pomijam');
             return;
         }

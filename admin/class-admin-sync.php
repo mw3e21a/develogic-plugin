@@ -594,6 +594,7 @@ class Develogic_Admin_Sync {
         // Odśwież lock — liczymy czas od faktycznego startu pracy.
         set_transient('develogic_sync_lock', true, 30 * MINUTE_IN_SECONDS);
 
+        Develogic_API_Client::set_context('Ręczna (panel)');
         $sync = new Develogic_Sync();
         $result = $sync->sync_locals();
 

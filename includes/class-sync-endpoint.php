@@ -112,8 +112,14 @@ class Develogic_Sync_Endpoint {
 
         // Limit częstotliwości — API Develogic nie powinno być odpytywane częściej
         // niż raz na godzinę, niezależnie od tego, jak często woła zewnętrzny cron.
+        Develogic_API_Client::set_context('REST /sync');
+        
         $wait = Develogic_Sync::get_auto_sync_wait();
         if ($wait > 0) {
+            Develogic_API_Client::add_call_log(array(
+                'skipped' => true,
+                'error'   => sprintf('Pominięto — limit 1x/h, kolejna możliwa za %d min', ceil($wait / MINUTE_IN_SECONDS)),
+            ));
             return new WP_REST_Response(array(
                 'success' => true,
                 'skipped' => true,

@@ -16,6 +16,84 @@ if (!defined('ABSPATH')) {
 class Develogic_API_Client {
     
     /**
+     * Opcja z logiem wywołań API (podgląd w zakładce „Logi API")
+     */
+    const CALL_LOG_OPTION = 'develogic_api_log';
+    
+    /**
+     * Ile ostatnich wpisów trzymamy w logu
+     */
+    const CALL_LOG_LIMIT = 500;
+    
+    /**
+     * Źródło bieżących wywołań (ustawiane przez punkty wejścia synchronizacji)
+     *
+     * @var string
+     */
+    private static $context = '';
+    
+    /**
+     * Ustaw źródło wywołań widoczne w logu, np. „WP-Cron", „REST /sync".
+     *
+     * @param string $context
+     */
+    public static function set_context($context) {
+        self::$context = (string) $context;
+    }
+    
+    /**
+     * Źródło wywołania — jawnie ustawione albo odgadnięte z typu żądania.
+     *
+     * @return string
+     */
+    private static function get_context() {
+        if (self::$context !== '') {
+            return self::$context;
+        }
+        if (function_exists('wp_doing_cron') && wp_doing_cron()) {
+            return 'WP-Cron';
+        }
+        if (defined('REST_REQUEST') && REST_REQUEST) {
+            return 'REST';
+        }
+        if (function_exists('wp_doing_ajax') && wp_doing_ajax()) {
+            return 'AJAX';
+        }
+        if (is_admin()) {
+            return 'Panel';
+        }
+        return 'Frontend';
+    }
+    
+    /**
+     * Dopisz wpis do logu wywołań.
+     *
+     * @param array $entry
+     */
+    public static function add_call_log($entry) {
+        $log = get_option(self::CALL_LOG_OPTION, array());
+        if (!is_array($log)) {
+            $log = array();
+        }
+        
+        array_unshift($log, array_merge(array(
+            'ts'       => time(),
+            'source'   => self::get_context(),
+            'method'   => '',
+            'url'      => '',
+            'status'   => 0,
+            'ms'       => 0,
+            'bytes'    => 0,
+            'items'    => null,
+            'error'    => '',
+            'skipped'  => false,
+        ), $entry));
+        
+        $log = array_slice($log, 0, self::CALL_LOG_LIMIT);
+        update_option(self::CALL_LOG_OPTION, $log, false);
+    }
+    
+    /**
      * API Base URL
      *
      * @var string
@@ -84,17 +162,27 @@ class Develogic_API_Client {
             $args['headers']['Content-Type'] = 'application/json';
         }
         
+        $started = microtime(true);
         $response = wp_remote_request($url, $args);
+        $call = array(
+            'method' => $method,
+            'url'    => $url,
+            'ms'     => (int) round((microtime(true) - $started) * 1000),
+        );
         
         if (is_wp_error($response)) {
+            self::add_call_log(array_merge($call, array('error' => $response->get_error_message())));
             $this->log_error('Request failed: ' . $response->get_error_message(), $endpoint);
             return $response;
         }
         
         $status_code = wp_remote_retrieve_response_code($response);
         $body = wp_remote_retrieve_body($response);
+        $call['status'] = (int) $status_code;
+        $call['bytes'] = strlen($body);
         
         if ($status_code < 200 || $status_code >= 300) {
+            self::add_call_log(array_merge($call, array('error' => 'HTTP ' . $status_code)));
             $error_message = sprintf(__('API zwróciło kod błędu: %d', 'develogic'), $status_code);
             $error_details = sprintf(
                 'URL: %s | Status: %d | Response: %s',
@@ -109,10 +197,13 @@ class Develogic_API_Client {
         $data = json_decode($body, true);
         
         if (json_last_error() !== JSON_ERROR_NONE) {
+            self::add_call_log(array_merge($call, array('error' => 'Niepoprawny JSON')));
             $error_message = __('Błąd parsowania JSON z API.', 'develogic');
             $this->log_error($error_message, $endpoint, $body);
             return new WP_Error('json_error', $error_message);
         }
+        
+        self::add_call_log(array_merge($call, array('items' => is_array($data) ? count($data) : null)));
         
         return $data;
     }
@@ -203,14 +294,26 @@ class Develogic_API_Client {
             ),
         );
         
+        $started = microtime(true);
         $response = wp_remote_get($url, $args);
+        $call = array(
+            'method' => 'GET',
+            'url'    => $url,
+            'ms'     => (int) round((microtime(true) - $started) * 1000),
+        );
         
         if (is_wp_error($response)) {
+            self::add_call_log(array_merge($call, array('error' => $response->get_error_message())));
             $this->log_error('Failed to download projection: ' . $response->get_error_message(), $url);
             return $response;
         }
         
         $status_code = wp_remote_retrieve_response_code($response);
+        self::add_call_log(array_merge($call, array(
+            'status' => (int) $status_code,
+            'bytes'  => strlen(wp_remote_retrieve_body($response)),
+            'error'  => $status_code !== 200 ? 'HTTP ' . $status_code : '',
+        )));
         
         if ($status_code !== 200) {
             $error_message = sprintf(__('Nie udało się pobrać projekcji. Kod błędu: %d', 'develogic'), $status_code);
