@@ -698,6 +698,28 @@
         window.history.pushState({}, '', url.toString());
         scrollToApartmentFromUrl();
     };
+
+    // Przycisk "Zobacz" w tooltipie Image Map Pro (dodawany przy synchronizacji)
+    // linkuje do "#develogic-mieszkanie=M5" — scroll do listy dopiero po jego
+    // kliknięciu, samo kliknięcie w kształt tylko otwiera tooltip.
+    const TOOLTIP_SCROLL_HASH = '#develogic-mieszkanie=';
+
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest ? e.target.closest('a[href^="' + TOOLTIP_SCROLL_HASH + '"]') : null;
+        if (!link) return;
+
+        e.preventDefault();
+        window.develogicScrollToApartment(decodeURIComponent(link.getAttribute('href').slice(TOOLTIP_SCROLL_HASH.length)));
+    }, true);
+
+    // Gdyby Image Map Pro przechwycił kliknięcie, link i tak zmieni hash.
+    window.addEventListener('hashchange', function() {
+        if (window.location.hash.indexOf(TOOLTIP_SCROLL_HASH) !== 0) return;
+
+        const apartmentNumber = decodeURIComponent(window.location.hash.slice(TOOLTIP_SCROLL_HASH.length));
+        history.replaceState(null, '', window.location.pathname + window.location.search);
+        window.develogicScrollToApartment(apartmentNumber);
+    });
     
     function applyUrlFilters() {
         const urlParams = new URLSearchParams(window.location.search);

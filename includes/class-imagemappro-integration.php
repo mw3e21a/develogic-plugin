@@ -17,7 +17,28 @@ if (!defined('ABSPATH')) {
  * based on local status from Develogic
  */
 class Develogic_ImageMapPro_Integration {
-    
+
+    /**
+     * Font of synced tooltips in IMP 5 (Squares) format — the same as the
+     * IMP 6 tooltips on Ostoja (sans-serif, 14px, bold, white).
+     */
+    const TOOLTIP_FONT = array(
+        'font_family' => 'sans-serif',
+        'font_size' => '14',
+        'font_weight' => 'bold',
+        'line_height' => '22',
+        'text_color' => '#ffffff',
+        'text_align' => 'left'
+    );
+
+    /**
+     * Background of synced tooltips — as on Ostoja's apartment tooltips.
+     */
+    const TOOLTIP_BACKGROUND = array(
+        'background_color' => '#222222',
+        'background_opacity' => 0.8
+    );
+
     /**
      * Status color mapping
      *
@@ -998,41 +1019,81 @@ class Develogic_ImageMapPro_Integration {
             $tooltip_changed = true;
         }
         
+        // Kliknięcie w kształt ma tylko otworzyć tooltip — scroll do listy
+        // odpala dopiero przycisk "Zobacz" w tooltipie (IMP 5 i IMP 6).
+        $scroll = $this->take_over_scroll_action($shape);
+        $actions_changed = $scroll !== null && $scroll['actions_changed'];
+        $scroll_link = $scroll !== null ? '#develogic-mieszkanie=' . rawurlencode($scroll['number']) : '';
+
         // Build tooltip_content structure based on detected structure type
         if ($use_new_structure) {
-            // NEW structure: squares_settings with containers and elements
-            $tooltip_elements = array();
-            
-            // Heading element
+            // NEW structure (IMP 5): squares_settings with containers and elements
+            $old_containers = isset($old_tooltip['squares_settings']['containers']) && is_array($old_tooltip['squares_settings']['containers'])
+                ? $old_tooltip['squares_settings']['containers']
+                : array();
+            $containers = array();
+
+            // Heading element — font jak w tooltipach Ostoi (IMP 6), żeby
+            // oba osiedla wyglądały tak samo.
             if (!empty($local_number) || !empty($local_name)) {
-                $tooltip_elements[] = array(
+                $containers[] = array(
+                    'id' => isset($old_containers[0]['id']) ? $old_containers[0]['id'] : $this->new_container_id(),
                     'settings' => array(
-                        'name' => 'Heading',
-                        'iconClass' => 'fa fa-header'
-                    ),
-                    'options' => array(
-                        'heading' => array(
-                            'text' => $tooltip_html
+                        'elements' => array(
+                            array(
+                                'settings' => array(
+                                    'name' => 'Heading',
+                                    'iconClass' => 'fa fa-header'
+                                ),
+                                'options' => array(
+                                    'heading' => array(
+                                        'text' => $tooltip_html
+                                    ),
+                                    'font' => self::TOOLTIP_FONT
+                                )
+                            )
                         )
                     )
                 );
             }
-            
-            // Generate unique container ID
-            $container_id = 'sq-container-' . time() . '-' . rand(1000, 9999);
-            
-            $tooltip_content = array(
-                'squares_settings' => array(
-                    'containers' => array(
-                        array(
-                            'id' => $container_id,
-                            'settings' => array(
-                                'elements' => $tooltip_elements
+
+            if ($scroll !== null) {
+                $containers[] = array(
+                    'id' => isset($old_containers[1]['id']) ? $old_containers[1]['id'] : $this->new_container_id(),
+                    'settings' => array(
+                        'elements' => array(
+                            array(
+                                'settings' => array(
+                                    'name' => 'Button',
+                                    'iconClass' => 'fa fa-link'
+                                ),
+                                'options' => array(
+                                    'button' => array(
+                                        'text' => 'Zobacz',
+                                        'link_to' => $scroll_link,
+                                        'display' => 'block',
+                                        'bg_color' => '#2196f3',
+                                        'text_color' => '#ffffff',
+                                        'border_radius' => 2
+                                    ),
+                                    'font' => array_merge(self::TOOLTIP_FONT, array('text_align' => 'center'))
+                                )
                             )
                         )
                     )
+                );
+            }
+
+            $tooltip_content = array(
+                'squares_settings' => array(
+                    'containers' => $containers
                 )
             );
+
+            // Porównujemy całą zawartość (bez ID kontenerów), a nie tylko tekst
+            // nagłówka — inaczej font i przycisk nie trafiłyby do tooltipów,
+            // których tekst się nie zmienił.
+            $tooltip_changed = $this->strip_container_ids($old_containers) != $this->strip_container_ids($containers);
         } else {
             // OLD structure: array with objects containing type, text, heading, style, etc.
             // Use consistent formatting for all tooltips (garages, cells, storage rooms, apartments)
@@ -1098,10 +1159,77 @@ class Develogic_ImageMapPro_Integration {
             }
             
             $tooltip_content = array($tooltip_element);
+
+            if ($scroll !== null) {
+                $existing_button = isset($old_tooltip[1]['type']) && $old_tooltip[1]['type'] === 'Button'
+                    ? $old_tooltip[1]
+                    : null;
+
+                $tooltip_content[] = array(
+                    'type' => 'Button',
+                    'text' => 'Zobacz',
+                    'url' => $scroll_link,
+                    'script' => '',
+                    'newTab' => false,
+                    'other' => array(
+                        'id' => '',
+                        'classes' => '',
+                        'css' => ''
+                    ),
+                    'style' => array(
+                        'backgroundColor' => '#2196f3',
+                        'borderRadius' => 2,
+                        'fontFamily' => 'sans-serif',
+                        'fontWeight' => 700,
+                        'fontSize' => 14,
+                        'lineHeight' => 44,
+                        'color' => '#ffffff',
+                        'display' => 'block'
+                    ),
+                    'boxModel' => array(
+                        'width' => 'auto',
+                        'height' => 44,
+                        'margin' => array(
+                            'top' => 0,
+                            'bottom' => 0,
+                            'left' => 0,
+                            'right' => 0
+                        ),
+                        'padding' => array(
+                            'top' => 10,
+                            'bottom' => 10,
+                            'left' => 10,
+                            'right' => 10
+                        )
+                    ),
+                    'id' => isset($existing_button['id']) ? $existing_button['id'] : wp_generate_uuid4()
+                );
+            }
+
+            // Tekst nagłówka porównany wyżej — tu dochodzi sam przycisk
+            // (dodany, zmieniony albo do usunięcia).
+            $old_button = isset($old_tooltip[1]) ? $old_tooltip[1] : null;
+            $new_button = isset($tooltip_content[1]) ? $tooltip_content[1] : null;
+            if ($old_button != $new_button || (is_array($old_tooltip) && count($old_tooltip) > 2)) {
+                $tooltip_changed = true;
+            }
         }
         
+        if ($actions_changed) {
+            $this->log(sprintf('Click action of shape "%s" moved to tooltip button "Zobacz"', $shape_title), 'success');
+        }
+
+        // Tło jak w tooltipach mieszkań na Ostoi (#222222, krycie 0.8). Na
+        // Jeziornej w edytorze ustawiono krycie ~0.43 i tooltip prześwitywał.
+        foreach (self::TOOLTIP_BACKGROUND as $key => $value) {
+            if (!isset($shape['tooltip_style'][$key]) || $shape['tooltip_style'][$key] != $value) {
+                $shape['tooltip_style'][$key] = $value;
+                $tooltip_changed = true;
+            }
+        }
+
         // Update tooltip if content changed OR if tooltip was enabled
-        if ($tooltip_changed || $tooltip_was_disabled) {
+        if ($tooltip_changed || $tooltip_was_disabled || $actions_changed) {
             $shape['tooltip_content'] = $tooltip_content;
             $structure_type = $use_new_structure ? 'new' : 'old';
             $action = $tooltip_was_disabled ? 'enabled and updated' : 'updated';
@@ -1117,6 +1245,61 @@ class Develogic_ImageMapPro_Integration {
         return false;
     }
     
+    /**
+     * Take over the "scroll to apartment" click action of a shape
+     *
+     * Shapes configured with Run Script "develogicScrollToApartment('M5')"
+     * scrolled to the list right on click, so the tooltip was never readable.
+     * The click action is switched to "no-action" (the script stays in place
+     * as a marker for later syncs) and the caller puts the scroll on the
+     * tooltip's "Zobacz" button instead.
+     *
+     * @param array &$shape Shape data (passed by reference)
+     * @return array|null ['number' => string, 'actions_changed' => bool] or null when the shape doesn't scroll
+     */
+    private function take_over_scroll_action(&$shape) {
+        $script = isset($shape['actions']['script']) ? (string) $shape['actions']['script'] : '';
+
+        if (!preg_match('/develogicScrollToApartment\(\s*[\'"]([^\'"]+)[\'"]\s*\)/', $script, $matches)) {
+            return null;
+        }
+
+        $actions_changed = false;
+        if (isset($shape['actions']['click']) && $shape['actions']['click'] === 'run-script') {
+            $shape['actions']['click'] = 'no-action';
+            $actions_changed = true;
+        }
+
+        return array(
+            'number' => $matches[1],
+            'actions_changed' => $actions_changed
+        );
+    }
+
+    /**
+     * Generate a Squares container ID
+     *
+     * @return string
+     */
+    private function new_container_id() {
+        return 'sq-container-' . time() . '-' . rand(1000, 9999);
+    }
+
+    /**
+     * Drop container IDs so tooltip contents can be compared
+     *
+     * @param array $containers Squares containers
+     * @return array
+     */
+    private function strip_container_ids($containers) {
+        foreach ($containers as &$container) {
+            unset($container['id']);
+        }
+        unset($container);
+
+        return $containers;
+    }
+
     /**
      * Save project JSON to database
      *
