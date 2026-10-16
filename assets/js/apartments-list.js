@@ -710,7 +710,23 @@
 
         e.preventDefault();
         window.develogicScrollToApartment(decodeURIComponent(link.getAttribute('href').slice(TOOLTIP_SCROLL_HASH.length)));
+        hideImageMapProTooltips();
     }, true);
+
+    // IMP 6 (Ostoja) zostawia tooltip otwarty po przewinięciu — zamykamy go.
+    // IMP 5 chowa tooltip sam, gdy kursor opuści mapę.
+    function hideImageMapProTooltips() {
+        const instances = window.ImageMapPro && window.ImageMapPro.instances;
+        if (!instances) return;
+
+        Object.keys(instances).forEach(function(name) {
+            try {
+                instances[name].store.dispatch('hideAllTooltips');
+            } catch (err) {
+                console.warn('Image Map Pro - nie udało się zamknąć tooltipa:', err);
+            }
+        });
+    }
 
     // Gdyby Image Map Pro przechwycił kliknięcie, link i tak zmieni hash.
     window.addEventListener('hashchange', function() {
@@ -719,6 +735,7 @@
         const apartmentNumber = decodeURIComponent(window.location.hash.slice(TOOLTIP_SCROLL_HASH.length));
         history.replaceState(null, '', window.location.pathname + window.location.search);
         window.develogicScrollToApartment(apartmentNumber);
+        hideImageMapProTooltips();
     });
     
     function applyUrlFilters() {

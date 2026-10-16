@@ -29,8 +29,43 @@ class Develogic_Shortcodes {
         add_shortcode('develogic_investments', array($this, 'render_investments'));
         add_shortcode('develogic_local_types', array($this, 'render_local_types'));
         add_shortcode('develogic_count', array($this, 'render_count'));
+
+        add_filter('request', array($this, 'keep_page_for_apartment_param'));
     }
-    
+
+    /**
+     * Keep the page when the URL has ?mieszkanie=M52
+     *
+     * "mieszkanie" is the scroll-to-apartment param read by apartments-list.js.
+     * When another plugin/theme registers a "mieszkanie" post type (Ostoja),
+     * WordPress takes the param for that post type's query var and queries a
+     * post named "m52" instead of the page — the refreshed link ends in 404.
+     *
+     * @param array $query_vars Parsed query vars
+     * @return array
+     */
+    public function keep_page_for_apartment_param($query_vars) {
+        if (!isset($query_vars['mieszkanie'])) {
+            return $query_vars;
+        }
+
+        // Only when a page is requested — /mieszkanie/<slug>/ of that post
+        // type has no pagename and stays untouched.
+        if (empty($query_vars['pagename']) && empty($query_vars['page_id'])) {
+            return $query_vars;
+        }
+
+        foreach (get_post_types(array(), 'objects') as $post_type => $post_type_object) {
+            if ($post_type_object->query_var === 'mieszkanie'
+                && isset($query_vars['post_type']) && $query_vars['post_type'] === $post_type) {
+                unset($query_vars['post_type'], $query_vars['name']);
+            }
+        }
+        unset($query_vars['mieszkanie']);
+
+        return $query_vars;
+    }
+
     /**
      * Render offers A1 shortcode (main layout for JeziornaTowers, OstojaOsiedle)
      */
