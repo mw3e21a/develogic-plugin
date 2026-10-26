@@ -1215,7 +1215,6 @@ if (!defined('DEVELOGIC_CRITICAL_CSS_PRINTED')) {
                             <div class="inquiry-survey-section">
                                 <span class="inquiry-survey-label inquiry-survey-label--large"><strong>W celu uzyskania oferty specjalnej zaznacz jedno lub kilka z poniższych zdań, które najbardziej pasuje do Ciebie:</strong></span>
                                 <div class="inquiry-survey-options inquiry-survey-options--column">
-                                    <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="służby mundurowe"> Jestem pracownikiem tzw. służb mundurowych</label>
                                     <label class="inquiry-checkbox"><input type="checkbox" name="survey_promo[]" value="ślub 2025/2026"> Wziąłem/wzięłam ślub w 2025 lub 2026 roku</label>
                                     <div class="inquiry-checkbox-with-select">
                                         <label class="inquiry-checkbox">

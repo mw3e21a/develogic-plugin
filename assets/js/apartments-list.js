@@ -3691,9 +3691,7 @@
                     var promoVals = [];
                     promoChecked.forEach(function(cb) {
                         var val = cb.value;
-                        if (val === 's\u0142u\u017cby mundurowe') {
-                            val = 'Pracownik s\u0142u\u017cb mundurowych';
-                        } else if (val === '\u015blub 2025/2026') {
+                        if (val === '\u015blub 2025/2026') {
                             val = '\u015alub w 2025 lub 2026 roku';
                         } else if (val === 'dzieci') {
                             var countSel = form.querySelector('select[name="survey_children_count"]');
